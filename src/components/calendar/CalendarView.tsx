@@ -40,6 +40,7 @@ import { EventModal } from './EventModal';
 import { EventDetailPage } from './EventDetailPage';
 import { ChecklistRunnerModal } from '../checklists/ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from '../checklists/ChecklistFeedbackModal';
+import { ConfirmModal } from '@/components/ui';
 
 interface CalendarViewProps {
   events: Event[];
@@ -84,11 +85,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [selfAssignPoleId, setSelfAssignPoleId] = React.useState<string>('');
   const [selfAssigning, setSelfAssigning] = React.useState<boolean>(false);
 
-  // Modals
+  // Modals & Confirmations
   const [showEventModal, setShowEventModal] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
   const [runningChecklist, setRunningChecklist] = React.useState<any | null>(null);
   const [feedbackChecklist, setFeedbackChecklist] = React.useState<any | null>(null);
+  const [deleteConfirmEventId, setDeleteConfirmEventId] = React.useState<string | null>(null);
+  const [withdrawConfirmAssignmentId, setWithdrawConfirmAssignmentId] = React.useState<string | null>(null);
+  const [assignErrorFeedback, setAssignErrorFeedback] = React.useState<string | null>(null);
 
   const isLeaderOrAdmin =
     currentUser?.role === 'SUPER_ADMIN' ||
@@ -353,17 +357,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
-  // Delete event handler
-  const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer définitivement ce culte / événement ?')) return;
+  // Delete event confirmation trigger
+  const handleDeleteEvent = (eventId: string) => {
+    setDeleteConfirmEventId(eventId);
+  };
+
+  const executeDeleteEvent = async () => {
+    if (!deleteConfirmEventId) return;
     try {
-      await fetch(`/api/events/${eventId}`, { method: 'DELETE' });
-      if (selectedEvent?.id === eventId) {
+      await fetch(`/api/events/${deleteConfirmEventId}`, { method: 'DELETE' });
+      if (selectedEvent?.id === deleteConfirmEventId) {
         setSelectedEvent(null);
       }
+      setDeleteConfirmEventId(null);
       if (onRefresh) onRefresh();
     } catch (e) {
       console.error(e);
+      setDeleteConfirmEventId(null);
     }
   };
 
@@ -406,12 +416,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Self Assign / Volunteer Handler
   const handleSelfAssign = async (eventId: string, poleId: string) => {
+    setAssignErrorFeedback(null);
     if (!currentUser) {
-      alert('Veuillez vous connecter pour vous positionner.');
+      setAssignErrorFeedback('Veuillez vous connecter pour vous positionner.');
       return;
     }
     if (!poleId) {
-      alert('Veuillez sélectionner un pôle.');
+      setAssignErrorFeedback('Veuillez sélectionner un pôle.');
       return;
     }
 
@@ -440,34 +451,40 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         if (onRefresh) onRefresh();
       } else {
         const err = await res.json();
-        alert(err.error || 'Erreur lors du positionnement');
+        setAssignErrorFeedback(err.error || 'Erreur lors du positionnement');
       }
     } catch (e) {
       console.error(e);
-      alert('Erreur réseau lors du positionnement');
+      setAssignErrorFeedback('Erreur réseau lors du positionnement');
     } finally {
       setSelfAssigning(false);
     }
   };
 
-  // Withdraw / Self Remove Handler
-  const handleWithdrawAssignment = async (assignmentId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir vous désister de ce culte / événement ?')) return;
+  // Withdraw / Self Remove Trigger
+  const handleWithdrawAssignment = (assignmentId: string) => {
+    setWithdrawConfirmAssignmentId(assignmentId);
+  };
+
+  const executeWithdrawAssignment = async () => {
+    if (!withdrawConfirmAssignmentId) return;
     try {
-      const res = await fetch(`/api/assignments/${assignmentId}`, {
+      const res = await fetch(`/api/assignments/${withdrawConfirmAssignmentId}`, {
         method: 'DELETE'
       });
       if (res.ok) {
         if (selectedEvent) {
           setSelectedEvent({
             ...selectedEvent,
-            assignments: (selectedEvent.assignments || []).filter((a) => a.id !== assignmentId)
+            assignments: (selectedEvent.assignments || []).filter((a) => a.id !== withdrawConfirmAssignmentId)
           });
         }
+        setWithdrawConfirmAssignmentId(null);
         if (onRefresh) onRefresh();
       }
     } catch (e) {
       console.error(e);
+      setWithdrawConfirmAssignmentId(null);
     }
   };
 
@@ -1528,6 +1545,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             </div>
                           )}
 
+                          {assignErrorFeedback && (
+                            <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-[11px] font-semibold flex items-center justify-between">
+                              <span>⚠️ {assignErrorFeedback}</span>
+                              <button
+                                onClick={() => setAssignErrorFeedback(null)}
+                                className="text-rose-400 hover:text-rose-700 ml-1 text-xs font-bold"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
+
                           <button
                             onClick={() => handleSelfAssign(selectedEvent.id, activeTargetPole?.id || poles[0]?.id)}
                             disabled={selfAssigning || !activeTargetPole}
@@ -1835,6 +1864,30 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           onClose={() => setFeedbackChecklist(null)}
         />
       )}
+
+      {/* Delete Event Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteConfirmEventId)}
+        onClose={() => setDeleteConfirmEventId(null)}
+        onConfirm={executeDeleteEvent}
+        title="Supprimer ce culte"
+        message="Êtes-vous certain de vouloir supprimer définitivement ce culte / événement ? Cette action est irréversible."
+        confirmLabel="Supprimer définitivement"
+        cancelLabel="Annuler"
+        variant="danger"
+      />
+
+      {/* Withdraw Assignment Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(withdrawConfirmAssignmentId)}
+        onClose={() => setWithdrawConfirmAssignmentId(null)}
+        onConfirm={executeWithdrawAssignment}
+        title="Se désister du culte"
+        message="Êtes-vous certain de vouloir retirer votre positionnement pour ce culte ?"
+        confirmLabel="Oui, me désister"
+        cancelLabel="Garder mon service"
+        variant="danger"
+      />
     </div>
   );
 };

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { User, Pole, Unavailability } from '@/types';
 import { UnavailabilityModal } from './UnavailabilityModal';
+import { ConfirmModal } from '@/components/ui';
 
 interface UnavailabilitiesViewProps {
   currentUser: User | null;
@@ -53,6 +54,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
   const [showModal, setShowModal] = React.useState<boolean>(false);
   const [editingUnavailability, setEditingUnavailability] = React.useState<Unavailability | null>(null);
   const [initialStartDate, setInitialStartDate] = React.useState<string | undefined>(undefined);
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null);
 
   const isLeaderOrAdmin =
     currentUser?.role === 'SUPER_ADMIN' ||
@@ -76,20 +78,15 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
     }
   };
 
+  // Real-time updates listener
   React.useEffect(() => {
     fetchUnavailabilities();
 
-    // Listen to real-time server-sent events
     const eventSource = new EventSource('/api/realtime');
     eventSource.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        if (
-          data.type === 'UNAVAILABILITY_CREATED' ||
-          data.type === 'UNAVAILABILITY_DELETED' ||
-          data.type === 'UNAVAILABILITY_UPDATED' ||
-          data.type === 'INIT'
-        ) {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'UNAVAILABILITY_CREATED' || payload.type === 'UNAVAILABILITY_DELETED' || payload.type === 'UNAVAILABILITY_UPDATED' || payload.type === 'INIT') {
           fetchUnavailabilities();
         }
       } catch (e) {
@@ -102,15 +99,22 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
     };
   }, []);
 
-  // Delete handler
-  const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette indisponibilité ?')) return;
+  // Delete trigger
+  const handleDelete = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return;
+
+    const targetId = deleteConfirmId;
+    setDeleteConfirmId(null);
 
     // Optimistic update
-    setUnavailabilities((prev) => prev.filter((u) => u.id !== id));
+    setUnavailabilities((prev) => prev.filter((u) => u.id !== targetId));
 
     try {
-      const res = await fetch(`/api/unavailabilities/${id}`, {
+      const res = await fetch(`/api/unavailabilities/${targetId}`, {
         method: 'DELETE'
       });
       if (!res.ok) {
@@ -856,6 +860,18 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
           }}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteConfirmId)}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={executeDelete}
+        title="Supprimer l'indisponibilité"
+        message="Êtes-vous certain de vouloir supprimer cette déclaration d'indisponibilité ?"
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+      />
     </div>
   );
 };

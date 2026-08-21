@@ -68,8 +68,11 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
     return !isAssigned;
   });
 
+  const [dashboardFeedback, setDashboardFeedback] = React.useState<string | null>(null);
+
   const handleDashboardSelfAssign = async (eventId: string, poleId: string) => {
     if (!currentUser) return;
+    setDashboardFeedback(null);
     setPositioningId(eventId);
     try {
       const res = await fetch('/api/assignments', {
@@ -88,11 +91,11 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
         onNavigateTab('calendar');
       } else {
         const err = await res.json();
-        alert(err.error || 'Erreur lors du positionnement');
+        setDashboardFeedback(err.error || 'Erreur lors du positionnement');
       }
     } catch (e) {
       console.error(e);
-      alert('Erreur réseau');
+      setDashboardFeedback('Erreur réseau lors de la communication avec le serveur.');
     } finally {
       setPositioningId(null);
     }
@@ -100,6 +103,19 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto font-sans">
+      {/* In-app error feedback banner */}
+      {dashboardFeedback && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+          <span>⚠️ {dashboardFeedback}</span>
+          <button
+            onClick={() => setDashboardFeedback(null)}
+            className="text-rose-400 hover:text-rose-800 text-xs font-bold ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-950/20 relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none" />

@@ -86,6 +86,7 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     mediaType: 'NONE' | 'PHOTO' | 'VIDEO';
     mediaUrl: string;
     uploading?: boolean;
+    error?: string;
   }>>([
     { title: '', description: '', mediaType: 'NONE', mediaUrl: '' }
   ]);
@@ -166,17 +167,19 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
         updated[stepIndex].mediaUrl = data.url;
         updated[stepIndex].mediaType = data.mediaType;
         updated[stepIndex].uploading = false;
+        updated[stepIndex].error = undefined;
         setChecklistSteps(updated);
       } else {
-        alert(data.error || 'Erreur lors du téléversement');
         const updated = [...checklistSteps];
         updated[stepIndex].uploading = false;
+        updated[stepIndex].error = data.error || 'Erreur lors du téléversement';
         setChecklistSteps(updated);
       }
     } catch (err) {
       console.error('Upload error:', err);
       const updated = [...checklistSteps];
       updated[stepIndex].uploading = false;
+      updated[stepIndex].error = 'Erreur de connexion lors du téléversement';
       setChecklistSteps(updated);
     }
   };

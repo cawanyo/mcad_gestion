@@ -28,7 +28,7 @@ import {
   Zap
 } from 'lucide-react';
 import { Event, Pole, User, Assignment, Checklist } from '@/types';
-import { Avatar, Badge } from '@/components/ui';
+import { Avatar, Badge, ConfirmModal } from '@/components/ui';
 
 interface EventDetailPageProps {
   event: Event;
@@ -62,6 +62,8 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
   const [selfAssignRoleTag, setSelfAssignRoleTag] = React.useState<string>('STAR Volontaire');
   const [selfAssigning, setSelfAssigning] = React.useState<boolean>(false);
   const [feedbackSuccess, setFeedbackSuccess] = React.useState<string | null>(null);
+  const [feedbackError, setFeedbackError] = React.useState<string | null>(null);
+  const [withdrawConfirmId, setWithdrawConfirmId] = React.useState<string | null>(null);
 
   // Sync prop changes
   React.useEffect(() => {
@@ -111,14 +113,15 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
 
   // Self Assign / Volunteer Handler
   const handleSelfAssign = async () => {
+    setFeedbackError(null);
     if (!currentUser) {
-      alert('Veuillez vous connecter pour vous positionner.');
+      setFeedbackError('Veuillez vous connecter pour vous positionner.');
       return;
     }
 
     const targetPoleId = selfAssignPoleId || selectablePoles[0]?.id;
     if (!targetPoleId) {
-      alert('Veuillez sélectionner un pôle pour votre service.');
+      setFeedbackError('Veuillez sélectionner un pôle pour votre service.');
       return;
     }
 
@@ -162,35 +165,39 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
 
         onRefresh();
       } else {
-        alert(data.error || 'Erreur lors du positionnement');
+        setFeedbackError(data.error || 'Erreur lors du positionnement');
       }
     } catch (e) {
       console.error(e);
-      alert('Erreur de connexion au serveur.');
+      setFeedbackError('Erreur de connexion au serveur.');
     } finally {
       setSelfAssigning(false);
     }
   };
 
-  // Unassign / Withdraw Handler
-  const handleUnassignSelf = async (assignmentId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir retirer votre positionnement pour ce culte ?')) {
-      return;
-    }
+  // Unassign / Withdraw Trigger
+  const handleUnassignSelf = (assignmentId: string) => {
+    setWithdrawConfirmId(assignmentId);
+  };
+
+  const executeUnassignSelf = async () => {
+    if (!withdrawConfirmId) return;
     try {
-      const res = await fetch(`/api/assignments/${assignmentId}`, {
+      const res = await fetch(`/api/assignments/${withdrawConfirmId}`, {
         method: 'DELETE'
       });
       if (res.ok) {
         setFeedbackSuccess('Votre positionnement a été retiré.');
         setCurrentEvent((prev) => ({
           ...prev,
-          assignments: (prev.assignments || []).filter((a) => a.id !== assignmentId)
+          assignments: (prev.assignments || []).filter((a) => a.id !== withdrawConfirmId)
         }));
+        setWithdrawConfirmId(null);
         onRefresh();
       }
     } catch (e) {
       console.error(e);
+      setWithdrawConfirmId(null);
     }
   };
 
@@ -265,6 +272,19 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
             <span>{feedbackSuccess}</span>
           </div>
           <button onClick={() => setFeedbackSuccess(null)} className="text-emerald-700 font-bold hover:underline">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {feedbackError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            <span>{feedbackError}</span>
+          </div>
+          <button onClick={() => setFeedbackError(null)} className="text-rose-700 font-bold hover:underline">
             ✕
           </button>
         </div>
@@ -674,6 +694,18 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
           </div>
         )}
       </div>
+
+      {/* Withdraw Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(withdrawConfirmId)}
+        onClose={() => setWithdrawConfirmId(null)}
+        onConfirm={executeUnassignSelf}
+        title="Retirer mon positionnement"
+        message="Êtes-vous certain de vouloir vous désister de ce culte ?"
+        confirmLabel="Oui, me désister"
+        cancelLabel="Garder mon service"
+        variant="danger"
+      />
     </div>
   );
 };

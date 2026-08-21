@@ -36,6 +36,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [recurrenceRule, setRecurrenceRule] = React.useState<'NONE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'>('NONE');
   const [recurrenceCount, setRecurrenceCount] = React.useState<number>(4);
   const [loading, setLoading] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   const wasOpenRef = React.useRef(false);
 
@@ -54,6 +55,7 @@ export const EventModal: React.FC<EventModalProps> = ({
     };
     if (isOpen) {
       fetchChecklists();
+      setErrorMessage(null);
     }
   }, [isOpen]);
 
@@ -64,54 +66,56 @@ export const EventModal: React.FC<EventModalProps> = ({
       return;
     }
 
-    if (!wasOpenRef.current) {
-      wasOpenRef.current = true;
+    // Only run initialization on first open or if editingEvent changes
+    if (wasOpenRef.current) return;
+    wasOpenRef.current = true;
 
-      if (editingEvent) {
-        setTitle(editingEvent.title || '');
-        const sDate = new Date(editingEvent.startsAt);
-        const eDate = new Date(editingEvent.endsAt);
-        setDate(sDate.toISOString().split('T')[0]);
-        setStartTime(sDate.toTimeString().slice(0, 5));
-        setEndTime(eDate.toTimeString().slice(0, 5));
-        setLocation(editingEvent.location || 'Temple Principal');
-        setOrganizerPoleId(editingEvent.organizerPoleId || poles[0]?.id || '');
-        setDescription(editingEvent.description || '');
-        setRecurrenceRule(editingEvent.recurrenceRule || 'NONE');
-        setRecurrenceCount(4);
+    if (editingEvent) {
+      setTitle(editingEvent.title);
+      setDescription(editingEvent.description || '');
+      
+      const start = new Date(editingEvent.startsAt);
+      const end = new Date(editingEvent.endsAt);
+      
+      setDate(start.toISOString().split('T')[0]);
+      setStartTime(start.toTimeString().slice(0, 5));
+      setEndTime(end.toTimeString().slice(0, 5));
+      setLocation(editingEvent.location || 'Temple Principal');
+      setOrganizerPoleId(editingEvent.organizerPoleId || poles[0]?.id || '');
+      setRecurrenceRule('NONE');
 
-        const reqs: Record<string, number> = {};
-        (editingEvent.requirements || []).forEach((r: any) => {
-          reqs[r.poleId] = r.requiredCount;
-        });
-        setPoleRequirements(reqs);
+      const reqMap: Record<string, number> = {};
+      (editingEvent.requirements || []).forEach((r: any) => {
+        reqMap[r.poleId] = r.requiredCount;
+      });
+      setPoleRequirements(reqMap);
 
-        const pChecklists: Record<string, string> = {};
-        (editingEvent.eventChecklists || []).forEach((ec: any) => {
-          if (ec.checklist?.poleId) {
-            pChecklists[ec.checklist.poleId] = ec.checklist.id;
-          }
-        });
-        setPoleChecklists(pChecklists);
-      } else {
-        setTitle('Culte dominical');
-        setDate(todayStr);
-        setStartTime('09:30');
-        setEndTime('12:30');
-        setLocation('Temple Principal');
-        setOrganizerPoleId(poles[0]?.id || '');
-        setDescription('Culte de célébration et louange.');
-        setRecurrenceRule('NONE');
-        setRecurrenceCount(4);
-        const reqs: Record<string, number> = {};
-        poles.forEach((p) => {
-          reqs[p.id] = 1;
-        });
-        setPoleRequirements(reqs);
-        setPoleChecklists({});
-      }
+      const chkMap: Record<string, string> = {};
+      (editingEvent.eventChecklists || []).forEach((ec: any) => {
+        if (ec.checklist?.poleId) {
+          chkMap[ec.checklist.poleId] = ec.checklistId;
+        }
+      });
+      setPoleChecklists(chkMap);
+    } else {
+      setTitle('Culte dominical');
+      setDescription('Culte de célébration et louange.');
+      setDate(todayStr);
+      setStartTime('09:30');
+      setEndTime('12:30');
+      setLocation('Temple Principal');
+      setOrganizerPoleId(poles[0]?.id || '');
+      setRecurrenceRule('NONE');
+      setRecurrenceCount(4);
+
+      const defaultReq: Record<string, number> = {};
+      poles.forEach((p) => {
+        defaultReq[p.id] = 2;
+      });
+      setPoleRequirements(defaultReq);
+      setPoleChecklists({});
     }
-  }, [isOpen, editingEvent]);
+  }, [isOpen, editingEvent, poles, todayStr]);
 
   if (!isOpen) return null;
 
@@ -136,10 +140,12 @@ export const EventModal: React.FC<EventModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     setLoading(true);
+
     try {
-      const startsAt = new Date(`${date}T${startTime}:00`);
-      const endsAt = new Date(`${date}T${endTime}:00`);
+      const startsAt = new Date(`${date}T${startTime}:00`).toISOString();
+      const endsAt = new Date(`${date}T${endTime}:00`).toISOString();
 
       const requirements = Object.entries(poleRequirements)
         .filter(([_, count]) => count > 0)
@@ -148,7 +154,7 @@ export const EventModal: React.FC<EventModalProps> = ({
       const checklistIds = Object.values(poleChecklists).filter(Boolean);
 
       if (editingEvent) {
-        // Edit existing event
+        // Update existing event
         const res = await fetch(`/api/events/${editingEvent.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -168,7 +174,8 @@ export const EventModal: React.FC<EventModalProps> = ({
           onEventCreated();
           onClose();
         } else {
-          alert('Erreur lors de la mise à jour de l\'événement');
+          const err = await res.json().catch(() => ({}));
+          setErrorMessage(err.error || 'Erreur lors de la mise à jour de l\'événement');
         }
       } else {
         // Create new event (with recurrence)
@@ -193,12 +200,13 @@ export const EventModal: React.FC<EventModalProps> = ({
           onEventCreated();
           onClose();
         } else {
-          alert('Erreur lors de la création de l\'événement');
+          const err = await res.json().catch(() => ({}));
+          setErrorMessage(err.error || 'Erreur lors de la création de l\'événement');
         }
       }
     } catch (err) {
       console.error(err);
-      alert('Erreur réseau');
+      setErrorMessage('Erreur réseau lors de la communication avec le serveur.');
     } finally {
       setLoading(false);
     }
@@ -440,6 +448,20 @@ export const EventModal: React.FC<EventModalProps> = ({
               })}
             </div>
           </div>
+
+          {/* Error banner */}
+          {errorMessage && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center justify-between">
+              <span>⚠️ {errorMessage}</span>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="text-rose-400 hover:text-rose-700 text-xs font-bold ml-2"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {/* Submit */}
           <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
