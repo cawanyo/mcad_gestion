@@ -277,7 +277,7 @@ export const ServiceValidationTracking: React.FC<ServiceValidationTrackingProps>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             {isLeaderOrAdmin
-              ? 'Suivi des retours d’expérience par bénévole, rappels automatiques et contrôle qualité.'
+              ? 'Suivi des retours d’expérience par STAR, rappels automatiques et contrôle qualité.'
               : 'Validez votre présence après chaque culte et transmettez votre retour d’expérience à vos responsables.'}
           </p>
         </div>
@@ -575,7 +575,7 @@ export const ServiceValidationTracking: React.FC<ServiceValidationTrackingProps>
                             <p className="font-extrabold text-slate-900 leading-tight">
                               {item.user?.firstName} {item.user?.lastName}
                             </p>
-                            <p className="text-[10px] text-slate-400 font-mono">{item.user?.phone || 'Bénévole'}</p>
+                            <p className="text-[10px] text-slate-400 font-mono">{item.user?.phone || 'STAR'}</p>
                           </div>
                         </div>
                       </td>

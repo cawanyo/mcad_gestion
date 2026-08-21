@@ -312,7 +312,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
             <StatCard
               label="Effectif actif"
               value={statsData.kpis?.totalMembers || 0}
-              subValue="bénévoles"
+              subValue="STARS"
               icon={<Users className="w-4 h-4 text-indigo-600" />}
               iconBg="bg-indigo-50"
             />
@@ -333,7 +333,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
             <StatCard
               label="Moyenne / culte"
               value={statsData.kpis?.avgVolunteersPerEvent || 0}
-              subValue="bénévoles / culte"
+              subValue="STARS / culte"
               valueColor="text-emerald-600"
               icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
               iconBg="bg-emerald-50"
@@ -416,7 +416,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
               <div className="flex items-center gap-3 text-xs font-bold">
                 <span className="flex items-center gap-1 text-indigo-700">
                   <span className="w-2 h-2 rounded-full bg-indigo-600" />
-                  <span>Bénévoles mobilisés</span>
+                  <span>STARS mobilisées</span>
                 </span>
                 <span className="flex items-center gap-1 text-slate-500">
                   <span className="w-2 h-2 rounded-full bg-slate-300" />
@@ -452,11 +452,11 @@ export const StatsView: React.FC<StatsViewProps> = ({
             </div>
           </div>
 
-          {/* TOP BÉNÉVOLES LES PLUS ENGAGÉS */}
+          {/* TOP STARS LES PLUS ENGAGÉES */}
           <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
               <Award className="w-4 h-4 text-amber-500" />
-              <span>Bénévoles les plus engagés en {selectedYear}</span>
+              <span>STARS les plus engagées en {selectedYear}</span>
             </h3>
 
             {statsData.topVolunteers?.length === 0 ? (

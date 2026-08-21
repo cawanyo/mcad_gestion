@@ -37,7 +37,7 @@ const ROLES_CONFIG: Record<
     label: 'Responsable de Pôle',
     bg: 'bg-blue-100 text-blue-800 border-blue-200',
     badgeColor: '#3b82f6',
-    description: 'Gestion des bénévoles de son pôle, assignations aux cultes, modèles de checklists et suivi des validations.'
+    description: 'Gestion des STARS de son pôle, assignations aux cultes, modèles de checklists et suivi des validations.'
   },
   CALENDAR_MANAGER: {
     label: 'Gestionnaire Calendrier',
@@ -210,7 +210,7 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Gestion des bénévoles, attributions des pôles et droits d'administration.
+            Gestion des STARS, attributions des pôles et droits d'administration.
           </p>
         </div>
 

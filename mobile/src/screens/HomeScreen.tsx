@@ -157,7 +157,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   // TRUNCATION & NAME FORMATTING (Safe header width)
   // -------------------------------------------------------------
   const formatHeaderName = (first?: string, last?: string) => {
-    const fName = (first || 'Bénévole').trim();
+    const fName = (first || 'STAR').trim();
     const lInitial = last ? ` ${last.trim().charAt(0).toUpperCase()}.` : '';
     const full = `${fName}${lInitial}`;
 
@@ -173,7 +173,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     ? currentUser.role === 'SUPER_ADMIN'
       ? 'Super Admin'
       : 'Responsable'
-    : 'Bénévole';
+    : 'STAR';
 
   // -------------------------------------------------------------
   // HANDLERS

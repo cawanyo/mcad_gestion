@@ -14,7 +14,7 @@ import {
   X
 } from 'lucide-react';
 import { User as UserType } from '@/types';
-import { Avatar, Modal } from '@/components/ui';
+import { Avatar, Modal, PhoneInputWithCountry } from '@/components/ui';
 
 interface SettingsViewProps {
   currentUser: UserType | null;
@@ -282,17 +282,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Numéro de téléphone (Identifiant) *
               </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+33 6 12 34 56 78"
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+              <PhoneInputWithCountry
+                value={phone}
+                onChange={setPhone}
+                required
+              />
             </div>
 
             {/* Date d'anniversaire */}

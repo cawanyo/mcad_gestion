@@ -112,7 +112,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               ? 'Responsable Dép.'
               : currentUser?.role === 'POLE_LEADER'
               ? 'Responsable Pôle'
-              : 'Bénévole MCAD'}
+              : 'STAR MCAD'}
           </Text>
         </View>
 

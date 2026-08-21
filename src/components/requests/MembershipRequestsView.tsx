@@ -157,7 +157,7 @@ export const MembershipRequestsView: React.FC<MembershipRequestsViewProps> = ({
             )}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Validez ou refusez les demandes des bénévoles souhaitant rejoindre les pôles de service.
+            Validez ou refusez les demandes des STARS souhaitant rejoindre les pôles de service.
           </p>
         </div>
 
@@ -327,7 +327,7 @@ export const MembershipRequestsView: React.FC<MembershipRequestsViewProps> = ({
                     <div className="p-3 bg-indigo-50/50 rounded-2xl border border-indigo-100 text-xs">
                       <p className="text-[10px] uppercase font-extrabold tracking-wider text-indigo-700 mb-1 flex items-center gap-1">
                         <MessageSquare className="w-3 h-3" />
-                        <span>Motivation du bénévole</span>
+                        <span>Motivation de la STAR</span>
                       </p>
                       <p className="text-slate-700 italic leading-relaxed">
                         "{req.motivation}"
@@ -430,8 +430,8 @@ export const MembershipRequestsView: React.FC<MembershipRequestsViewProps> = ({
           title="Refuser la demande d'adhésion"
           message={`Êtes-vous certain de vouloir refuser la demande d'adhésion de ${rejectingRequest.user?.firstName} ${rejectingRequest.user?.lastName} au pôle ${rejectingRequest.pole?.name} ?`}
           details={[
-            'Le bénévole sera notifié du refus',
-            'Il pourra reformuler une demande ultérieurement si nécessaire'
+            'La STAR sera notifiée du refus',
+            'Elle pourra reformuler une demande ultérieurement si nécessaire'
           ]}
           confirmText="Confirmer le refus"
           cancelText="Annuler"

@@ -411,7 +411,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 <View>
                   <Text style={styles.modalTitle}>Gestion des Assignations</Text>
                   <Text style={styles.modalSubtitle}>
-                    Positionnez les bénévoles en respectant leurs disponibilités.
+                    Positionnez les STARS en respectant leurs disponibilités.
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowAssignModal(false)}>
@@ -420,7 +420,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               </View>
 
               <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-                <Text style={styles.modalSectionTitle}>Bénévoles Disponibles & Indisponibilités :</Text>
+                <Text style={styles.modalSectionTitle}>STARS Disponibles & Indisponibilités :</Text>
 
                 {candidateVolunteers.map((vol) => {
                   const isAssigned = assignedMembers.some((m) => m.id === vol.id);
@@ -479,7 +479,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       )}
 
       {/* --------------------------------------------------------- */}
-      {/* MODAL 2 : SE POSITIONNER (Pour Bénévoles)                 */}
+      {/* MODAL 2 : SE POSITIONNER (Pour STARS)                     */}
       {/* --------------------------------------------------------- */}
       {showSelfPositionModal && (
         <Modal

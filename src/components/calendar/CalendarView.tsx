@@ -416,8 +416,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             {isLeaderOrAdmin
-              ? 'Planification des cultes, affectations des bénévoles et checklists par pôle.'
-              : 'Consultez les cultes, positionnez-vous comme bénévole et exécutez vos checklists.'}
+              ? 'Planification des cultes, affectations des STARS et checklists par pôle.'
+              : 'Consultez les cultes, positionnez-vous comme STAR et exécutez vos checklists.'}
           </p>
         </div>
 
@@ -711,7 +711,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                       <div className="flex items-center gap-2.5 self-end sm:self-center">
                         <span className="text-xs font-bold px-3 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 shadow-xs">
-                          👥 {totalAssigned} / {totalRequired} bénévole(s)
+                          👥 {totalAssigned} / {totalRequired} STAR(S)
                         </span>
 
                         <button
@@ -1148,7 +1148,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               <span>{req.pole?.name}</span>
                             </div>
                             <span className={`text-[11px] font-bold ${isFilled ? 'text-emerald-700' : 'text-amber-700'}`}>
-                              {count} / {req.requiredCount} bénévole(s) {isFilled && '✓'}
+                              {count} / {req.requiredCount} STAR(S) {isFilled && '✓'}
                             </span>
                           </div>
 
@@ -1192,7 +1192,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           />
                           <div>
                             <p className="font-bold text-slate-900">{a.user?.firstName} {a.user?.lastName}</p>
-                            <p className="text-[10px] text-slate-500">{a.pole?.name || a.roleTag || 'Bénévole'}</p>
+                            <p className="text-[10px] text-slate-500">{a.pole?.name || a.roleTag || 'STAR'}</p>
                           </div>
                         </div>
 

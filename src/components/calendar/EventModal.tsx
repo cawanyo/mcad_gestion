@@ -373,7 +373,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 <p className="text-[10px] text-slate-500">Effectifs requis et checklist opérationnelle assignée à chaque pôle</p>
               </div>
               <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                Total : {Object.values(poleRequirements).reduce((a, b) => a + b, 0)} bénévole(s) / date
+                Total : {Object.values(poleRequirements).reduce((a, b) => a + b, 0)} STAR(S) / date
               </span>
             </div>
 

@@ -129,7 +129,7 @@ export default function RegisterPage() {
             <UserPlus className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Rejoindre la communauté</h2>
-          <p className="text-xs text-slate-400">Créez votre compte bénévole en quelques secondes</p>
+          <p className="text-xs text-slate-400">Créez votre compte STAR en quelques secondes</p>
         </div>
 
         {/* Form Card */}

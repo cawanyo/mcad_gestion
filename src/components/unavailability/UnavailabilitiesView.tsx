@@ -376,7 +376,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-black text-slate-900">{uniqueMembersAway}</span>
-            <span className="text-[11px] font-semibold text-indigo-600">bénévoles</span>
+            <span className="text-[11px] font-semibold text-indigo-600">STARS</span>
           </div>
         </div>
 
@@ -792,7 +792,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                 if (dayUnavs.length === 0) {
                   return (
                     <p className="text-xs text-slate-500 italic">
-                      Aucun bénévole n'a déclaré d'absence pour cette journée. Tous les membres sont disponibles !
+                      Aucune STAR n'a déclaré d'absence pour cette journée. Tous les membres sont disponibles !
                     </p>
                   );
                 }

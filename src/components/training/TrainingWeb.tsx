@@ -469,7 +469,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
           <h3 className="text-sm font-bold text-slate-900">Aucun module de formation trouvé</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
             {isLeaderOrAdmin
-              ? 'Créez votre premier module de formation pour équiper vos bénévoles et membres de pôles.'
+              ? 'Créez votre premier module de formation pour équiper vos STARS et membres de pôles.'
               : 'Aucun module ne correspond à vos critères de recherche pour le moment.'}
           </p>
           {isLeaderOrAdmin && (

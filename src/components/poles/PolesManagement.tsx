@@ -139,7 +139,7 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             {isDepartmentLeaderOrAdmin
-              ? 'Gérez la structure de vos équipes, nommez des responsables et affectez les bénévoles.'
+              ? 'Gérez la structure de vos équipes, nommez des responsables et affectez les STARS.'
               : 'Découvrez les équipes de service du département et rejoignez un nouveau pôle.'}
           </p>
         </div>

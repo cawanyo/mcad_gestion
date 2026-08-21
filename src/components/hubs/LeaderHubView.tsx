@@ -37,7 +37,7 @@ export const LeaderHubView: React.FC<LeaderHubViewProps> = ({
     {
       id: 'requests',
       title: "Demandes d'adhésion",
-      description: "Examinez les candidatures des bénévoles souhaitant intégrer les différents pôles ministériels.",
+      description: "Examinez les candidatures des STARS souhaitant intégrer les différents pôles ministériels.",
       icon: UserPlus,
       badge: pendingRequestsCount > 0 ? `${pendingRequestsCount} en attente` : 'À jour ✓',
       iconBg: 'bg-emerald-50 text-emerald-600 border border-emerald-100',

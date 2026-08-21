@@ -112,7 +112,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
               Bonjour, {currentUser ? `${currentUser.firstName}` : 'Bienvenue'} ! 👋
             </h1>
             <p className="text-xs sm:text-sm text-indigo-200 mt-1 max-w-xl leading-relaxed">
-              Consultez vos cultes, positionnez-vous comme bénévole et exécutez vos checklists opérationnelles.
+              Consultez vos cultes, positionnez-vous comme STAR et exécutez vos checklists opérationnelles.
             </p>
           </div>
 
