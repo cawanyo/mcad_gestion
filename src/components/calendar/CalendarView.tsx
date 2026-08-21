@@ -32,7 +32,8 @@ import {
   Link as LinkIcon,
   X,
   UserMinus,
-  Hand
+  Hand,
+  ExternalLink
 } from 'lucide-react';
 import { Event, Pole, User, Assignment, Checklist } from '@/types';
 import { EventModal } from './EventModal';
@@ -1346,33 +1347,44 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
               {/* Event Header */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
                     {selectedEvent.organizerPole?.name ? `Organisé par ${selectedEvent.organizerPole.name}` : 'Culte'}
                   </span>
 
-                  {isLeaderOrAdmin && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingEvent(selectedEvent);
-                          setShowEventModal(true);
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="Modifier le culte"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setMobileEventDetail(selectedEvent)}
+                      className="px-2 py-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                      title="Ouvrir la page complète du culte (positionnement, équipe, checklists)"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span className="hidden xl:inline">Page complète</span>
+                    </button>
 
-                      <button
-                        onClick={() => handleDeleteEvent(selectedEvent.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Supprimer le culte"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
+                    {isLeaderOrAdmin && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditingEvent(selectedEvent);
+                            setShowEventModal(true);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          title="Modifier le culte"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteEvent(selectedEvent.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Supprimer le culte"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <h2 className="text-lg font-black text-slate-900 leading-tight">

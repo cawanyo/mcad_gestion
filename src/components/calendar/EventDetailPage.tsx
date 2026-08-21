@@ -22,7 +22,10 @@ import {
   SlidersHorizontal,
   ChevronRight,
   ShieldCheck,
-  Phone
+  Phone,
+  UserCheck,
+  Award,
+  Zap
 } from 'lucide-react';
 import { Event, Pole, User, Assignment, Checklist } from '@/types';
 import { Avatar, Badge } from '@/components/ui';
@@ -54,9 +57,16 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
   onFeedbackChecklist,
   onDeleteEvent
 }) => {
+  const [currentEvent, setCurrentEvent] = React.useState<Event>(event);
   const [selfAssignPoleId, setSelfAssignPoleId] = React.useState<string>('');
+  const [selfAssignRoleTag, setSelfAssignRoleTag] = React.useState<string>('STAR Volontaire');
   const [selfAssigning, setSelfAssigning] = React.useState<boolean>(false);
   const [feedbackSuccess, setFeedbackSuccess] = React.useState<string | null>(null);
+
+  // Sync prop changes
+  React.useEffect(() => {
+    setCurrentEvent(event);
+  }, [event]);
 
   const isLeaderOrAdmin =
     currentUser?.role === 'SUPER_ADMIN' ||
@@ -64,23 +74,52 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
     currentUser?.role === 'POLE_LEADER' ||
     currentUser?.role === 'CALENDAR_MANAGER';
 
-  // Check if current user is assigned
-  const userAssignments = (event.assignments || []).filter(
+  // Check if current user is assigned to this culte
+  const userAssignments = (currentEvent.assignments || []).filter(
     (a) => a.userId === currentUser?.id
   );
   const isAssigned = userAssignments.length > 0;
 
-  // Poles of current user
+  // Build the list of eligible poles for volunteering:
+  // 1. User's assigned poles
+  // 2. Event's required poles
+  // 3. All department poles if leader/admin or user has none
   const userPoleMemberships = currentUser?.poleMemberships || [];
   const userPoleIds = userPoleMemberships.map((pm: any) => pm.poleId);
-  const eligibleRequiredPoles = (event.requirements || [])
-    .filter((r) => userPoleIds.includes(r.poleId) || isLeaderOrAdmin)
-    .map((r) => r.pole)
-    .filter(Boolean);
+  const userPoles = userPoleMemberships.map((pm: any) => pm.pole).filter(Boolean);
 
-  // Self Assign Handler
+  const requiredPoleIds = (currentEvent.requirements || []).map((r) => r.poleId);
+
+  // All distinct poles selectable by user
+  const selectablePoles = React.useMemo(() => {
+    if (isLeaderOrAdmin || userPoles.length === 0) {
+      return poles.length > 0 ? poles : userPoles;
+    }
+    return userPoles;
+  }, [isLeaderOrAdmin, poles, userPoles]);
+
+  // Set default selected pole if empty
+  React.useEffect(() => {
+    if (!selfAssignPoleId && selectablePoles.length > 0) {
+      // Prioritize a pole that is currently required
+      const priorityPole = selectablePoles.find((p) => requiredPoleIds.includes(p.id)) || selectablePoles[0];
+      setSelfAssignPoleId(priorityPole.id);
+    }
+  }, [selectablePoles, requiredPoleIds, selfAssignPoleId]);
+
+  // Self Assign / Volunteer Handler
   const handleSelfAssign = async () => {
-    if (!currentUser || !selfAssignPoleId) return;
+    if (!currentUser) {
+      alert('Veuillez vous connecter pour vous positionner.');
+      return;
+    }
+
+    const targetPoleId = selfAssignPoleId || selectablePoles[0]?.id;
+    if (!targetPoleId) {
+      alert('Veuillez sélectionner un pôle pour votre service.');
+      return;
+    }
+
     try {
       setSelfAssigning(true);
       setFeedbackSuccess(null);
@@ -89,29 +128,49 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          eventId: event.id,
+          eventId: currentEvent.id,
           userId: currentUser.id,
-          poleId: selfAssignPoleId,
-          roleTag: 'STAR Volontaire'
+          poleId: targetPoleId,
+          roleTag: selfAssignRoleTag || 'STAR Volontaire'
         })
       });
 
       const data = await res.json();
       if (res.ok) {
-        setFeedbackSuccess('Félicitations ! Vous êtes positionné(e) comme STAR sur ce culte.');
+        setFeedbackSuccess('✨ Félicitations ! Vous êtes positionné(e) avec succès comme STAR sur ce culte.');
+
+        // Optimistically update local state for immediate UI feedback
+        const targetPoleObj = poles.find((p) => p.id === targetPoleId);
+        const newAssignment: Assignment = {
+          id: data.id || `temp-${Date.now()}`,
+          eventId: currentEvent.id,
+          userId: currentUser.id,
+          poleId: targetPoleId,
+          roleTag: selfAssignRoleTag || 'STAR Volontaire',
+          status: 'CONFIRMED',
+          createdAt: new Date().toISOString(),
+          user: currentUser,
+          pole: targetPoleObj as Pole
+        };
+
+        setCurrentEvent((prev) => ({
+          ...prev,
+          assignments: [...(prev.assignments || []), newAssignment]
+        }));
+
         onRefresh();
       } else {
         alert(data.error || 'Erreur lors du positionnement');
       }
     } catch (e) {
       console.error(e);
-      alert('Erreur réseau');
+      alert('Erreur de connexion au serveur.');
     } finally {
       setSelfAssigning(false);
     }
   };
 
-  // Unassign Handler
+  // Unassign / Withdraw Handler
   const handleUnassignSelf = async (assignmentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir retirer votre positionnement pour ce culte ?')) {
       return;
@@ -121,6 +180,11 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
         method: 'DELETE'
       });
       if (res.ok) {
+        setFeedbackSuccess('Votre positionnement a été retiré.');
+        setCurrentEvent((prev) => ({
+          ...prev,
+          assignments: (prev.assignments || []).filter((a) => a.id !== assignmentId)
+        }));
         onRefresh();
       }
     } catch (e) {
@@ -129,42 +193,44 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
   };
 
   // Calculate totals
-  const totalRequiredStars = (event.requirements || []).reduce(
+  const totalRequiredStars = (currentEvent.requirements || []).reduce(
     (acc, r) => acc + (r.requiredCount || 0),
     0
   );
-  const totalAssignedStars = (event.assignments || []).length;
+  const totalAssignedStars = (currentEvent.assignments || []).length;
   const isFull = totalRequiredStars > 0 && totalAssignedStars >= totalRequiredStars;
 
   return (
-    <div className="p-3 sm:p-6 max-w-4xl mx-auto space-y-5 font-sans pb-32">
+    <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-6 font-sans pb-32">
       {/* Top Header / Back button */}
       <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onBack}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-colors shadow-xs"
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-colors shadow-xs flex items-center gap-1.5"
             title="Retour au calendrier"
           >
             <ArrowLeft className="w-5 h-5" />
+            <span className="text-xs font-bold hidden sm:inline">Retour au calendrier</span>
           </button>
+
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
                 Fiche Culte
               </span>
-              {event.organizerPole && (
+              {currentEvent.organizerPole && (
                 <span
                   className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: event.organizerPole.color || '#4f46e5' }}
+                  style={{ backgroundColor: currentEvent.organizerPole.color || '#4f46e5' }}
                 >
-                  {event.organizerPole.name}
+                  {currentEvent.organizerPole.name}
                 </span>
               )}
             </div>
             <h1 className="text-base sm:text-xl font-black text-slate-900 tracking-tight mt-0.5">
-              Détails de l'événement
+              {currentEvent.title}
             </h1>
           </div>
         </div>
@@ -172,14 +238,14 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
         {isLeaderOrAdmin && (
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => onOpenEditModal(event)}
+              onClick={() => onOpenEditModal(currentEvent)}
               className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
               title="Modifier le culte"
             >
               <Edit3 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onDeleteEvent(event.id)}
+              onClick={() => onDeleteEvent(currentEvent.id)}
               className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
               title="Supprimer le culte"
             >
@@ -191,9 +257,14 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
 
       {/* Success banner if just assigned */}
       {feedbackSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          <span>{feedbackSuccess}</span>
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span>{feedbackSuccess}</span>
+          </div>
+          <button onClick={() => setFeedbackSuccess(null)} className="text-emerald-700 font-bold hover:underline">
+            ✕
+          </button>
         </div>
       )}
 
@@ -202,7 +273,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-600">
-              {event.organizerPole?.name ? `Organisé par le pôle ${event.organizerPole.name}` : 'Culte MCAD'}
+              {currentEvent.organizerPole?.name ? `Organisé par le pôle ${currentEvent.organizerPole.name}` : 'Culte & Célébration MCAD'}
             </span>
             <span
               className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
@@ -216,10 +287,10 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-            {event.title}
+            {currentEvent.title}
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            {event.description || 'Culte, louange, prière et édification.'}
+            {currentEvent.description || 'Culte, louange, prière et édification collective.'}
           </p>
         </div>
 
@@ -228,10 +299,10 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-indigo-600 flex-shrink-0" />
             <span className="font-bold">
-              {new Date(event.startsAt).toLocaleDateString('fr-FR', {
-                weekday: 'short',
+              {new Date(currentEvent.startsAt).toLocaleDateString('fr-FR', {
+                weekday: 'long',
                 day: 'numeric',
-                month: 'short',
+                month: 'long',
                 year: 'numeric'
               })}
             </span>
@@ -240,98 +311,138 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-indigo-600 flex-shrink-0" />
             <span className="font-semibold">
-              {new Date(event.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} -{' '}
-              {new Date(event.endsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              {new Date(currentEvent.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} -{' '}
+              {new Date(currentEvent.endsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-            <span className="font-semibold truncate">{event.location || 'Temple Principal'}</span>
+            <span className="font-semibold truncate">{currentEvent.location || 'Temple Principal'}</span>
           </div>
         </div>
       </div>
 
-      {/* ✋ MEMBER POSITIONING / VOLUNTEERING */}
-      {currentUser && (
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+      {/* ✋ SECTION: POSITIONNEMENT STAR (VOLONTARIAT) */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
           <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
             <Hand className="w-4 h-4 text-indigo-600" />
             <span>Mon engagement STAR sur ce culte</span>
           </h3>
+          {isAssigned && (
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+              Confirmé
+            </span>
+          )}
+        </div>
 
-          {isAssigned ? (
-            <div className="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-emerald-800 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Vous êtes positionné(e) sur ce culte !
-                </span>
-              </div>
-              <div className="space-y-1 pt-1">
-                {userAssignments.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-emerald-200 text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full"
-                        style={{ backgroundColor: a.pole?.color || '#10b981' }}
-                      />
-                      <span className="font-bold text-slate-800">{a.pole?.name}</span>
-                      <span className="text-[10px] text-slate-500 font-medium">
-                        ({a.roleTag || 'STAR'})
-                      </span>
+        {isAssigned ? (
+          /* User is already assigned */
+          <div className="p-4 sm:p-5 bg-emerald-50/80 rounded-2xl border border-emerald-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-emerald-900 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <span>Vous êtes positionné(e) pour servir sur ce culte !</span>
+              </span>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              {userAssignments.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3 rounded-2xl border border-emerald-200 text-xs gap-3"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: a.pole?.color || '#10b981' }}
+                    />
+                    <div>
+                      <p className="font-extrabold text-slate-900">{a.pole?.name}</p>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        Rôle : {a.roleTag || 'STAR'}
+                      </p>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-center">
                     <button
                       onClick={() => handleUnassignSelf(a.id)}
-                      className="px-2 py-1 text-[10px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-1"
+                      className="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-1 transition-colors"
                     >
-                      <UserMinus className="w-3 h-3" />
-                      <span>Retirer</span>
+                      <UserMinus className="w-3.5 h-3.5" />
+                      <span>Retirer mon positionnement</span>
                     </button>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          ) : eligibleRequiredPoles.length > 0 ? (
-            <div className="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100 space-y-3">
-              <p className="text-xs text-indigo-900 font-medium">
-                Des besoins sont ouverts dans vos pôles de service pour ce culte :
+          </div>
+        ) : (
+          /* User is not assigned: Display Self-Positioning Controls */
+          <div className="p-4 sm:p-5 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 rounded-2xl border border-indigo-100 space-y-4">
+            <div>
+              <p className="text-xs font-extrabold text-indigo-950">
+                Vous n'êtes pas encore positionné(e) sur ce culte.
               </p>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Choisissez votre pôle et confirmez votre engagement pour rejoindre l'équipe de service :
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+              {/* Pole Selector */}
+              <div className="sm:col-span-6">
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Pôle de service *
+                </label>
                 <select
                   value={selfAssignPoleId}
                   onChange={(e) => setSelfAssignPoleId(e.target.value)}
-                  className="flex-1 p-2.5 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-slate-800 outline-hidden"
+                  className="w-full p-2.5 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-slate-800 outline-hidden focus:ring-2 focus:ring-indigo-500 shadow-2xs"
                 >
-                  <option value="">Sélectionnez un pôle...</option>
-                  {eligibleRequiredPoles.map((pole: any) => (
-                    <option key={pole.id} value={pole.id}>
-                      {pole.name}
-                    </option>
-                  ))}
+                  {selectablePoles.map((pole: any) => {
+                    const isRequired = requiredPoleIds.includes(pole.id);
+                    return (
+                      <option key={pole.id} value={pole.id}>
+                        {pole.name} {isRequired ? '🔥 (Besoin ouvert)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
+              </div>
 
+              {/* Role tag */}
+              <div className="sm:col-span-6">
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Rôle / Titre (Optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={selfAssignRoleTag}
+                  onChange={(e) => setSelfAssignRoleTag(e.target.value)}
+                  placeholder="Ex: STAR Volontaire, Cadreur, Accueil..."
+                  className="w-full p-2.5 bg-white border border-indigo-200 rounded-xl text-xs font-medium text-slate-800 outline-hidden focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="sm:col-span-12 pt-1">
                 <button
                   type="button"
-                  disabled={!selfAssignPoleId || selfAssigning}
+                  disabled={selfAssigning || selectablePoles.length === 0}
                   onClick={handleSelfAssign}
-                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{selfAssigning ? 'Positionnement...' : 'Me positionner'}</span>
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                  <span>{selfAssigning ? 'Positionnement en cours...' : '✋ Me positionner comme STAR sur ce culte'}</span>
                 </button>
               </div>
             </div>
-          ) : (
-            <p className="text-xs text-slate-500">
-              Aucun besoin ouvert dans vos pôles pour ce culte ou vous n'êtes rattaché(e) à aucun pôle requis.
-            </p>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* 📊 QUOTAS ET BESOINS PAR PÔLE */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
@@ -342,7 +453,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
           </h3>
           {isLeaderOrAdmin && (
             <button
-              onClick={() => onOpenAssignmentsDrawer(event)}
+              onClick={() => onOpenAssignmentsDrawer(currentEvent)}
               className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition-colors flex items-center gap-1"
             >
               <SlidersHorizontal className="w-3 h-3" />
@@ -351,12 +462,12 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
           )}
         </div>
 
-        {(!event.requirements || event.requirements.length === 0) ? (
+        {(!currentEvent.requirements || currentEvent.requirements.length === 0) ? (
           <p className="text-xs text-slate-400">Aucun quota particulier défini pour ce culte.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {event.requirements.map((req) => {
-              const assignedInPole = (event.assignments || []).filter(
+            {currentEvent.requirements.map((req) => {
+              const assignedInPole = (currentEvent.assignments || []).filter(
                 (a) => a.poleId === req.poleId
               );
               const assignedCount = assignedInPole.length;
@@ -437,15 +548,15 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
           <span>Checklist & Procédures Opérationnelles</span>
         </h3>
 
-        {(!event.eventChecklists || event.eventChecklists.length === 0) ? (
+        {(!currentEvent.eventChecklists || currentEvent.eventChecklists.length === 0) ? (
           <p className="text-xs text-slate-400">Aucune checklist spécifique associée à ce culte.</p>
         ) : (
           <div className="space-y-2.5">
-            {(event.eventChecklists || []).map((ec: any, idx: number) => {
+            {(currentEvent.eventChecklists || []).map((ec: any, idx: number) => {
               const checklist = ec.checklist;
               if (!checklist) return null;
 
-              const execution = ((event as any).checklistExecutions || []).find(
+              const execution = ((currentEvent as any).checklistExecutions || []).find(
                 (ex: any) => ex.checklistId === checklist.id
               );
               const isCompleted = execution?.status === 'COMPLETED' || execution?.status === 'VALIDATED';
@@ -475,7 +586,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
                       </span>
                     ) : (
                       <button
-                        onClick={() => onRunChecklist(checklist, event)}
+                        onClick={() => onRunChecklist(checklist, currentEvent)}
                         className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5"
                       >
                         <Play className="w-3 h-3" />
@@ -507,11 +618,11 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
           <span>Équipe de STARS ({totalAssignedStars})</span>
         </h3>
 
-        {(!event.assignments || event.assignments.length === 0) ? (
+        {(!currentEvent.assignments || currentEvent.assignments.length === 0) ? (
           <p className="text-xs text-slate-400">Aucune STAR assignée pour l'instant.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {event.assignments.map((a) => (
+            {currentEvent.assignments.map((a) => (
               <div
                 key={a.id}
                 className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3"
@@ -531,7 +642,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
                         className="w-2 h-2 rounded-full"
                         style={{ backgroundColor: a.pole?.color || '#4f46e5' }}
                       />
-                      <span>{a.pole?.name}</span>
+                      <span>{a.pole?.name} ({a.roleTag || 'STAR'})</span>
                     </div>
                   </div>
                 </div>
