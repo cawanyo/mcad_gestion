@@ -25,7 +25,7 @@ import {
 import { Pole, TrainingModule, User } from '@/types';
 import { StatCard, Badge, ConfirmModal, Toast, ToastState } from '@/components/ui';
 import { TrainingCoursePage } from './TrainingCoursePage';
-import { TrainingModuleModal } from './TrainingModuleModal';
+import { TrainingModuleEditorPage } from './TrainingModuleEditorPage';
 
 interface TrainingWebProps {
   currentUser: User | null;
@@ -52,8 +52,8 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
   // Course Page Active View ID (stores ID only to avoid closure/sync bugs)
   const [activeCourseModuleId, setActiveCourseModuleId] = React.useState<string | null>(null);
 
-  // Modals for Leaders
-  const [showCreateModal, setShowCreateModal] = React.useState(false);
+  // Dedicated Full Page Editor State
+  const [isEditorOpen, setIsEditorOpen] = React.useState(false);
   const [editingModule, setEditingModule] = React.useState<TrainingModule | null>(null);
   const [deletingModule, setDeletingModule] = React.useState<TrainingModule | null>(null);
   const [deletingLoading, setDeletingLoading] = React.useState(false);
@@ -139,6 +139,32 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
           fetchModules();
         }}
         onProgressUpdated={fetchModules}
+      />
+    );
+  }
+
+  // If Leader is creating or editing a module, render the dedicated Full Page Editor
+  if (isEditorOpen) {
+    return (
+      <TrainingModuleEditorPage
+        poles={poles}
+        editingModule={editingModule}
+        onBack={() => {
+          setIsEditorOpen(false);
+          setEditingModule(null);
+        }}
+        onSaved={() => {
+          setIsEditorOpen(false);
+          setEditingModule(null);
+          setToast({
+            message: editingModule
+              ? 'Module de formation mis à jour avec succès !'
+              : 'Nouveau module de formation créé et publié avec succès !',
+            type: 'success'
+          });
+          fetchModules();
+          if (onRefresh) onRefresh();
+        }}
       />
     );
   }
@@ -249,7 +275,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
           <button
             onClick={() => {
               setEditingModule(null);
-              setShowCreateModal(true);
+              setIsEditorOpen(true);
             }}
             className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-600/20 hover:scale-[1.02] transition-all flex items-center gap-2 self-start md:self-auto"
           >
@@ -476,7 +502,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
             <button
               onClick={() => {
                 setEditingModule(null);
-                setShowCreateModal(true);
+                setIsEditorOpen(true);
               }}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
             >
@@ -640,7 +666,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                           <button
                             onClick={() => {
                               setEditingModule(m);
-                              setShowCreateModal(true);
+                              setIsEditorOpen(true);
                             }}
                             className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
                             title="Modifier le module"
@@ -715,27 +741,6 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
             </div>
           )}
         </div>
-      )}
-
-      {/* Leader Create / Edit Module Modal */}
-      {showCreateModal && (
-        <TrainingModuleModal
-          isOpen={showCreateModal}
-          poles={poles}
-          editingModule={editingModule}
-          onClose={() => {
-            setShowCreateModal(false);
-            setEditingModule(null);
-          }}
-          onSaved={() => {
-            fetchModules();
-            if (onRefresh) onRefresh();
-            setToast({
-              message: editingModule ? 'Module mis à jour avec succès !' : 'Nouveau module créé avec succès !',
-              type: 'success'
-            });
-          }}
-        />
       )}
 
       {/* Delete Confirmation Modal */}
