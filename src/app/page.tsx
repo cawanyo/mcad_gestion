@@ -97,19 +97,27 @@ export default function HomePage() {
 
       if (isInitial) {
         setLoadingProgress(45);
-        setLoadingStatus('Chargement du tableau de bord & des cultes...');
+        setLoadingStatus('Chargement du tableau de bord & des cultes du mois...');
       }
 
-      // 2. Check cached poles for instant availability
+      // 2. Check cached events for current month
+      const now = new Date();
+      const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const cachedMonthEvents = getCachedItem<Event[]>(`${CacheKeys.EVENTS}_${currentMonthKey}`);
+      if (cachedMonthEvents) {
+        setEvents(cachedMonthEvents);
+      }
+
+      // 3. Check cached poles for instant availability
       const cachedPoles = getCachedItem<Pole[]>(CacheKeys.POLES);
       if (cachedPoles) {
         setPoles(cachedPoles);
       }
 
-      // 3. Load Dashboard, Events, Poles, and Notifications in parallel
+      // 4. Load Dashboard, Current Month Events, Poles, and Notifications in parallel
       const [dashRes, eventsRes, polesRes, notifRes] = await Promise.allSettled([
         fetch(`/api/dashboard?userId=${userData.user.id}`),
-        fetch('/api/events'),
+        fetch(`/api/events?month=${currentMonthKey}`),
         cachedPoles ? Promise.resolve(null) : fetch('/api/poles'),
         fetch('/api/notifications')
       ]);
@@ -126,6 +134,7 @@ export default function HomePage() {
       if (eventsRes.status === 'fulfilled' && eventsRes.value && eventsRes.value.ok) {
         const freshEvents = await eventsRes.value.json();
         setEvents(freshEvents);
+        setCachedItem(`${CacheKeys.EVENTS}_${currentMonthKey}`, freshEvents, CacheTTL.SHORT);
         setSelectedEventForAssignments((prev) => {
           if (!prev) return null;
           return freshEvents.find((e: any) => e.id === prev.id) || prev;

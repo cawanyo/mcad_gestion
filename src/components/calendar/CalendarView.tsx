@@ -41,6 +41,7 @@ import { EventDetailPage } from './EventDetailPage';
 import { ChecklistRunnerModal } from '../checklists/ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from '../checklists/ChecklistFeedbackModal';
 import { ConfirmModal } from '@/components/ui';
+import { getCachedItem, setCachedItem, CacheKeys, CacheTTL, invalidateCache } from '@/lib/cache';
 
 interface CalendarViewProps {
   events: Event[];
@@ -154,8 +155,68 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     fetchAllChecklists();
   }, []);
 
+  // Loaded Events with Month-keyed Cache
+  const [loadedEvents, setLoadedEvents] = React.useState<Event[]>(events);
+  const [loadingMonth, setLoadingMonth] = React.useState<boolean>(false);
+
+  // Sync initial / prop events into loadedEvents
+  React.useEffect(() => {
+    if (events && events.length > 0) {
+      setLoadedEvents((prev) => {
+        const map = new Map(prev.map((e) => [e.id, e]));
+        events.forEach((e) => map.set(e.id, e));
+        return Array.from(map.values());
+      });
+    }
+  }, [events]);
+
+  // Dynamic month loader with caching:
+  // When currentDate changes, check if that month's events are in loadedEvents / cache.
+  // If not, fetch /api/events?month=YYYY-MM, cache it, and merge into loadedEvents!
+  React.useEffect(() => {
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const monthKey = `${year}-${month}`;
+    const cacheKey = `${CacheKeys.EVENTS}_${monthKey}`;
+
+    // 1. Check cache first for instant display
+    const cached = getCachedItem<Event[]>(cacheKey);
+    if (cached && cached.length > 0) {
+      setLoadedEvents((prev) => {
+        const map = new Map(prev.map((e) => [e.id, e]));
+        cached.forEach((e) => map.set(e.id, e));
+        return Array.from(map.values());
+      });
+      return;
+    }
+
+    // 2. Otherwise, fetch from API
+    const fetchMonthEvents = async () => {
+      try {
+        setLoadingMonth(true);
+        const res = await fetch(`/api/events?month=${monthKey}`);
+        if (res.ok) {
+          const newMonthEvents: Event[] = await res.json();
+          setCachedItem(cacheKey, newMonthEvents, CacheTTL.MEDIUM);
+          setLoadedEvents((prev) => {
+            const map = new Map(prev.map((e) => [e.id, e]));
+            newMonthEvents.forEach((e) => map.set(e.id, e));
+            return Array.from(map.values());
+          });
+        }
+      } catch (e) {
+        console.error('Error fetching month events:', e);
+      } finally {
+        setLoadingMonth(false);
+      }
+    };
+
+    fetchMonthEvents();
+  }, [currentDate]);
+
   // Filtered Events
-  const filteredEvents = events.filter((ev) => {
+  const eventsPool = loadedEvents.length > 0 ? loadedEvents : events;
+  const filteredEvents = eventsPool.filter((ev) => {
     // Pole filter
     if (selectedPoleFilter !== 'all') {
       const hasPoleReq = ev.requirements?.some((r) => r.poleId === selectedPoleFilter);
@@ -370,6 +431,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         setSelectedEvent(null);
       }
       setDeleteConfirmEventId(null);
+      invalidateCache(CacheKeys.EVENTS);
       if (onRefresh) onRefresh();
     } catch (e) {
       console.error(e);
@@ -389,6 +451,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       if (res.ok) {
         const updated = await res.json();
         setSelectedEvent(updated);
+        invalidateCache(CacheKeys.EVENTS);
         if (onRefresh) onRefresh();
       }
     } catch (e) {
@@ -407,6 +470,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       if (res.ok) {
         const updated = await res.json();
         setSelectedEvent(updated);
+        invalidateCache(CacheKeys.EVENTS);
         if (onRefresh) onRefresh();
       }
     } catch (e) {
@@ -448,6 +512,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             assignments: [...(selectedEvent.assignments || []), newAssignment]
           });
         }
+        invalidateCache(CacheKeys.EVENTS);
         if (onRefresh) onRefresh();
       } else {
         const err = await res.json();
@@ -480,6 +545,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           });
         }
         setWithdrawConfirmAssignmentId(null);
+        invalidateCache(CacheKeys.EVENTS);
         if (onRefresh) onRefresh();
       }
     } catch (e) {

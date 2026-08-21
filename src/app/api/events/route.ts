@@ -63,7 +63,11 @@ export async function GET(req: Request) {
       orderBy: { startsAt: 'asc' }
     });
 
-    return NextResponse.json(events);
+    return NextResponse.json(events, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300'
+      }
+    });
   } catch (error) {
     console.error('Events API Error:', error);
     return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 });

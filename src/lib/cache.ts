@@ -9,7 +9,8 @@ export const CacheKeys = {
   POLES: 'mcad_cache_poles',
   BIRTHDAYS: 'mcad_cache_birthdays',
   TRAINING_MODULES: 'mcad_cache_training_modules',
-  STATS: 'mcad_cache_stats'
+  STATS: 'mcad_cache_stats',
+  EVENTS: 'mcad_cache_events'
 };
 
 export const CacheTTL = {
