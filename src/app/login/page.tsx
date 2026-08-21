@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, LogIn, Lock, Phone, ArrowLeft, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Sparkles, LogIn, Lock, Phone, ArrowLeft, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -50,11 +50,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickAdminLogin = () => {
-    setPhone('+33 6 99 88 77 66');
-    setPassword('AdminPassword2026!');
   };
 
   if (checkingAuth) {
@@ -146,17 +141,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick Admin fill button */}
-          <div className="pt-4 border-t border-slate-700/80 space-y-3">
-            <button
-              type="button"
-              onClick={handleQuickAdminLogin}
-              className="w-full py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Compte Démo Responsable (+33 6 99 88 77 66)</span>
-            </button>
-
+          <div className="pt-4 border-t border-slate-700/80">
             <div className="text-center text-xs text-slate-400">
               Pas encore de compte ?{' '}
               <a href="/register" className="text-indigo-400 font-bold hover:underline">
