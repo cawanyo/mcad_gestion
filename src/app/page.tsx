@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { BottomTabBar } from '@/components/layout/BottomTabBar';
 import { SubViewHeader } from '@/components/layout/SubViewHeader';
@@ -47,6 +48,12 @@ export default function HomePage() {
   const [showAssignmentsDrawer, setShowAssignmentsDrawer] = React.useState(false);
   const [selectedEventForAssignments, setSelectedEventForAssignments] = React.useState<Event | null>(null);
   const [showUnavailabilityModal, setShowUnavailabilityModal] = React.useState(false);
+
+  // Switch User (Demo/Leader preview)
+  const handleSwitchUser = (user: User) => {
+    setCurrentUser(user);
+    fetchData();
+  };
 
   // Fetch authentication status & application data
   const fetchData = async () => {
@@ -241,269 +248,303 @@ export default function HomePage() {
     currentUser.role === 'POLE_LEADER' ||
     currentUser.role === 'CALENDAR_MANAGER';
 
-  // 2. If user IS authenticated: Modern App with Bottom Tabs
+  // 2. If user IS authenticated: Responsive App (Desktop Sidebar >= lg / Mobile Bottom Tabs < lg)
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-22">
-      {/* Top Header */}
-      <Header
-        currentUser={currentUser}
-        notifications={notifications}
-        unreadNotificationsCount={unreadNotificationsCount}
-        onMarkNotificationRead={handleMarkNotificationRead}
-        onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
-        onLogout={handleLogout}
-        onNavigateSettings={() => setActiveTab('settings')}
-      />
+    <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
+      {/* Desktop Sidebar (Visible ONLY on screens >= lg) */}
+      <div className="hidden lg:flex flex-shrink-0 h-full">
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          currentUser={currentUser}
+          allUsers={allUsers}
+          onSwitchUser={handleSwitchUser}
+          pendingRequestsCount={dashboardData?.pendingRequests?.length || 0}
+          onLogout={handleLogout}
+        />
+      </div>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
-        {/* ========================================================= */}
-        {/* TAB 1: MON ESPACE (Dashboard) */}
-        {/* ========================================================= */}
-        {activeTab === 'dashboard' && (
-          isLeaderOrAdmin ? (
-            <DesktopDashboard
-              currentUser={currentUser}
-              data={dashboardData}
-              onNavigateTab={setActiveTab}
-              onApproveRequest={handleApproveRequest}
-              onRejectRequest={handleRejectRequest}
-              onOpenCreateEvent={() => setShowEventModal(true)}
-            />
-          ) : (
-            <MemberDashboard
-              currentUser={currentUser}
-              data={dashboardData}
-              poles={poles}
-              onNavigateTab={setActiveTab}
-              onOpenUnavailabilityModal={() => setShowUnavailabilityModal(true)}
-            />
-          )
-        )}
+      {/* Main Content Column */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Top Header */}
+        <Header
+          currentUser={currentUser}
+          notifications={notifications}
+          unreadNotificationsCount={unreadNotificationsCount}
+          onMarkNotificationRead={handleMarkNotificationRead}
+          onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+          onLogout={handleLogout}
+          onNavigateSettings={() => setActiveTab('settings')}
+        />
 
-        {/* ========================================================= */}
-        {/* TAB 2: CALENDRIER */}
-        {/* ========================================================= */}
-        {(activeTab === 'calendar' || activeTab === 'events') && (
-          <CalendarView
-            events={events}
-            poles={poles}
-            currentUser={currentUser}
-            onOpenCreateEventModal={() => setShowEventModal(true)}
-            onOpenAssignmentsDrawer={(ev) => {
-              if (isLeaderOrAdmin) {
-                setSelectedEventForAssignments(ev);
-                setShowAssignmentsDrawer(true);
-              }
-            }}
-            onOpenUnavailabilities={() => setShowUnavailabilityModal(true)}
-            onRefresh={fetchData}
-          />
-        )}
+        {/* Dynamic Responsive View (with bottom padding on mobile for Bottom Tabs) */}
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-8">
+          {/* ========================================================= */}
+          {/* TAB 1: MON ESPACE (Dashboard) */}
+          {/* ========================================================= */}
+          {activeTab === 'dashboard' && (
+            isLeaderOrAdmin ? (
+              <DesktopDashboard
+                currentUser={currentUser}
+                data={dashboardData}
+                onNavigateTab={setActiveTab}
+                onApproveRequest={handleApproveRequest}
+                onRejectRequest={handleRejectRequest}
+                onOpenCreateEvent={() => setShowEventModal(true)}
+              />
+            ) : (
+              <MemberDashboard
+                currentUser={currentUser}
+                data={dashboardData}
+                poles={poles}
+                onNavigateTab={setActiveTab}
+                onOpenUnavailabilityModal={() => setShowUnavailabilityModal(true)}
+              />
+            )
+          )}
 
-        {/* ========================================================= */}
-        {/* TAB 3: FORMATIONS */}
-        {/* ========================================================= */}
-        {activeTab === 'training' && (
-          <TrainingWeb
-            currentUser={currentUser}
-            poles={poles}
-            onRefresh={fetchData}
-          />
-        )}
-
-        {/* ========================================================= */}
-        {/* TAB 4: SERVICE (Hub & Sub-views) */}
-        {/* ========================================================= */}
-        {activeTab === 'service_hub' && (
-          <ServiceHubView
-            onNavigate={setActiveTab}
-            currentUser={currentUser}
-            poles={poles}
-          />
-        )}
-
-        {activeTab === 'poles' && (
-          <div>
-            <SubViewHeader
-              parentTitle="Service"
-              parentTabId="service_hub"
-              currentTitle="Mes Pôles Ministériels"
-              onBack={() => setActiveTab('service_hub')}
-            />
-            <PolesManagement poles={poles} currentUser={currentUser} onRefresh={fetchData} />
-          </div>
-        )}
-
-        {activeTab === 'checklists' && (
-          <div>
-            <SubViewHeader
-              parentTitle="Service"
-              parentTabId="service_hub"
-              currentTitle="Checklists de Service"
-              onBack={() => setActiveTab('service_hub')}
-            />
-            <ChecklistsWeb
-              checklists={[]}
-              poles={poles}
-              events={events}
-              currentUser={currentUser}
-              onRefresh={fetchData}
-            />
-          </div>
-        )}
-
-        {activeTab === 'unavailability' && (
-          <div>
-            <SubViewHeader
-              parentTitle="Service"
-              parentTabId="service_hub"
-              currentTitle="Mes Indisponibilités"
-              onBack={() => setActiveTab('service_hub')}
-            />
-            <UnavailabilitiesView
-              currentUser={currentUser}
-              poles={poles}
-              members={allUsers}
-            />
-          </div>
-        )}
-
-        {activeTab === 'service_validation' && (
-          <div>
-            <SubViewHeader
-              parentTitle="Service"
-              parentTabId="service_hub"
-              currentTitle="Valider mon Service"
-              onBack={() => setActiveTab('service_hub')}
-            />
-            <ServiceValidationTracking
+          {/* ========================================================= */}
+          {/* TAB 2: CALENDRIER */}
+          {/* ========================================================= */}
+          {(activeTab === 'calendar' || activeTab === 'events') && (
+            <CalendarView
               events={events}
               poles={poles}
               currentUser={currentUser}
+              onOpenCreateEventModal={() => setShowEventModal(true)}
+              onOpenAssignmentsDrawer={(ev) => {
+                if (isLeaderOrAdmin) {
+                  setSelectedEventForAssignments(ev);
+                  setShowAssignmentsDrawer(true);
+                }
+              }}
+              onOpenUnavailabilities={() => setShowUnavailabilityModal(true)}
               onRefresh={fetchData}
             />
-          </div>
-        )}
+          )}
 
-        {/* ========================================================= */}
-        {/* TAB 5: VIE DU MCAD (Hub & Sub-views) */}
-        {/* ========================================================= */}
-        {activeTab === 'life_hub' && (
-          <LifeHubView
-            onNavigate={setActiveTab}
-            currentUser={currentUser}
-            birthdaysCount={dashboardData?.birthdays?.length || 0}
-          />
-        )}
-
-        {activeTab === 'birthdays' && (
-          <div>
-            <SubViewHeader
-              parentTitle="Vie du MCAD"
-              parentTabId="life_hub"
-              currentTitle="Anniversaires du Mois"
-              onBack={() => setActiveTab('life_hub')}
-            />
-            <BirthdaysView
+          {/* ========================================================= */}
+          {/* TAB 3: FORMATIONS */}
+          {/* ========================================================= */}
+          {activeTab === 'training' && (
+            <TrainingWeb
               currentUser={currentUser}
               poles={poles}
-            />
-          </div>
-        )}
-
-        {activeTab === 'stats' && (
-          <div>
-            <SubViewHeader
-              parentTitle="Vie du MCAD"
-              parentTabId="life_hub"
-              currentTitle="Statistiques & Impact"
-              onBack={() => setActiveTab('life_hub')}
-            />
-            <StatsView
-              currentUser={currentUser}
-              poles={poles}
-            />
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* TAB 6: RESPONSABLE (Hub & Sub-views - Leaders only) */}
-        {/* ========================================================= */}
-        {activeTab === 'leader_hub' && isLeaderOrAdmin && (
-          <LeaderHubView
-            onNavigate={setActiveTab}
-            currentUser={currentUser}
-            pendingRequestsCount={dashboardData?.pendingRequests?.length || 0}
-            membersCount={allUsers.length}
-          />
-        )}
-
-        {activeTab === 'members' && isLeaderOrAdmin && (
-          <div>
-            <SubViewHeader
-              parentTitle="Responsable"
-              parentTabId="leader_hub"
-              currentTitle="Gestion des Membres"
-              onBack={() => setActiveTab('leader_hub')}
-            />
-            <MembersManagement
-              poles={poles}
-              currentUser={currentUser}
               onRefresh={fetchData}
             />
-          </div>
-        )}
+          )}
 
-        {activeTab === 'requests' && isLeaderOrAdmin && (
-          <div>
-            <SubViewHeader
-              parentTitle="Responsable"
-              parentTabId="leader_hub"
-              currentTitle="Demandes d'Adhésion"
-              onBack={() => setActiveTab('leader_hub')}
-            />
-            <MembershipRequestsView
+          {/* ========================================================= */}
+          {/* TAB 4: SERVICE (Hub & Sub-views) */}
+          {/* ========================================================= */}
+          {activeTab === 'service_hub' && (
+            <ServiceHubView
+              onNavigate={setActiveTab}
               currentUser={currentUser}
               poles={poles}
-              onRefreshAll={fetchData}
             />
-          </div>
-        )}
+          )}
 
-        {activeTab === 'service_tracking' && isLeaderOrAdmin && (
-          <div>
-            <SubViewHeader
-              parentTitle="Responsable"
-              parentTabId="leader_hub"
-              currentTitle="Suivi de Validation"
-              onBack={() => setActiveTab('leader_hub')}
-            />
-            <ServiceValidationTracking
-              events={events}
-              poles={poles}
+          {activeTab === 'poles' && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Service"
+                  parentTabId="service_hub"
+                  currentTitle="Mes Pôles Ministériels"
+                  onBack={() => setActiveTab('service_hub')}
+                />
+              </div>
+              <PolesManagement poles={poles} currentUser={currentUser} onRefresh={fetchData} />
+            </div>
+          )}
+
+          {activeTab === 'checklists' && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Service"
+                  parentTabId="service_hub"
+                  currentTitle="Checklists de Service"
+                  onBack={() => setActiveTab('service_hub')}
+                />
+              </div>
+              <ChecklistsWeb
+                checklists={[]}
+                poles={poles}
+                events={events}
+                currentUser={currentUser}
+                onRefresh={fetchData}
+              />
+            </div>
+          )}
+
+          {(activeTab === 'unavailability' || activeTab === 'unavailabilities') && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Service"
+                  parentTabId="service_hub"
+                  currentTitle="Mes Indisponibilités"
+                  onBack={() => setActiveTab('service_hub')}
+                />
+              </div>
+              <UnavailabilitiesView
+                currentUser={currentUser}
+                poles={poles}
+                members={allUsers}
+              />
+            </div>
+          )}
+
+          {(activeTab === 'service_validation' || activeTab === 'validations') && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Service"
+                  parentTabId="service_hub"
+                  currentTitle="Valider mon Service"
+                  onBack={() => setActiveTab('service_hub')}
+                />
+              </div>
+              <ServiceValidationTracking
+                events={events}
+                poles={poles}
+                currentUser={currentUser}
+                onRefresh={fetchData}
+              />
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB 5: VIE DU MCAD (Hub & Sub-views) */}
+          {/* ========================================================= */}
+          {activeTab === 'life_hub' && (
+            <LifeHubView
+              onNavigate={setActiveTab}
               currentUser={currentUser}
-              onRefresh={fetchData}
+              birthdaysCount={dashboardData?.birthdays?.length || 0}
             />
-          </div>
-        )}
+          )}
 
-        {/* ========================================================= */}
-        {/* SETTINGS VIEW */}
-        {/* ========================================================= */}
-        {activeTab === 'settings' && (
-          <SettingsView
-            currentUser={currentUser}
-            onUserUpdated={(u) => {
-              setCurrentUser(u);
-              fetchData();
-            }}
-            onLogout={handleLogout}
-          />
-        )}
-      </main>
+          {activeTab === 'birthdays' && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Vie du MCAD"
+                  parentTabId="life_hub"
+                  currentTitle="Anniversaires du Mois"
+                  onBack={() => setActiveTab('life_hub')}
+                />
+              </div>
+              <BirthdaysView
+                currentUser={currentUser}
+                poles={poles}
+              />
+            </div>
+          )}
 
-      {/* Fixed Bottom Tab Bar Navigation */}
+          {(activeTab === 'stats' || activeTab === 'statistics') && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Vie du MCAD"
+                  parentTabId="life_hub"
+                  currentTitle="Statistiques & Impact"
+                  onBack={() => setActiveTab('life_hub')}
+                />
+              </div>
+              <StatsView
+                currentUser={currentUser}
+                poles={poles}
+              />
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB 6: RESPONSABLE (Hub & Sub-views - Leaders only) */}
+          {/* ========================================================= */}
+          {activeTab === 'leader_hub' && isLeaderOrAdmin && (
+            <LeaderHubView
+              onNavigate={setActiveTab}
+              currentUser={currentUser}
+              pendingRequestsCount={dashboardData?.pendingRequests?.length || 0}
+              membersCount={allUsers.length}
+            />
+          )}
+
+          {activeTab === 'members' && isLeaderOrAdmin && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Responsable"
+                  parentTabId="leader_hub"
+                  currentTitle="Gestion des Membres"
+                  onBack={() => setActiveTab('leader_hub')}
+                />
+              </div>
+              <MembersManagement
+                poles={poles}
+                currentUser={currentUser}
+                onRefresh={fetchData}
+              />
+            </div>
+          )}
+
+          {activeTab === 'requests' && isLeaderOrAdmin && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Responsable"
+                  parentTabId="leader_hub"
+                  currentTitle="Demandes d'Adhésion"
+                  onBack={() => setActiveTab('leader_hub')}
+                />
+              </div>
+              <MembershipRequestsView
+                currentUser={currentUser}
+                poles={poles}
+                onRefreshAll={fetchData}
+              />
+            </div>
+          )}
+
+          {activeTab === 'service_tracking' && isLeaderOrAdmin && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Responsable"
+                  parentTabId="leader_hub"
+                  currentTitle="Suivi de Validation"
+                  onBack={() => setActiveTab('leader_hub')}
+                />
+              </div>
+              <ServiceValidationTracking
+                events={events}
+                poles={poles}
+                currentUser={currentUser}
+                onRefresh={fetchData}
+              />
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* SETTINGS VIEW */}
+          {/* ========================================================= */}
+          {activeTab === 'settings' && (
+            <SettingsView
+              currentUser={currentUser}
+              onUserUpdated={(u) => {
+                setCurrentUser(u);
+                fetchData();
+              }}
+              onLogout={handleLogout}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* Fixed Bottom Tab Bar Navigation (ONLY on screens < lg) */}
       <BottomTabBar
         activeTab={activeTab}
         onTabChange={setActiveTab}

@@ -93,11 +93,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
   return (
     <nav 
-      aria-label="Navigation principale"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/80 shadow-[0_-8px_30px_rgba(0,0,0,0.35)]"
+      aria-label="Navigation mobile"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
     >
-      <div className="max-w-6xl mx-auto px-2 sm:px-6">
-        <div className="flex items-center justify-around h-16 sm:h-18">
+      <div className="max-w-md mx-auto px-1">
+        <div className="flex items-center justify-around h-16">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = currentParentTab === tab.id;
@@ -107,32 +107,32 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => onTabChange(tab.id)}
-                className={`relative flex flex-col items-center justify-center flex-1 py-1.5 px-1 sm:px-3 rounded-2xl transition-all duration-200 group ${
+                className={`relative flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-2xl transition-all duration-200 ${
                   isActive
-                    ? 'text-indigo-400 font-bold'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-indigo-600 font-extrabold'
+                    : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
                 {/* Active Indicator Top Glow */}
                 {isActive && (
-                  <span className="absolute -top-2.5 sm:-top-3 w-8 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.8)] animate-in fade-in zoom-in duration-200" />
+                  <span className="absolute -top-2.5 w-7 h-1 bg-indigo-600 rounded-full shadow-[0_0_8px_rgba(79,70,229,0.6)]" />
                 )}
 
                 {/* Icon with optional badge */}
-                <div className="relative mb-1">
+                <div className="relative mb-0.5">
                   <div
-                    className={`p-1.5 rounded-xl transition-all ${
+                    className={`p-1 rounded-xl transition-all ${
                       isActive
-                        ? 'bg-indigo-600/20 text-indigo-400 shadow-sm scale-110'
-                        : 'group-hover:bg-slate-800 text-slate-400 group-hover:text-white'
+                        ? 'bg-indigo-50 text-indigo-600 scale-105'
+                        : 'text-slate-400'
                     }`}
                   >
-                    <Icon className="w-5 h-5 sm:w-5 sm:h-5 transition-transform" />
+                    <Icon className="w-5 h-5 transition-transform" />
                   </div>
 
                   {/* Badge Notification */}
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="absolute -top-1 -right-1.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-lg shadow-rose-500/40 animate-pulse">
+                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-xs">
                       {tab.badge}
                     </span>
                   )}
@@ -140,8 +140,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
                 {/* Label */}
                 <span
-                  className={`text-[10px] sm:text-xs tracking-tight transition-colors text-center truncate max-w-full ${
-                    isActive ? 'text-white font-bold' : 'text-slate-400 group-hover:text-slate-200'
+                  className={`text-[10px] tracking-tight transition-colors text-center truncate max-w-full leading-tight ${
+                    isActive ? 'text-indigo-900 font-extrabold' : 'text-slate-500 font-medium'
                   }`}
                 >
                   {tab.label}
