@@ -35,6 +35,7 @@ interface DesktopDashboardProps {
   currentUser: User | null;
   data: any;
   onNavigateTab: (tab: string) => void;
+  onNavigateToEvent?: (event: any) => void;
   onApproveRequest: (id: string) => void;
   onRejectRequest: (id: string) => void;
   onOpenCreateEvent?: () => void;
@@ -44,6 +45,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   currentUser,
   data,
   onNavigateTab,
+  onNavigateToEvent,
   onApproveRequest,
   onRejectRequest,
   onOpenCreateEvent
@@ -259,21 +261,28 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             ) : (
               <div className="space-y-3.5">
                 {upcomingEvents.map((ev: any) => (
-                  <div key={ev.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div
+                    key={ev.id}
+                    onClick={() => (onNavigateToEvent ? onNavigateToEvent(ev) : onNavigateTab('calendar'))}
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 cursor-pointer transition-all group"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 group-hover:bg-blue-600 text-blue-600 group-hover:text-white flex items-center justify-center font-bold text-xs transition-colors">
                         <Calendar className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-slate-900">{ev.title}</p>
+                        <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{ev.title}</p>
                         <p className="text-[11px] text-slate-500">
                           {new Date(ev.startsAt).toLocaleDateString('fr-FR')} • {new Date(ev.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
-                      {ev.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+                        {ev.status}
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-600 transition-colors" />
+                    </div>
                   </div>
                 ))}
               </div>

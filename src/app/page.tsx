@@ -47,7 +47,14 @@ export default function HomePage() {
   const [showEventModal, setShowEventModal] = React.useState(false);
   const [showAssignmentsDrawer, setShowAssignmentsDrawer] = React.useState(false);
   const [selectedEventForAssignments, setSelectedEventForAssignments] = React.useState<Event | null>(null);
+  const [selectedEventForCalendar, setSelectedEventForCalendar] = React.useState<Event | null>(null);
   const [showUnavailabilityModal, setShowUnavailabilityModal] = React.useState(false);
+
+  // Navigate to dedicated event view
+  const handleNavigateToEvent = (event: Event) => {
+    setSelectedEventForCalendar(event);
+    setActiveTab('calendar');
+  };
 
   // Switch User (Demo/Leader preview)
   const handleSwitchUser = (user: User) => {
@@ -288,6 +295,7 @@ export default function HomePage() {
                 currentUser={currentUser}
                 data={dashboardData}
                 onNavigateTab={setActiveTab}
+                onNavigateToEvent={handleNavigateToEvent}
                 onApproveRequest={handleApproveRequest}
                 onRejectRequest={handleRejectRequest}
                 onOpenCreateEvent={() => setShowEventModal(true)}
@@ -298,6 +306,7 @@ export default function HomePage() {
                 data={dashboardData}
                 poles={poles}
                 onNavigateTab={setActiveTab}
+                onNavigateToEvent={handleNavigateToEvent}
                 onOpenUnavailabilityModal={() => setShowUnavailabilityModal(true)}
               />
             )
@@ -311,6 +320,7 @@ export default function HomePage() {
               events={events}
               poles={poles}
               currentUser={currentUser}
+              initialSelectedEvent={selectedEventForCalendar}
               onOpenCreateEventModal={() => setShowEventModal(true)}
               onOpenAssignmentsDrawer={(ev) => {
                 if (isLeaderOrAdmin) {

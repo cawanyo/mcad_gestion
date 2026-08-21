@@ -29,6 +29,7 @@ interface MemberDashboardProps {
   data: any;
   poles: Pole[];
   onNavigateTab: (tab: string) => void;
+  onNavigateToEvent?: (event: any) => void;
   onOpenUnavailabilityModal: () => void;
 }
 
@@ -37,6 +38,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
   data,
   poles,
   onNavigateTab,
+  onNavigateToEvent,
   onOpenUnavailabilityModal
 }) => {
   const [runnerChecklist, setRunnerChecklist] = React.useState<any | null>(null);
@@ -260,8 +262,11 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
             <div className="space-y-4">
               <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/40 border border-indigo-100 space-y-3.5">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">{nextService.title}</h3>
+                  <div
+                    onClick={() => (onNavigateToEvent ? onNavigateToEvent(nextService) : onNavigateTab('calendar'))}
+                    className="cursor-pointer group"
+                  >
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{nextService.title}</h3>
                     <p className="text-xs text-slate-600 mt-0.5">{nextService.description || 'Culte dominical et temps de célébration.'}</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -325,10 +330,10 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                         <span>Valider service</span>
                       </button>
                       <button
-                        onClick={() => onNavigateTab('calendar')}
+                        onClick={() => (onNavigateToEvent ? onNavigateToEvent(nextService) : onNavigateTab('calendar'))}
                         className="py-2 px-3 bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold transition-all"
                       >
-                        Calendrier
+                        Détails
                       </button>
                     </div>
                   </div>
@@ -344,8 +349,8 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                         <span>Valider mon service</span>
                       </button>
                       <button
-                        onClick={() => onNavigateTab('calendar')}
-                        className="text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1"
+                        onClick={() => (onNavigateToEvent ? onNavigateToEvent(nextService) : onNavigateTab('calendar'))}
+                        className="text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
                       >
                         <span>Détails</span>
                         <ArrowRight className="w-3 h-3" />
@@ -361,18 +366,25 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                   <h4 className="text-xs font-bold text-slate-700">Autres services à venir ({myAssignments.length - 1})</h4>
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {myAssignments.slice(1).map((a: any) => (
-                      <div key={a.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div
+                        key={a.id}
+                        onClick={() => (onNavigateToEvent ? onNavigateToEvent(a.event) : onNavigateTab('calendar'))}
+                        className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-indigo-200 hover:bg-indigo-50/20 cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs group"
+                      >
                         <div>
-                          <p className="font-bold text-slate-900">{a.event.title}</p>
+                          <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{a.event?.title}</p>
                           <p className="text-[10px] text-slate-500">
-                            {new Date(a.event.startsAt).toLocaleDateString('fr-FR')} • {a.pole?.name} ({a.roleTag || 'Membre'})
+                            {new Date(a.event?.startsAt).toLocaleDateString('fr-FR')} • {a.pole?.name} ({a.roleTag || 'Membre'})
                           </p>
                         </div>
 
                         <div className="flex items-center gap-2 self-end sm:self-center">
                           {a.assignedChecklist && (
                             <button
-                              onClick={() => setRunnerChecklist(a.assignedChecklist)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRunnerChecklist(a.assignedChecklist);
+                              }}
                               className="px-2.5 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
                             >
                               <Play className="w-2.5 h-2.5 fill-current" />
@@ -382,6 +394,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                             Confirmé
                           </span>
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
                         </div>
                       </div>
                     ))}

@@ -44,6 +44,7 @@ interface CalendarViewProps {
   events: Event[];
   poles: Pole[];
   currentUser: User | null;
+  initialSelectedEvent?: Event | null;
   onOpenCreateEventModal: () => void;
   onOpenAssignmentsDrawer: (event: Event) => void;
   onOpenUnavailabilities: () => void;
@@ -54,6 +55,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   events = [],
   poles = [],
   currentUser,
+  initialSelectedEvent,
   onOpenCreateEventModal,
   onOpenAssignmentsDrawer,
   onOpenUnavailabilities,
@@ -175,15 +177,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return true;
   });
 
-  // Sync selected event when events change (without overriding user selection)
+  // Auto-focus initialSelectedEvent when navigated from Dashboard or elsewhere
   React.useEffect(() => {
-    if (selectedEvent) {
-      const fresh = events.find((e) => e.id === selectedEvent.id);
-      if (fresh) {
-        setSelectedEvent(fresh);
-      }
+    if (initialSelectedEvent) {
+      setSelectedEvent(initialSelectedEvent);
+      setSelectedDateStr(getLocalDateStr(initialSelectedEvent.startsAt));
+      setMobileEventDetail(initialSelectedEvent);
+      setMobileCalendarView('week');
+      scrollToDetails();
     }
-  }, [events]);
+  }, [initialSelectedEvent]);
 
   // Events on active date
   const activeDateStr = selectedEvent
