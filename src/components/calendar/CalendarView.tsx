@@ -178,16 +178,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return true;
   });
 
+  // User Pole Memberships & Permissions
+  const userPoleMemberships = currentUser?.poleMemberships || [];
+  const userPoleIds = userPoleMemberships.map((pm: any) => pm.poleId);
+  const userPoles = userPoleMemberships.map((pm: any) => pm.pole).filter(Boolean);
+  const hasPoleMembership = userPoles.length > 0;
+  const canAccessEventDetailPage = hasPoleMembership || isLeaderOrAdmin;
+
   // Auto-focus initialSelectedEvent when navigated from Dashboard or elsewhere
   React.useEffect(() => {
     if (initialSelectedEvent) {
       setSelectedEvent(initialSelectedEvent);
       setSelectedDateStr(getLocalDateStr(initialSelectedEvent.startsAt));
-      setMobileEventDetail(initialSelectedEvent);
+      if (canAccessEventDetailPage) {
+        setMobileEventDetail(initialSelectedEvent);
+      }
       setMobileCalendarView('week');
       scrollToDetails();
     }
-  }, [initialSelectedEvent]);
+  }, [initialSelectedEvent, canAccessEventDetailPage]);
 
   // Events on active date
   const activeDateStr = selectedEvent
@@ -465,9 +474,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // Current User's Assignment on Selected Event
   const myAssignment = currentUser && selectedEvent?.assignments?.find((a) => a.userId === currentUser.id);
 
-  // User Eligible Poles for Selected Event
-  const userPoleMemberships = currentUser?.poleMemberships || [];
-  const userPoleIds = userPoleMemberships.map((pm: any) => pm.poleId);
+  // User Eligible Poles for Selected Event (Poles the user belongs to that are required)
   const eligibleRequiredPoles = (selectedEvent?.requirements || [])
     .filter((r) => userPoleIds.includes(r.poleId) || isLeaderOrAdmin)
     .map((r) => r.pole)
@@ -848,8 +855,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     return (
                       <div
                         key={ev.id}
-                        onClick={() => setMobileEventDetail(ev)}
-                        className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer space-y-3 group"
+                        onClick={() => {
+                          setSelectedEvent(ev);
+                          if (canAccessEventDetailPage) {
+                            setMobileEventDetail(ev);
+                          }
+                        }}
+                        className={`bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs transition-all space-y-3 group ${
+                          canAccessEventDetailPage ? 'hover:shadow-md hover:border-indigo-300 cursor-pointer' : 'cursor-default'
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
@@ -879,7 +893,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         </div>
 
                         <div>
-                          <h4 className="text-sm sm:text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
+                          <h4 className={`text-sm sm:text-base font-black text-slate-900 transition-colors ${
+                            canAccessEventDetailPage ? 'group-hover:text-indigo-600' : ''
+                          }`}>
                             {ev.title}
                           </h4>
                           <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
@@ -897,14 +913,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             </span>
                           ) : (
                             <span className="text-[10px] font-semibold text-slate-400">
-                              Toucher pour voir les détails
+                              {canAccessEventDetailPage ? 'Toucher pour voir les détails' : 'Consultation du calendrier'}
                             </span>
                           )}
 
-                          <div className="flex items-center gap-1 text-indigo-600 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
-                            <span>Voir le culte</span>
-                            <ChevronRight className="w-4 h-4" />
-                          </div>
+                          {canAccessEventDetailPage ? (
+                            <div className="flex items-center gap-1 text-indigo-600 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
+                              <span>Voir la fiche</span>
+                              <ChevronRight className="w-4 h-4" />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-slate-400 font-semibold text-[10px]">
+                              <Eye className="w-3 h-3 text-slate-400" />
+                              <span>Consultation</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -1353,14 +1376,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   </span>
 
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setMobileEventDetail(selectedEvent)}
-                      className="px-2 py-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-bold shadow-2xs"
-                      title="Ouvrir la page complète du culte (positionnement, équipe, checklists)"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      <span className="hidden xl:inline">Page complète</span>
-                    </button>
+                    {canAccessEventDetailPage && (
+                      <button
+                        onClick={() => setMobileEventDetail(selectedEvent)}
+                        className="px-2 py-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                        title="Ouvrir la page complète du culte (positionnement, équipe, checklists)"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span className="hidden xl:inline">Page complète</span>
+                      </button>
+                    )}
 
                     {isLeaderOrAdmin && (
                       <>
@@ -1449,8 +1474,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       </button>
                     </div>
                   </div>
+                ) : !canAccessEventDetailPage ? (
+                  /* Member belongs to NO pole -> Consultation mode */
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs">
+                    <div className="flex items-center gap-2 font-bold text-slate-700">
+                      <Eye className="w-4 h-4 text-slate-500" />
+                      <span>Mode Consultation</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Vous n'appartenez à aucun pôle pour l'instant. Pour pouvoir vous positionner comme STAR sur les cultes, vous devez d'abord rejoindre un pôle.
+                    </p>
+                  </div>
                 ) : (
-                  /* User is NOT positioned yet */
+                  /* User is NOT positioned yet and belongs to at least 1 pole */
                   <div className="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -1463,71 +1499,50 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     </div>
 
                     <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Vous n'êtes pas encore positionné(e) par un responsable sur ce culte. Choisissez votre pôle pour vous inscrire directement.
+                      Choisissez votre pôle de rattachement pour vous positionner comme STAR sur ce culte :
                     </p>
 
-                    {eligibleRequiredPoles.length > 0 ? (
-                      <div className="space-y-2.5">
-                        {eligibleRequiredPoles.length > 1 && (
-                          <div>
-                            <label className="text-[11px] font-bold text-slate-700 block mb-1">Choisir votre pôle :</label>
-                            <select
-                              value={selfAssignPoleId || eligibleRequiredPoles[0].id}
-                              onChange={(e) => setSelfAssignPoleId(e.target.value)}
-                              className="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
-                            >
-                              {eligibleRequiredPoles.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  Pôle {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
+                    {(() => {
+                      const userSelectablePoles = isLeaderOrAdmin ? poles : userPoles;
+                      const activeTargetPole = userSelectablePoles.find((p) => p.id === selfAssignPoleId) || userSelectablePoles[0];
 
-                        <button
-                          onClick={() => handleSelfAssign(selectedEvent.id, selfAssignPoleId || eligibleRequiredPoles[0].id)}
-                          disabled={selfAssigning}
-                          className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] disabled:opacity-50"
-                        >
-                          <UserCheck className="w-4 h-4" />
-                          <span>
-                            {selfAssigning
-                              ? 'Positionnement en cours...'
-                              : `✋ Me positionner (${eligibleRequiredPoles.find((p) => p.id === (selfAssignPoleId || eligibleRequiredPoles[0].id))?.name || 'Mon pôle'})`}
-                          </span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {poles.length > 0 && (
-                          <div>
-                            <label className="text-[11px] font-bold text-slate-700 block mb-1">Sélectionner un pôle :</label>
-                            <select
-                              value={selfAssignPoleId || poles[0]?.id}
-                              onChange={(e) => setSelfAssignPoleId(e.target.value)}
-                              className="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
-                            >
-                              {poles.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  Pôle {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                        <button
-                          onClick={() => handleSelfAssign(selectedEvent.id, selfAssignPoleId || poles[0]?.id)}
-                          disabled={selfAssigning}
-                          className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] disabled:opacity-50"
-                        >
-                          <UserCheck className="w-4 h-4" />
-                          <span>
-                            {selfAssigning ? 'Positionnement en cours...' : '✋ Me positionner sur ce culte'}
-                          </span>
-                        </button>
-                      </div>
-                    )}
+                      return (
+                        <div className="space-y-2.5">
+                          {userSelectablePoles.length > 1 && (
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 block mb-1">Choisir votre pôle :</label>
+                              <select
+                                value={selfAssignPoleId || activeTargetPole?.id}
+                                onChange={(e) => setSelfAssignPoleId(e.target.value)}
+                                className="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
+                              >
+                                {userSelectablePoles.map((p) => {
+                                  const isRequired = (selectedEvent.requirements || []).some((r) => r.poleId === p.id);
+                                  return (
+                                    <option key={p.id} value={p.id}>
+                                      Pôle {p.name} {isRequired ? '🔥 (Besoin ouvert)' : ''}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+                          )}
+
+                          <button
+                            onClick={() => handleSelfAssign(selectedEvent.id, activeTargetPole?.id || poles[0]?.id)}
+                            disabled={selfAssigning || !activeTargetPole}
+                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] disabled:opacity-50"
+                          >
+                            <UserCheck className="w-4 h-4" />
+                            <span>
+                              {selfAssigning
+                                ? 'Positionnement en cours...'
+                                : `✋ Me positionner (${activeTargetPole?.name || 'Mon pôle'})`}
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

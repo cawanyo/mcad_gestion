@@ -90,9 +90,11 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
 
   const requiredPoleIds = (currentEvent.requirements || []).map((r) => r.poleId);
 
-  // All distinct poles selectable by user
+  // Strict pole selection:
+  // - Admin / Leader: can select all department poles
+  // - Regular Member: can ONLY select poles they belong to
   const selectablePoles = React.useMemo(() => {
-    if (isLeaderOrAdmin || userPoles.length === 0) {
+    if (isLeaderOrAdmin) {
       return poles.length > 0 ? poles : userPoles;
     }
     return userPoles;
@@ -379,8 +381,19 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
               ))}
             </div>
           </div>
+        ) : selectablePoles.length === 0 ? (
+          /* User belongs to NO poles: Consultation mode only */
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2">
+            <div className="flex items-center gap-2 font-bold text-slate-800">
+              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              <span>Consultation seule — Aucun pôle actif</span>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Vous n'appartenez à aucun pôle pour le moment. Vous ne pouvez vous positionner que dans un pôle auquel vous appartenez. Rendez-vous dans la rubrique <strong>Pôles</strong> pour faire une demande d'intégration.
+            </p>
+          </div>
         ) : (
-          /* User is not assigned: Display Self-Positioning Controls */
+          /* User is not assigned and belongs to at least 1 pole */
           <div className="p-4 sm:p-5 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 rounded-2xl border border-indigo-100 space-y-4">
             <div>
               <p className="text-xs font-extrabold text-indigo-950">
@@ -395,7 +408,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
               {/* Pole Selector */}
               <div className="sm:col-span-6">
                 <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Pôle de service *
+                  Mon Pôle de service *
                 </label>
                 <select
                   value={selfAssignPoleId}
@@ -403,7 +416,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
                   className="w-full p-2.5 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-slate-800 outline-hidden focus:ring-2 focus:ring-indigo-500 shadow-2xs"
                 >
                   {selectablePoles.map((pole: any) => {
-                    const isRequired = requiredPoleIds.includes(pole.id);
+                    const isRequired = (currentEvent.requirements || []).some((r) => r.poleId === pole.id);
                     return (
                       <option key={pole.id} value={pole.id}>
                         {pole.name} {isRequired ? '🔥 (Besoin ouvert)' : ''}

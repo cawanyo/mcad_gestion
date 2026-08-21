@@ -50,6 +50,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
     }
 
+    // 1b. Check Rule: Member must belong to the pole (unless super admin / department leader)
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { poleMemberships: true }
+    });
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
+    }
+
+    const isPrivileged =
+      targetUser.role === 'SUPER_ADMIN' ||
+      targetUser.role === 'DEPARTMENT_LEADER';
+
+    const belongsToPole = targetUser.poleMemberships.some((pm) => pm.poleId === poleId);
+
+    if (!isPrivileged && !belongsToPole) {
+      return NextResponse.json({
+        error: "Vous ne pouvez vous positionner que dans un pôle auquel vous appartenez."
+      }, { status: 403 });
+    }
+
     // 2. Check Rule: Double assignment on same event
     const existingOnEvent = await prisma.assignment.findFirst({
       where: { eventId, userId },
