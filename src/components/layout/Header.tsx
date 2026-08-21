@@ -39,6 +39,37 @@ export const Header: React.FC<HeaderProps> = ({
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
 
+  const notificationRef = React.useRef<HTMLDivElement>(null);
+  const userMenuRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-dismiss dropdowns when clicking anywhere outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false);
+      }
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showNotifications || showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showNotifications, showUserMenu]);
+
   return (
     <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
       {/* Brand Logo */}
@@ -57,7 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Right Actions & User Avatar */}
       <div className="flex items-center gap-3 sm:gap-4">
         {/* Notification Bell */}
-        <div className="relative">
+        <div ref={notificationRef} className="relative">
           <button
             onClick={() => {
               setShowNotifications(!showNotifications);
@@ -99,7 +130,10 @@ export const Header: React.FC<HeaderProps> = ({
                   notifications.map((notif) => (
                     <div
                       key={notif.id}
-                      onClick={() => onMarkNotificationRead(notif.id)}
+                      onClick={() => {
+                        onMarkNotificationRead(notif.id);
+                        setShowNotifications(false);
+                      }}
                       className={`p-3 text-left hover:bg-slate-50 cursor-pointer transition-colors ${
                         !notif.isRead ? 'bg-blue-50/50' : ''
                       }`}
@@ -132,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* User Profile & Dropdown with Logout */}
-        <div className="relative pl-2 sm:pl-3 border-l border-slate-200">
+        <div ref={userMenuRef} className="relative pl-2 sm:pl-3 border-l border-slate-200">
           <button
             onClick={() => {
               setShowUserMenu(!showUserMenu);
