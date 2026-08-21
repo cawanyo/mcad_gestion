@@ -278,7 +278,7 @@ export default function HomePage() {
         />
 
         {/* Dynamic Responsive View (with bottom padding on mobile for Bottom Tabs) */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-8">
+        <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 lg:pb-8">
           {/* ========================================================= */}
           {/* TAB 1: MON ESPACE (Dashboard) */}
           {/* ========================================================= */}
