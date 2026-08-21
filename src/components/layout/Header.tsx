@@ -43,26 +43,26 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-      {/* Mobile Menu Toggle & Search Input */}
-      <div className="flex items-center gap-3 flex-1 max-w-lg">
-        {onToggleSidebar && (
-          <button
-            onClick={onToggleSidebar}
-            className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
-            title="Ouvrir le menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        )}
+      {/* Brand Logo & Search */}
+      <div className="flex items-center gap-4 flex-1 max-w-lg">
+        <a href="/" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-md shadow-amber-500/20 text-slate-950 font-bold group-hover:scale-105 transition-transform">
+            <span className="text-sm font-black tracking-tighter">MC</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-black text-slate-900 tracking-tight leading-none">MCAD</span>
+            <span className="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">Gestion</span>
+          </div>
+        </a>
 
-        <div className="relative w-full max-w-sm hidden sm:block">
+        <div className="relative w-full max-w-xs hidden md:block ml-2">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Rechercher..."
+            placeholder="Rechercher dans MCAD..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
           />
         </div>
       </div>

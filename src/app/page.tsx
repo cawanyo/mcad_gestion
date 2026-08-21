@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
+import { BottomTabBar } from '@/components/layout/BottomTabBar';
+import { SubViewHeader } from '@/components/layout/SubViewHeader';
 import { LandingPage } from '@/components/public/LandingPage';
 import { DesktopDashboard } from '@/components/dashboard/DesktopDashboard';
 import { MemberDashboard } from '@/components/dashboard/MemberDashboard';
@@ -21,14 +22,15 @@ import { BirthdaysView } from '@/components/birthdays/BirthdaysView';
 import { StatsView } from '@/components/statistics/StatsView';
 import { MembershipRequestsView } from '@/components/requests/MembershipRequestsView';
 import { TrainingWeb } from '@/components/training/TrainingWeb';
-import { Avatar } from '@/components/ui';
+import { ServiceHubView } from '@/components/hubs/ServiceHubView';
+import { LifeHubView } from '@/components/hubs/LifeHubView';
+import { LeaderHubView } from '@/components/hubs/LeaderHubView';
 import { User, Pole, Event, NotificationItem } from '@/types';
 import { Sparkles } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = React.useState('dashboard');
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
 
   // Application Data States
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
@@ -94,81 +96,98 @@ export default function HomePage() {
     fetchData();
   }, []);
 
-  // 🚀 Real-time Live Stream (Server-Sent Events) + Heartbeat sync
+  // Real-time Live Stream (Server-Sent Events) + Heartbeat sync
   React.useEffect(() => {
     if (!currentUser) return;
 
     let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout;
 
-    try {
-      eventSource = new EventSource('/api/realtime');
+    const connectSSE = () => {
+      try {
+        eventSource = new EventSource('/api/realtime');
 
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type !== 'PING' && data.type !== 'CONNECTED') {
-            // Real-time server broadcast received -> refresh data instantly
-            fetchData();
+        eventSource.onmessage = (event) => {
+          try {
+            const payload = JSON.parse(event.data);
+
+            if (payload.type === 'REFRESH_ALL' || payload.type === 'DATA_UPDATED') {
+              fetchData();
+            } else if (payload.type === 'NOTIFICATION') {
+              if (payload.notification?.userId === currentUser.id) {
+                setNotifications((prev) => [payload.notification, ...prev]);
+                setUnreadNotificationsCount((prev) => prev + 1);
+              }
+            }
+          } catch (e) {
+            console.error('SSE parse error:', e);
           }
-        } catch (err) {}
-      };
+        };
 
-      eventSource.onerror = () => {
-        // SSE will attempt to reconnect automatically
-      };
-    } catch (err) {
-      console.error('Real-time connection error:', err);
-    }
+        eventSource.onerror = () => {
+          if (eventSource) {
+            eventSource.close();
+          }
+          reconnectTimeout = setTimeout(connectSSE, 5000);
+        };
+      } catch (e) {
+        console.error('SSE initialization error:', e);
+        reconnectTimeout = setTimeout(connectSSE, 5000);
+      }
+    };
 
-    // Safety net: Fast background sync every 4 seconds without any full page reload
+    connectSSE();
+
     const interval = setInterval(() => {
       fetchData();
-    }, 4000);
+    }, 15000);
 
     return () => {
       if (eventSource) eventSource.close();
+      clearTimeout(reconnectTimeout);
       clearInterval(interval);
     };
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
-  const handleSwitchUser = async (user: User) => {
-    setCurrentUser(user);
-    await fetch('/api/auth/current', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id })
-    });
-    fetchData();
-  };
-
-  const handleLogout = async () => {
+  // Request actions (Admin)
+  const handleApproveRequest = async (requestId: string) => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      setCurrentUser(null);
-      setActiveTab('dashboard');
+      const res = await fetch(`/api/membership-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'APPROVED' })
+      });
+      if (res.ok) {
+        await fetchData();
+      }
     } catch (e) {
-      console.error('Logout error:', e);
+      console.error('Approval error:', e);
     }
   };
 
-  const handleApproveRequest = async (id: string) => {
-    await fetch(`/api/membership-requests/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'APPROVED' })
-    });
-    fetchData();
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      const res = await fetch(`/api/membership-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'REJECTED' })
+      });
+      if (res.ok) {
+        await fetchData();
+      }
+    } catch (e) {
+      console.error('Rejection error:', e);
+    }
   };
 
-  const handleRejectRequest = async (id: string) => {
-    await fetch(`/api/membership-requests/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'REJECTED' })
-    });
-    fetchData();
+  // Logout handler
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    setCurrentUser(null);
+    window.location.href = '/login';
   };
 
+  // Notification handlers
   const handleMarkNotificationRead = async (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
@@ -199,7 +218,7 @@ export default function HomePage() {
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-bold animate-pulse">
             <Sparkles className="w-6 h-6" />
           </div>
-          <p className="text-xs text-slate-400 font-medium">Chargement de votre espace...</p>
+          <p className="text-xs text-slate-400 font-medium">Chargement de votre espace MCAD...</p>
         </div>
       </div>
     );
@@ -216,116 +235,114 @@ export default function HomePage() {
     );
   }
 
-  const isLeaderOrAdmin = currentUser.role === 'SUPER_ADMIN' ||
+  const isLeaderOrAdmin =
+    currentUser.role === 'SUPER_ADMIN' ||
     currentUser.role === 'DEPARTMENT_LEADER' ||
     currentUser.role === 'POLE_LEADER' ||
     currentUser.role === 'CALENDAR_MANAGER';
 
-  // 2. If user IS authenticated: Display the application according to role
+  // 2. If user IS authenticated: Modern App with Bottom Tabs
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
-      {/* Desktop Sidebar (Fixed on lg screens) */}
-      <div className="hidden lg:flex flex-shrink-0 h-full">
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          currentUser={currentUser}
-          allUsers={allUsers}
-          onSwitchUser={handleSwitchUser}
-          pendingRequestsCount={dashboardData?.pendingRequests?.length || 0}
-          onLogout={handleLogout}
-        />
-      </div>
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-20 sm:pb-22">
+      {/* Top Header */}
+      <Header
+        currentUser={currentUser}
+        notifications={notifications}
+        unreadNotificationsCount={unreadNotificationsCount}
+        onMarkNotificationRead={handleMarkNotificationRead}
+        onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+        onLogout={handleLogout}
+        onNavigateSettings={() => setActiveTab('settings')}
+      />
 
-      {/* Mobile Drawer Sidebar */}
-      {isMobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsMobileSidebarOpen(false)}
+      {/* Main Container */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+        {/* ========================================================= */}
+        {/* TAB 1: MON ESPACE (Dashboard) */}
+        {/* ========================================================= */}
+        {activeTab === 'dashboard' && (
+          isLeaderOrAdmin ? (
+            <DesktopDashboard
+              currentUser={currentUser}
+              data={dashboardData}
+              onNavigateTab={setActiveTab}
+              onApproveRequest={handleApproveRequest}
+              onRejectRequest={handleRejectRequest}
+              onOpenCreateEvent={() => setShowEventModal(true)}
+            />
+          ) : (
+            <MemberDashboard
+              currentUser={currentUser}
+              data={dashboardData}
+              poles={poles}
+              onNavigateTab={setActiveTab}
+              onOpenUnavailabilityModal={() => setShowUnavailabilityModal(true)}
+            />
+          )
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 2: CALENDRIER */}
+        {/* ========================================================= */}
+        {(activeTab === 'calendar' || activeTab === 'events') && (
+          <CalendarView
+            events={events}
+            poles={poles}
+            currentUser={currentUser}
+            onOpenCreateEventModal={() => setShowEventModal(true)}
+            onOpenAssignmentsDrawer={(ev) => {
+              if (isLeaderOrAdmin) {
+                setSelectedEventForAssignments(ev);
+                setShowAssignmentsDrawer(true);
+              }
+            }}
+            onOpenUnavailabilities={() => setShowUnavailabilityModal(true)}
+            onRefresh={fetchData}
           />
-          <div className="relative z-10 w-64 h-full animate-in slide-in-from-left duration-200">
-            <Sidebar
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              currentUser={currentUser}
-              allUsers={allUsers}
-              onSwitchUser={handleSwitchUser}
-              pendingRequestsCount={dashboardData?.pendingRequests?.length || 0}
-              onCloseMobile={() => setIsMobileSidebarOpen(false)}
-              onLogout={handleLogout}
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 3: FORMATIONS */}
+        {/* ========================================================= */}
+        {activeTab === 'training' && (
+          <TrainingWeb
+            currentUser={currentUser}
+            poles={poles}
+            onRefresh={fetchData}
+          />
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 4: SERVICE (Hub & Sub-views) */}
+        {/* ========================================================= */}
+        {activeTab === 'service_hub' && (
+          <ServiceHubView
+            onNavigate={setActiveTab}
+            currentUser={currentUser}
+            poles={poles}
+          />
+        )}
+
+        {activeTab === 'poles' && (
+          <div>
+            <SubViewHeader
+              parentTitle="Service"
+              parentTabId="service_hub"
+              currentTitle="Mes Pôles Ministériels"
+              onBack={() => setActiveTab('service_hub')}
             />
+            <PolesManagement poles={poles} currentUser={currentUser} onRefresh={fetchData} />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Responsive Header */}
-        <Header
-          onToggleSidebar={() => setIsMobileSidebarOpen(true)}
-          currentUser={currentUser}
-          notifications={notifications}
-          unreadNotificationsCount={unreadNotificationsCount}
-          onMarkNotificationRead={handleMarkNotificationRead}
-          onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
-          onLogout={handleLogout}
-          onNavigateSettings={() => setActiveTab('settings')}
-        />
-
-        {/* Dynamic Responsive View */}
-        <main className="flex-1 overflow-y-auto">
-          {/* TAB: DASHBOARD */}
-          {activeTab === 'dashboard' && (
-            isLeaderOrAdmin ? (
-              <DesktopDashboard
-                currentUser={currentUser}
-                data={dashboardData}
-                onNavigateTab={setActiveTab}
-                onApproveRequest={handleApproveRequest}
-                onRejectRequest={handleRejectRequest}
-                onOpenCreateEvent={() => setShowEventModal(true)}
-              />
-            ) : (
-              <MemberDashboard
-                currentUser={currentUser}
-                data={dashboardData}
-                poles={poles}
-                onNavigateTab={setActiveTab}
-                onOpenUnavailabilityModal={() => setShowUnavailabilityModal(true)}
-              />
-            )
-          )}
-
-          {/* TAB: CALENDAR / EVENTS */}
-          {(activeTab === 'calendar' || activeTab === 'events') && (
-            <CalendarView
-              events={events}
-              poles={poles}
-              currentUser={currentUser}
-              onOpenCreateEventModal={() => setShowEventModal(true)}
-              onOpenAssignmentsDrawer={(ev) => {
-                if (isLeaderOrAdmin) {
-                  setSelectedEventForAssignments(ev);
-                  setShowAssignmentsDrawer(true);
-                }
-              }}
-              onOpenUnavailabilities={() => setShowUnavailabilityModal(true)}
-              onRefresh={fetchData}
+        {activeTab === 'checklists' && (
+          <div>
+            <SubViewHeader
+              parentTitle="Service"
+              parentTabId="service_hub"
+              currentTitle="Checklists de Service"
+              onBack={() => setActiveTab('service_hub')}
             />
-          )}
-
-          {/* TAB: TRAINING / FORMATIONS */}
-          {activeTab === 'training' && (
-            <TrainingWeb
-              currentUser={currentUser}
-              poles={poles}
-              onRefresh={fetchData}
-            />
-          )}
-
-          {/* TAB: CHECKLISTS */}
-          {activeTab === 'checklists' && (
             <ChecklistsWeb
               checklists={[]}
               poles={poles}
@@ -333,108 +350,199 @@ export default function HomePage() {
               currentUser={currentUser}
               onRefresh={fetchData}
             />
-          )}
+          </div>
+        )}
 
-          {/* TAB: VALIDATIONS & ASSIGNMENTS */}
-          {(activeTab === 'validations' || activeTab === 'assignments') && (
+        {activeTab === 'unavailability' && (
+          <div>
+            <SubViewHeader
+              parentTitle="Service"
+              parentTabId="service_hub"
+              currentTitle="Mes Indisponibilités"
+              onBack={() => setActiveTab('service_hub')}
+            />
+            <UnavailabilitiesView
+              currentUser={currentUser}
+              poles={poles}
+              members={allUsers}
+            />
+          </div>
+        )}
+
+        {activeTab === 'service_validation' && (
+          <div>
+            <SubViewHeader
+              parentTitle="Service"
+              parentTabId="service_hub"
+              currentTitle="Valider mon Service"
+              onBack={() => setActiveTab('service_hub')}
+            />
             <ServiceValidationTracking
               events={events}
               poles={poles}
               currentUser={currentUser}
               onRefresh={fetchData}
             />
-          )}
+          </div>
+        )}
 
-          {/* TAB: POLES */}
-          {activeTab === 'poles' && (
-            <PolesManagement poles={poles} currentUser={currentUser} onRefresh={fetchData} />
-          )}
+        {/* ========================================================= */}
+        {/* TAB 5: VIE DU MCAD (Hub & Sub-views) */}
+        {/* ========================================================= */}
+        {activeTab === 'life_hub' && (
+          <LifeHubView
+            onNavigate={setActiveTab}
+            currentUser={currentUser}
+            birthdaysCount={dashboardData?.birthdays?.length || 0}
+          />
+        )}
 
-          {/* TAB: MEMBERS (Admin / Department Leader) */}
-          {activeTab === 'members' && isLeaderOrAdmin && (
+        {activeTab === 'birthdays' && (
+          <div>
+            <SubViewHeader
+              parentTitle="Vie du MCAD"
+              parentTabId="life_hub"
+              currentTitle="Anniversaires du Mois"
+              onBack={() => setActiveTab('life_hub')}
+            />
+            <BirthdaysView
+              currentUser={currentUser}
+              poles={poles}
+            />
+          </div>
+        )}
+
+        {activeTab === 'stats' && (
+          <div>
+            <SubViewHeader
+              parentTitle="Vie du MCAD"
+              parentTabId="life_hub"
+              currentTitle="Statistiques & Impact"
+              onBack={() => setActiveTab('life_hub')}
+            />
+            <StatsView
+              currentUser={currentUser}
+              poles={poles}
+            />
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 6: RESPONSABLE (Hub & Sub-views - Leaders only) */}
+        {/* ========================================================= */}
+        {activeTab === 'leader_hub' && isLeaderOrAdmin && (
+          <LeaderHubView
+            onNavigate={setActiveTab}
+            currentUser={currentUser}
+            pendingRequestsCount={dashboardData?.pendingRequests?.length || 0}
+            membersCount={allUsers.length}
+          />
+        )}
+
+        {activeTab === 'members' && isLeaderOrAdmin && (
+          <div>
+            <SubViewHeader
+              parentTitle="Responsable"
+              parentTabId="leader_hub"
+              currentTitle="Gestion des Membres"
+              onBack={() => setActiveTab('leader_hub')}
+            />
             <MembersManagement
               poles={poles}
               currentUser={currentUser}
               onRefresh={fetchData}
             />
-          )}
+          </div>
+        )}
 
-          {/* TAB: UNAVAILABILITIES */}
-          {activeTab === 'unavailabilities' && (
-            <UnavailabilitiesView
-              currentUser={currentUser}
-              poles={poles}
-              members={allUsers}
+        {activeTab === 'requests' && isLeaderOrAdmin && (
+          <div>
+            <SubViewHeader
+              parentTitle="Responsable"
+              parentTabId="leader_hub"
+              currentTitle="Demandes d'Adhésion"
+              onBack={() => setActiveTab('leader_hub')}
             />
-          )}
-
-          {/* TAB: BIRTHDAYS */}
-          {activeTab === 'birthdays' && (
-            <BirthdaysView
-              currentUser={currentUser}
-              poles={poles}
-            />
-          )}
-
-          {/* TAB: STATISTICS */}
-          {activeTab === 'statistics' && (
-            <StatsView
-              currentUser={currentUser}
-              poles={poles}
-            />
-          )}
-
-          {/* TAB: REQUESTS (Admin only) */}
-          {activeTab === 'requests' && isLeaderOrAdmin && (
             <MembershipRequestsView
               currentUser={currentUser}
               poles={poles}
               onRefreshAll={fetchData}
             />
-          )}
+          </div>
+        )}
 
-          {/* TAB: SETTINGS / MON PROFIL */}
-          {activeTab === 'settings' && (
-            <SettingsView
-              currentUser={currentUser}
-              onUserUpdated={(updatedUser) => {
-                setCurrentUser(updatedUser);
-                fetchData();
-              }}
-              onLogout={handleLogout}
+        {activeTab === 'service_tracking' && isLeaderOrAdmin && (
+          <div>
+            <SubViewHeader
+              parentTitle="Responsable"
+              parentTabId="leader_hub"
+              currentTitle="Suivi de Validation"
+              onBack={() => setActiveTab('leader_hub')}
             />
-          )}
-        </main>
-      </div>
+            <ServiceValidationTracking
+              events={events}
+              poles={poles}
+              currentUser={currentUser}
+              onRefresh={fetchData}
+            />
+          </div>
+        )}
 
-      {/* Modals & Drawers */}
-      {isLeaderOrAdmin && (
-        <>
-          <EventModal
-            isOpen={showEventModal}
-            onClose={() => setShowEventModal(false)}
-            poles={poles}
-            onEventCreated={fetchData}
+        {/* ========================================================= */}
+        {/* SETTINGS VIEW */}
+        {/* ========================================================= */}
+        {activeTab === 'settings' && (
+          <SettingsView
+            currentUser={currentUser}
+            onUserUpdated={(u) => {
+              setCurrentUser(u);
+              fetchData();
+            }}
+            onLogout={handleLogout}
           />
+        )}
+      </main>
 
-          <AssignmentsDrawer
-            isOpen={showAssignmentsDrawer}
-            onClose={() => setShowAssignmentsDrawer(false)}
-            event={selectedEventForAssignments}
-            poles={poles}
-            allUsers={allUsers}
-            onRefreshEvent={fetchData}
-          />
-        </>
+      {/* Fixed Bottom Tab Bar Navigation */}
+      <BottomTabBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        currentUser={currentUser}
+        pendingRequestsCount={dashboardData?.pendingRequests?.length || 0}
+      />
+
+      {/* Shared Modals */}
+      {showEventModal && (
+        <EventModal
+          isOpen={showEventModal}
+          onClose={() => setShowEventModal(false)}
+          poles={poles}
+          onEventCreated={fetchData}
+        />
       )}
 
-      <UnavailabilityModal
-        isOpen={showUnavailabilityModal}
-        onClose={() => setShowUnavailabilityModal(false)}
-        currentUser={currentUser}
-        members={allUsers}
-        onSuccess={fetchData}
-      />
+      {showAssignmentsDrawer && selectedEventForAssignments && (
+        <AssignmentsDrawer
+          isOpen={showAssignmentsDrawer}
+          onClose={() => {
+            setShowAssignmentsDrawer(false);
+            setSelectedEventForAssignments(null);
+          }}
+          event={selectedEventForAssignments}
+          poles={poles}
+          allUsers={allUsers}
+          onRefreshEvent={fetchData}
+        />
+      )}
+
+      {showUnavailabilityModal && (
+        <UnavailabilityModal
+          isOpen={showUnavailabilityModal}
+          onClose={() => setShowUnavailabilityModal(false)}
+          currentUser={currentUser}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 }
