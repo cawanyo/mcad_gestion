@@ -27,7 +27,8 @@ import { ServiceHubView } from '@/components/hubs/ServiceHubView';
 import { LifeHubView } from '@/components/hubs/LifeHubView';
 import { LeaderHubView } from '@/components/hubs/LeaderHubView';
 import { User, Pole, Event, NotificationItem } from '@/types';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, CheckCircle2 } from 'lucide-react';
+import { getCachedItem, setCachedItem, CacheKeys, CacheTTL } from '@/lib/cache';
 
 export default function HomePage() {
   const router = useRouter();
@@ -42,6 +43,8 @@ export default function HomePage() {
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
+  const [loadingProgress, setLoadingProgress] = React.useState(15);
+  const [loadingStatus, setLoadingStatus] = React.useState('Vérification de votre session...');
 
   // Modals & Drawers
   const [showEventModal, setShowEventModal] = React.useState(false);
@@ -59,22 +62,68 @@ export default function HomePage() {
   // Switch User (Demo/Leader preview)
   const handleSwitchUser = (user: User) => {
     setCurrentUser(user);
-    fetchData();
+    fetchData(true);
   };
 
-  // Stage 2: Background secondary data loader (Poles, full Events calendar, Notifications)
-  const fetchBackgroundData = async (user: User) => {
+  // Full Initial & Background Data Loader
+  const fetchData = async (isInitial: boolean = false) => {
     try {
-      const [polesRes, eventsRes, notifRes] = await Promise.allSettled([
-        fetch('/api/poles'),
+      if (isInitial) {
+        setLoadingProgress(20);
+        setLoadingStatus('Vérification de votre session...');
+      }
+
+      // 1. Check current authenticated user via session cookie
+      const userRes = await fetch('/api/auth/current', { cache: 'no-store' });
+      if (!userRes.ok) {
+        if (isInitial) {
+          setLoadingProgress(100);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const userData = await userRes.json();
+      setCurrentUser(userData.user);
+      setAllUsers(userData.allUsers || []);
+
+      if (!userData.user) {
+        if (isInitial) {
+          setLoadingProgress(100);
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (isInitial) {
+        setLoadingProgress(45);
+        setLoadingStatus('Chargement du tableau de bord & des cultes...');
+      }
+
+      // 2. Check cached poles for instant availability
+      const cachedPoles = getCachedItem<Pole[]>(CacheKeys.POLES);
+      if (cachedPoles) {
+        setPoles(cachedPoles);
+      }
+
+      // 3. Load Dashboard, Events, Poles, and Notifications in parallel
+      const [dashRes, eventsRes, polesRes, notifRes] = await Promise.allSettled([
+        fetch(`/api/dashboard?userId=${userData.user.id}`),
         fetch('/api/events'),
+        cachedPoles ? Promise.resolve(null) : fetch('/api/poles'),
         fetch('/api/notifications')
       ]);
 
-      if (polesRes.status === 'fulfilled' && polesRes.value.ok) {
-        setPoles(await polesRes.value.json());
+      if (isInitial) {
+        setLoadingProgress(75);
+        setLoadingStatus('Synchronisation des pôles, équipes & notifications...');
       }
-      if (eventsRes.status === 'fulfilled' && eventsRes.value.ok) {
+
+      if (dashRes.status === 'fulfilled' && dashRes.value && dashRes.value.ok) {
+        setDashboardData(await dashRes.value.json());
+      }
+
+      if (eventsRes.status === 'fulfilled' && eventsRes.value && eventsRes.value.ok) {
         const freshEvents = await eventsRes.value.json();
         setEvents(freshEvents);
         setSelectedEventForAssignments((prev) => {
@@ -82,57 +131,37 @@ export default function HomePage() {
           return freshEvents.find((e: any) => e.id === prev.id) || prev;
         });
       }
-      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
+
+      if (polesRes.status === 'fulfilled' && polesRes.value && polesRes.value.ok) {
+        const freshPoles = await polesRes.value.json();
+        setPoles(freshPoles);
+        setCachedItem(CacheKeys.POLES, freshPoles, CacheTTL.MEDIUM);
+      }
+
+      if (notifRes.status === 'fulfilled' && notifRes.value && notifRes.value.ok) {
         const notifData = await notifRes.value.json();
         setNotifications(notifData.notifications || []);
         setUnreadNotificationsCount(notifData.unreadCount ?? 0);
       }
-    } catch (e) {
-      console.error('Background data fetch error:', e);
-    }
-  };
 
-  // Two-Stage Fast Data Fetcher:
-  // 1. Authenticate immediately -> unblock UI in < 100ms!
-  // 2. Fetch dashboard, poles, events, notifications in background.
-  const fetchData = async () => {
-    try {
-      // 1. Check current authenticated user via session cookie
-      const userRes = await fetch('/api/auth/current', { cache: 'no-store' });
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        setCurrentUser(userData.user);
-        setAllUsers(userData.allUsers || []);
-
-        // Unblock UI immediately so the user sees the page instantly
-        setLoading(false);
-
-        if (userData.user) {
-          // Load Dashboard and background data in parallel
-          fetch(`/api/dashboard?userId=${userData.user.id}`)
-            .then(async (res) => {
-              if (res.ok) setDashboardData(await res.json());
-            })
-            .catch((e) => console.error('Dashboard fetch error:', e));
-
-          fetchBackgroundData(userData.user);
-        }
-      } else {
-        setLoading(false);
+      if (isInitial) {
+        setLoadingProgress(100);
+        setLoadingStatus('Finalisation et ouverture de votre espace MCAD...');
+        setTimeout(() => {
+          setLoading(false);
+        }, 200);
       }
     } catch (e) {
       console.error('Data fetch error:', e);
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+      }
     }
   };
 
-  // Initial load with safety timeout
+  // Initial load
   React.useEffect(() => {
-    fetchData();
-    const safetyTimer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
-    return () => clearTimeout(safetyTimer);
+    fetchData(true);
   }, []);
 
   // Real-time Live Stream (Server-Sent Events) + Heartbeat sync
@@ -249,15 +278,78 @@ export default function HomePage() {
     });
   };
 
-  // Loading state
+  // Loading state with dynamic progress & completion stages
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-bold animate-pulse">
-            <Sparkles className="w-6 h-6" />
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 selection:bg-amber-500 selection:text-slate-950">
+        <div className="w-full max-w-sm flex flex-col items-center text-center space-y-6 animate-in fade-in duration-300">
+          {/* Glowing Emblem */}
+          <div className="relative">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-200 flex items-center justify-center shadow-xl shadow-amber-500/25 text-slate-950 font-black animate-pulse">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <div className="absolute -inset-1 bg-amber-500/20 rounded-3xl blur-md -z-10 animate-ping opacity-30" />
           </div>
-          <p className="text-xs text-slate-400 font-medium">Chargement de votre espace MCAD...</p>
+
+          {/* Titles */}
+          <div className="space-y-1">
+            <h1 className="text-xl font-black text-white tracking-tight flex items-center justify-center gap-2">
+              <span>MCAD</span>
+              <span className="text-amber-400 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20">
+                ICC
+              </span>
+            </h1>
+            <p className="text-xs text-slate-400 font-medium">
+              Plateforme de Gestion de Département
+            </p>
+          </div>
+
+          {/* Progress Box */}
+          <div className="w-full bg-slate-900/90 border border-slate-800 p-4 rounded-2xl shadow-lg space-y-3">
+            {/* Status Text & Percentage */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-300 font-semibold truncate pr-2 text-left">
+                {loadingStatus}
+              </span>
+              <span className="text-amber-400 font-extrabold flex-shrink-0">
+                {loadingProgress}%
+              </span>
+            </div>
+
+            {/* Visual Animated Progress Bar */}
+            <div className="w-full bg-slate-800/80 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-amber-400 to-amber-300 transition-all duration-300 ease-out shadow-sm shadow-amber-400/50"
+                style={{ width: `${Math.max(5, loadingProgress)}%` }}
+              />
+            </div>
+
+            {/* Stepper Dots */}
+            <div className="grid grid-cols-4 gap-1.5 pt-1">
+              {[
+                { label: 'Session', min: 20 },
+                { label: 'Cultes', min: 50 },
+                { label: 'Pôles', min: 75 },
+                { label: 'Prêt', min: 100 }
+              ].map((step, idx) => {
+                const isPassed = loadingProgress >= step.min;
+                return (
+                  <div key={idx} className="flex flex-col items-center gap-1">
+                    <div
+                      className={`h-1 w-full rounded-full transition-colors ${
+                        isPassed ? 'bg-amber-400' : 'bg-slate-800'
+                      }`}
+                    />
+                    <span className={`text-[9px] font-bold ${
+                      isPassed ? 'text-slate-200' : 'text-slate-600'
+                    }`}>
+                      {step.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     );

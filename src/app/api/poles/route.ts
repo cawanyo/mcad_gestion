@@ -38,7 +38,11 @@ export async function GET() {
       checklistsCount: p._count?.checklists ?? 0
     }));
 
-    return NextResponse.json(poles);
+    return NextResponse.json(poles, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+      }
+    });
   } catch (error) {
     console.error('Error fetching poles:', error);
     return NextResponse.json({ error: 'Failed to fetch poles' }, { status: 500 });

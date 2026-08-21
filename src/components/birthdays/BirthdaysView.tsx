@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { User, Pole } from '@/types';
 import { Avatar, Badge, StatCard, EmptyState, Modal } from '@/components/ui';
+import { getCachedItem, setCachedItem, CacheTTL, invalidateCache } from '@/lib/cache';
 
 interface BirthdaysViewProps {
   currentUser?: User | null;
@@ -60,19 +61,34 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
     currentUser?.role === 'POLE_LEADER' ||
     currentUser?.role === 'CALENDAR_MANAGER';
 
-  const fetchBirthdays = async () => {
+  const fetchBirthdays = async (force: boolean = false) => {
     try {
-      setLoading(true);
       let url = '/api/birthdays';
       const params = new URLSearchParams();
       if (selectedPoleFilter !== 'all') params.append('poleId', selectedPoleFilter);
       if (selectedMonth !== 'all') params.append('month', String(selectedMonth));
       if (params.toString()) url += `?${params.toString()}`;
 
+      const cacheKey = `mcad_cache_birthdays_${selectedPoleFilter}_${selectedMonth}`;
+      
+      // Check cache first for instant display
+      if (!force) {
+        const cached = getCachedItem<any>(cacheKey);
+        if (cached) {
+          setBirthdaysData(cached);
+          setLoading(false);
+        } else {
+          setLoading(true);
+        }
+      } else {
+        setLoading(true);
+      }
+
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setBirthdaysData(data);
+        setCachedItem(cacheKey, data, CacheTTL.LONG);
       }
     } catch (e) {
       console.error('Error fetching birthdays:', e);
@@ -134,8 +150,8 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
       });
 
       if (res.ok) {
-        setEditingTarget(null);
-        fetchBirthdays();
+        invalidateCache('mcad_cache_birthdays');
+        fetchBirthdays(true);
       }
     } catch (e) {
       console.error(e);
