@@ -62,7 +62,39 @@ export default function HomePage() {
     fetchData();
   };
 
-  // Fetch authentication status & application data
+  // Stage 2: Background secondary data loader (Poles, full Events calendar, Notifications)
+  const fetchBackgroundData = async (user: User) => {
+    try {
+      const [polesRes, eventsRes, notifRes] = await Promise.allSettled([
+        fetch('/api/poles'),
+        fetch('/api/events'),
+        fetch('/api/notifications')
+      ]);
+
+      if (polesRes.status === 'fulfilled' && polesRes.value.ok) {
+        setPoles(await polesRes.value.json());
+      }
+      if (eventsRes.status === 'fulfilled' && eventsRes.value.ok) {
+        const freshEvents = await eventsRes.value.json();
+        setEvents(freshEvents);
+        setSelectedEventForAssignments((prev) => {
+          if (!prev) return null;
+          return freshEvents.find((e: any) => e.id === prev.id) || prev;
+        });
+      }
+      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
+        const notifData = await notifRes.value.json();
+        setNotifications(notifData.notifications || []);
+        setUnreadNotificationsCount(notifData.unreadCount ?? 0);
+      }
+    } catch (e) {
+      console.error('Background data fetch error:', e);
+    }
+  };
+
+  // Two-Stage Data Fetcher:
+  // 1. Stage 1 (Fast & Critical): Authenticate + load home dashboard data -> unblock UI immediately!
+  // 2. Stage 2 (Background): Load poles, full events calendar, and notifications asynchronously.
   const fetchData = async () => {
     try {
       // 1. Check current authenticated user via session cookie
@@ -72,35 +104,27 @@ export default function HomePage() {
         setCurrentUser(userData.user);
         setAllUsers(userData.allUsers || []);
 
-        // If user is authenticated, load app data
+        // If user is authenticated, load stage 1 (Dashboard) immediately
         if (userData.user) {
-          const [dashRes, polesRes, eventsRes, notifRes] = await Promise.all([
-            fetch(`/api/dashboard?userId=${userData.user.id}`),
-            fetch('/api/poles'),
-            fetch('/api/events'),
-            fetch('/api/notifications')
-          ]);
+          const dashRes = await fetch(`/api/dashboard?userId=${userData.user.id}`);
+          if (dashRes.ok) {
+            const dData = await dashRes.json();
+            setDashboardData(dData);
+          }
 
-          if (dashRes.ok) setDashboardData(await dashRes.json());
-          if (polesRes.ok) setPoles(await polesRes.json());
-          if (eventsRes.ok) {
-            const freshEvents = await eventsRes.json();
-            setEvents(freshEvents);
-            setSelectedEventForAssignments((prev) => {
-              if (!prev) return null;
-              return freshEvents.find((e: any) => e.id === prev.id) || prev;
-            });
-          }
-          if (notifRes.ok) {
-            const notifData = await notifRes.json();
-            setNotifications(notifData.notifications || []);
-            setUnreadNotificationsCount(notifData.unreadCount ?? 0);
-          }
+          // Unblock home screen immediately without waiting for secondary data!
+          setLoading(false);
+
+          // Stage 2: Trigger background fetch for the rest of the application
+          fetchBackgroundData(userData.user);
+        } else {
+          setLoading(false);
         }
+      } else {
+        setLoading(false);
       }
     } catch (e) {
       console.error('Data fetch error:', e);
-    } finally {
       setLoading(false);
     }
   };
