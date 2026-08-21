@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { broadcastUpdate } from '@/lib/events';
+import { arePhonesMatching, formatPhoneDisplay } from '@/lib/phone';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,13 +39,11 @@ export async function PATCH(req: Request) {
     }
 
     // If changing phone, verify uniqueness
-    if (phone && phone.trim() !== existingUser.phone) {
-      const cleanPhone = phone.trim();
-      const phoneTaken = await prisma.user.findUnique({
-        where: { phone: cleanPhone }
-      });
-      if (phoneTaken && phoneTaken.id !== userId) {
-        return NextResponse.json({ error: 'Ce numéro de téléphone est déjà utilisé' }, { status: 409 });
+    if (phone && !arePhonesMatching(phone, existingUser.phone)) {
+      const allUsers = await prisma.user.findMany({ select: { id: true, phone: true } });
+      const phoneTaken = allUsers.some((u) => u.id !== userId && arePhonesMatching(u.phone, phone));
+      if (phoneTaken) {
+        return NextResponse.json({ error: 'Ce numéro de téléphone est déjà utilisé par un autre compte' }, { status: 409 });
       }
     }
 
@@ -52,7 +51,7 @@ export async function PATCH(req: Request) {
 
     if (firstName) updateData.firstName = firstName.trim();
     if (lastName) updateData.lastName = lastName.trim();
-    if (phone !== undefined) updateData.phone = phone?.trim() || null;
+    if (phone !== undefined) updateData.phone = phone ? formatPhoneDisplay(phone) : null;
     if (gender && (gender === 'HOMME' || gender === 'FEMME')) {
       updateData.gender = gender;
     }

@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { arePhonesMatching } from '@/lib/phone';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,17 +29,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Numéro de téléphone et mot de passe requis' }, { status: 400 });
     }
 
-    const normalizeDigits = (p: string) => {
-      let d = p.replace(/[^0-9]/g, '');
-      if (d.startsWith('33') && d.length === 11) {
-        d = '0' + d.substring(2);
-      }
-      return d;
-    };
-
-    const digitsOnly = inputPhone.replace(/[^0-9]/g, '');
-    const inputNormalized = normalizeDigits(inputPhone);
-
     // Search user by phone variations
     const users = await prisma.user.findMany({
       include: {
@@ -47,22 +37,7 @@ export async function POST(req: Request) {
       }
     });
 
-    const user = users.find((u) => {
-      if (!u.phone) return false;
-      const uRaw = u.phone.trim();
-      const uDigits = u.phone.replace(/[^0-9]/g, '');
-      const uNormalized = normalizeDigits(uRaw);
-
-      return (
-        uRaw === inputPhone ||
-        uDigits === digitsOnly ||
-        (inputNormalized.length >= 8 && uNormalized === inputNormalized) ||
-        (digitsOnly.length >= 8 && uDigits.endsWith(digitsOnly)) ||
-        (digitsOnly.length >= 8 && digitsOnly.endsWith(uDigits)) ||
-        uRaw.includes(inputPhone) ||
-        inputPhone.includes(uRaw)
-      );
-    });
+    const user = users.find((u) => arePhonesMatching(u.phone, inputPhone));
 
     if (!user) {
       return NextResponse.json({ error: 'Numéro de téléphone ou mot de passe incorrect' }, { status: 401 });

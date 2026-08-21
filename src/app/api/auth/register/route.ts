@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { arePhonesMatching, formatPhoneDisplay } from '@/lib/phone';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,19 +35,14 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const cleanPhone = phone.trim();
-    const digitsOnly = cleanPhone.replace(/[^0-9]/g, '');
+    const formattedPhone = formatPhoneDisplay(phone);
 
     // Check if phone number is already registered
     const existingUsers = await prisma.user.findMany({
       select: { id: true, phone: true }
     });
 
-    const alreadyTaken = existingUsers.some((u) => {
-      if (!u.phone) return false;
-      const uDigits = u.phone.replace(/[^0-9]/g, '');
-      return u.phone.trim() === cleanPhone || (digitsOnly.length >= 8 && uDigits === digitsOnly);
-    });
+    const alreadyTaken = existingUsers.some((u) => arePhonesMatching(u.phone, phone));
 
     if (alreadyTaken) {
       return NextResponse.json({ error: 'Un compte existe déjà avec ce numéro de téléphone' }, { status: 409 });
@@ -62,7 +58,7 @@ export async function POST(req: Request) {
       data: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        phone: cleanPhone,
+        phone: formattedPhone,
         gender: validGender,
         password: hashedPassword,
         birthDate: birthDate ? new Date(birthDate) : null,
