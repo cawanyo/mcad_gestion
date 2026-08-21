@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "MCAD Bénévolat",
+    "slug": "mcad-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.mcad.benevolat"
+    },
+    "android": {
+      "package": "org.mcad.benevolat"
+    }
+  }
+}
