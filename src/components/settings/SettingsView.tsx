@@ -91,6 +91,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   }, [currentUser]);
 
+  // Persist avatar immediately to DB
+  const saveAvatarImmediately = async (newAvatarUrl: string) => {
+    setAvatar(newAvatarUrl);
+    try {
+      const res = await fetch('/api/users/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser?.id,
+          avatar: newAvatarUrl
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          onUserUpdated(data.user);
+        }
+        setSuccessMessage('Photo de profil mise à jour et enregistrée avec succès !');
+      } else {
+        const errData = await res.json();
+        setUploadError(errData.error || 'Erreur lors de l’enregistrement de la photo');
+      }
+    } catch (e) {
+      console.error('Failed to auto-save avatar:', e);
+    }
+  };
+
   // Handle Photo File Upload to Cloudinary via /api/upload
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,9 +148,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       if (!res.ok) {
         setUploadError(data.error || 'Erreur lors du téléversement de la photo.');
       } else if (data.url) {
-        setAvatar(data.url);
         setShowAvatarModal(false);
-        setSuccessMessage('Photo téléversée avec succès ! Pensez à enregistrer vos modifications.');
+        // Persist immediately to DB so refreshing the page preserves the photo!
+        await saveAvatarImmediately(data.url);
       }
     } catch (err) {
       setUploadError('Erreur de connexion lors du téléversement.');
@@ -133,11 +161,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
-  const handleGenerateDiceBear = () => {
+  const handleGenerateDiceBear = async () => {
     const randomStyle = dicebearStyles[Math.floor(Math.random() * dicebearStyles.length)];
     const seed = encodeURIComponent(`${firstName}_${lastName}_${Date.now()}`);
     const generated = `https://api.dicebear.com/7.x/${randomStyle}/svg?seed=${seed}`;
-    setAvatar(generated);
+    setShowAvatarModal(false);
+    await saveAvatarImmediately(generated);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -174,7 +203,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       if (!res.ok) {
         setErrorMessage(data.error || 'Erreur lors de la mise à jour');
       } else {
-        setSuccessMessage('Vos informations et votre photo ont été mises à jour avec succès !');
+        setSuccessMessage('Vos informations et votre profil ont été enregistrés avec succès !');
         onUserUpdated(data.user);
         setCurrentPassword('');
         setNewPassword('');
@@ -302,7 +331,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="button"
                   onClick={handleGenerateDiceBear}
                   className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5"
-                  title="Générer une illustration aléatoire"
+                  title="Générer et enregistrer une illustration aléatoire"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Générer</span>
@@ -454,7 +483,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
-        {/* Bouton de sauvegarde */}
+        {/* Bouton de sauvegarde globale */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <button
             type="submit"
@@ -541,7 +570,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-900">
-                      {uploadingPhoto ? 'Téléversement en cours...' : 'Cliquez pour choisir une photo'}
+                      {uploadingPhoto ? 'Téléversement & Enregistrement...' : 'Cliquez pour choisir une photo'}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
                       Formats supportés : JPG, PNG, WEBP, GIF (Max 8 Mo)
@@ -563,9 +592,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => {
-                        setAvatar(url);
+                      onClick={async () => {
                         setShowAvatarModal(false);
+                        await saveAvatarImmediately(url);
                       }}
                       className={`p-1.5 rounded-2xl border-2 transition-all hover:scale-105 ${
                         avatar === url
@@ -590,9 +619,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       <button
                         key={style}
                         type="button"
-                        onClick={() => {
-                          setAvatar(sampleUrl);
+                        onClick={async () => {
                           setShowAvatarModal(false);
+                          await saveAvatarImmediately(sampleUrl);
                         }}
                         className={`p-2 rounded-2xl border-2 transition-all hover:scale-105 ${
                           avatar === sampleUrl
