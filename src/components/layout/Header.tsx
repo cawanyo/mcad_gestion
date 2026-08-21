@@ -2,7 +2,6 @@
 
 import React from 'react';
 import {
-  Search,
   Bell,
   Menu,
   Check,
@@ -39,12 +38,11 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState('');
 
   return (
     <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-      {/* Brand Logo & Search */}
-      <div className="flex items-center gap-4 flex-1 max-w-lg">
+      {/* Brand Logo */}
+      <div className="flex items-center gap-4">
         <a href="/" className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-md shadow-amber-500/20 text-slate-950 font-bold group-hover:scale-105 transition-transform">
             <span className="text-sm font-black tracking-tighter">MC</span>
@@ -54,17 +52,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">Gestion</span>
           </div>
         </a>
-
-        <div className="relative w-full max-w-xs hidden md:block ml-2">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Rechercher dans MCAD..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-          />
-        </div>
       </div>
 
       {/* Right Actions & User Avatar */}

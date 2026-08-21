@@ -19,7 +19,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Flame,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { Pole, TrainingModule, User } from '@/types';
 import { StatCard, Badge, ConfirmModal, Toast, ToastState } from '@/components/ui';
@@ -148,10 +149,30 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
   // Filter and Sort all modules
   const filteredAndSortedModules = modules
     .filter((m) => {
-      if (selectedStatusFilter === 'all') return true;
-      if (selectedStatusFilter === 'COMPLETED') return m.userProgressStatus === 'COMPLETED';
-      if (selectedStatusFilter === 'IN_PROGRESS') return m.userProgressStatus === 'IN_PROGRESS';
-      if (selectedStatusFilter === 'NOT_STARTED') return m.userProgressStatus === 'NOT_STARTED';
+      // 1. Status Filter
+      if (selectedStatusFilter === 'COMPLETED' && m.userProgressStatus !== 'COMPLETED') return false;
+      if (selectedStatusFilter === 'IN_PROGRESS' && m.userProgressStatus !== 'IN_PROGRESS') return false;
+      if (selectedStatusFilter === 'NOT_STARTED' && m.userProgressStatus !== 'NOT_STARTED') return false;
+
+      // 2. Pole Filter
+      if (selectedPoleFilter !== 'all' && m.poleId !== selectedPoleFilter) return false;
+
+      // 3. Level Filter
+      if (selectedLevelFilter !== 'all' && m.level !== selectedLevelFilter) return false;
+
+      // 4. Real-time Search Query Filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesTitle = m.title?.toLowerCase().includes(q);
+        const matchesDesc = m.description?.toLowerCase().includes(q);
+        const matchesPole = m.pole?.name?.toLowerCase().includes(q);
+        const matchesLevel = m.level?.toLowerCase().includes(q);
+        const matchesLessons = m.lessons?.some((l: any) =>
+          l.title?.toLowerCase().includes(q) || (l.description && l.description.toLowerCase().includes(q))
+        );
+        return matchesTitle || matchesDesc || matchesPole || matchesLevel || matchesLessons;
+      }
+
       return true;
     })
     .sort((a, b) => {
@@ -375,8 +396,21 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden transition-all"
+                className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden transition-all"
               />
+              {searchQuery.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200/60 transition-colors"
+                  title="Effacer la recherche"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </form>
 
             <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">

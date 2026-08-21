@@ -36,16 +36,16 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
   // Map sub-views to their parent tab
   const getSelectedTab = () => {
-    if (['poles', 'checklists', 'unavailability', 'service_validation', 'service_hub'].includes(activeTab)) {
+    if (['poles', 'checklists', 'unavailability', 'unavailabilities', 'service_validation', 'validations', 'service_hub'].includes(activeTab)) {
       return 'service_hub';
     }
-    if (['birthdays', 'stats', 'life_hub'].includes(activeTab)) {
+    if (['birthdays', 'stats', 'statistics', 'life_hub'].includes(activeTab)) {
       return 'life_hub';
     }
     if (['members', 'requests', 'service_tracking', 'leader_hub'].includes(activeTab)) {
       return 'leader_hub';
     }
-    if (activeTab === 'calendar') return 'calendar';
+    if (activeTab === 'calendar' || activeTab === 'events') return 'calendar';
     if (activeTab === 'training') return 'training';
     return 'dashboard';
   };
@@ -55,7 +55,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const tabs: TabItem[] = [
     {
       id: 'dashboard',
-      label: 'Mon espace',
+      label: 'Espace',
       icon: LayoutDashboard,
     },
     {
@@ -75,7 +75,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     },
     {
       id: 'life_hub',
-      label: 'Vie du MCAD',
+      label: 'Vie MCAD',
       icon: Sparkles,
     },
     ...(isLeader
@@ -96,8 +96,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       aria-label="Navigation mobile"
       className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
     >
-      <div className="max-w-md mx-auto px-1">
-        <div className="flex items-center justify-around h-16">
+      <div className="w-full max-w-lg mx-auto px-0.5 sm:px-2">
+        <div className="flex items-center justify-around h-15 sm:h-16">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = currentParentTab === tab.id;
@@ -107,32 +107,32 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => onTabChange(tab.id)}
-                className={`relative flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-2xl transition-all duration-200 ${
+                className={`relative flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-xl transition-all duration-150 select-none ${
                   isActive
-                    ? 'text-indigo-600 font-extrabold'
-                    : 'text-slate-400 hover:text-slate-600'
+                    ? 'text-indigo-600 font-black'
+                    : 'text-slate-400 hover:text-slate-600 font-medium'
                 }`}
               >
-                {/* Active Indicator Top Glow */}
+                {/* Active Top Bar Indicator */}
                 {isActive && (
-                  <span className="absolute -top-2.5 w-7 h-1 bg-indigo-600 rounded-full shadow-[0_0_8px_rgba(79,70,229,0.6)]" />
+                  <span className="absolute -top-2.5 w-6 sm:w-8 h-1 bg-indigo-600 rounded-full shadow-[0_0_8px_rgba(79,70,229,0.5)]" />
                 )}
 
-                {/* Icon with optional badge */}
+                {/* Icon with optional notification badge */}
                 <div className="relative mb-0.5">
                   <div
-                    className={`p-1 rounded-xl transition-all ${
+                    className={`p-1 rounded-lg transition-transform ${
                       isActive
                         ? 'bg-indigo-50 text-indigo-600 scale-105'
                         : 'text-slate-400'
                     }`}
                   >
-                    <Icon className="w-5 h-5 transition-transform" />
+                    <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                   </div>
 
-                  {/* Badge Notification */}
+                  {/* Badge */}
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-xs">
+                    <span className="absolute -top-1 -right-1.5 min-w-[15px] h-[15px] px-0.5 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-xs">
                       {tab.badge}
                     </span>
                   )}
@@ -140,8 +140,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
                 {/* Label */}
                 <span
-                  className={`text-[10px] tracking-tight transition-colors text-center truncate max-w-full leading-tight ${
-                    isActive ? 'text-indigo-900 font-extrabold' : 'text-slate-500 font-medium'
+                  className={`text-[9px] sm:text-[10px] tracking-tight leading-tight text-center truncate max-w-full ${
+                    isActive ? 'text-indigo-900 font-black' : 'text-slate-500'
                   }`}
                 >
                   {tab.label}
