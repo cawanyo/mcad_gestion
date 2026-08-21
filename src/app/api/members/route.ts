@@ -45,7 +45,15 @@ export async function GET(req: Request) {
         birthDate: true,
         createdAt: true,
         poleMemberships: { include: { pole: true } },
-        poleLeaderships: { include: { pole: true } }
+        poleLeaderships: { include: { pole: true } },
+        unavailabilities: {
+          select: {
+            id: true,
+            startsAt: true,
+            endsAt: true,
+            reason: true
+          }
+        }
       },
       orderBy: [
         { firstName: 'asc' },
