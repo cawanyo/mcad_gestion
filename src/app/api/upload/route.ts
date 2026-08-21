@@ -3,6 +3,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join, extname } from 'path';
 import { existsSync } from 'fs';
 import { requireAuth } from '@/lib/auth-server';
+import { uploadToCloudinary, isCloudinaryConfigured } from '@/lib/cloudinary';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +14,8 @@ const ALLOWED_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
 const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
 const ALLOWED_VIDEO_EXTS = new Set(['.mp4', '.webm', '.mov']);
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
-const MAX_VIDEO_SIZE = 25 * 1024 * 1024; // 25 MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50 MB
 
 export async function POST(req: Request) {
   try {
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const customFolder = (formData.get('folder') as string) || 'mcad_media';
 
     if (!file) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
     // 3. Validate File Size
     const mediaType: 'PHOTO' | 'VIDEO' = isVideo ? 'VIDEO' : 'PHOTO';
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
-    const maxMb = isVideo ? 25 : 5;
+    const maxMb = isVideo ? 50 : 10;
 
     if (file.size > maxSize) {
       return NextResponse.json(
@@ -64,17 +66,40 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // 4. Target upload folder in public/uploads
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    // 5. Clean filename & prevent Path Traversal
+    // 4. Try Cloudinary Upload First
     const baseName = file.name
       .replace(originalExt, '')
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .slice(0, 50);
+    const uniqueFilename = `${Date.now()}_${baseName}`;
+
+    try {
+      if (isCloudinaryConfigured()) {
+        const cloudinaryResult = await uploadToCloudinary(buffer, {
+          folder: customFolder,
+          resource_type: isVideo ? 'video' : 'image',
+          filename: uniqueFilename
+        });
+
+        return NextResponse.json({
+          success: true,
+          url: cloudinaryResult.secure_url || cloudinaryResult.url,
+          mediaType,
+          provider: 'cloudinary',
+          publicId: cloudinaryResult.public_id,
+          size: file.size,
+          mimeType
+        });
+      }
+    } catch (cloudErr) {
+      console.warn('Cloudinary upload attempt error, falling back to local storage:', cloudErr);
+    }
+
+    // 5. Fallback: Save to public/uploads
+    const uploadsDir = join(process.cwd(), 'public', 'uploads');
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true });
+    }
 
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const filename = `${uniqueSuffix}-${baseName}${originalExt}`;
@@ -88,6 +113,7 @@ export async function POST(req: Request) {
       success: true,
       url: publicUrl,
       mediaType,
+      provider: 'local',
       filename,
       size: file.size,
       mimeType

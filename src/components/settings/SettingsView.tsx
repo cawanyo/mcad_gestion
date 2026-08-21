@@ -11,6 +11,10 @@ import {
   AlertCircle,
   Camera,
   RefreshCw,
+  Upload,
+  Sparkles,
+  Image as ImageIcon,
+  Loader2,
   X
 } from 'lucide-react';
 import { User as UserType } from '@/types';
@@ -38,6 +42,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   );
   const [avatar, setAvatar] = React.useState(currentUser?.avatar || '');
   const [showAvatarModal, setShowAvatarModal] = React.useState(false);
+  const [avatarModalTab, setAvatarModalTab] = React.useState<'upload' | 'preset' | 'dicebear'>('upload');
+
+  // File Upload State
+  const [uploadingPhoto, setUploadingPhoto] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const modalFileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Password fields
   const [currentPassword, setCurrentPassword] = React.useState('');
@@ -48,17 +59,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [successMessage, setSuccessMessage] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState('');
 
-  // Preset Avatars
+  // Preset Realistic Avatars
   const presetAvatars = [
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(firstName + lastName || 'Member')}`,
-    `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(firstName + lastName || 'Member')}`,
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1548142813-c348350df52b?w=300&auto=format&fit=crop&q=80'
   ];
+
+  // Preset Dicebear Illustrated Avatars
+  const dicebearStyles = ['avataaars', 'bottts', 'adventurer', 'micah', 'personas', 'lorelei'];
 
   React.useEffect(() => {
     if (currentUser) {
@@ -73,9 +91,52 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   }, [currentUser]);
 
+  // Handle Photo File Upload to Cloudinary via /api/upload
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (max 8 MB)
+    if (file.size > 8 * 1024 * 1024) {
+      setUploadError('L’image est trop volumineuse. Taille maximale : 8 Mo.');
+      return;
+    }
+
+    setUploadError('');
+    setUploadingPhoto(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'mcad_avatars');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setUploadError(data.error || 'Erreur lors du téléversement de la photo.');
+      } else if (data.url) {
+        setAvatar(data.url);
+        setShowAvatarModal(false);
+        setSuccessMessage('Photo téléversée avec succès ! Pensez à enregistrer vos modifications.');
+      }
+    } catch (err) {
+      setUploadError('Erreur de connexion lors du téléversement.');
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (modalFileInputRef.current) modalFileInputRef.current.value = '';
+    }
+  };
+
   const handleGenerateDiceBear = () => {
-    const seed = encodeURIComponent(`${firstName} ${lastName} ${Date.now()}`);
-    const generated = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+    const randomStyle = dicebearStyles[Math.floor(Math.random() * dicebearStyles.length)];
+    const seed = encodeURIComponent(`${firstName}_${lastName}_${Date.now()}`);
+    const generated = `https://api.dicebear.com/7.x/${randomStyle}/svg?seed=${seed}`;
     setAvatar(generated);
   };
 
@@ -113,7 +174,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       if (!res.ok) {
         setErrorMessage(data.error || 'Erreur lors de la mise à jour');
       } else {
-        setSuccessMessage('Vos informations ont été mises à jour avec succès !');
+        setSuccessMessage('Vos informations et votre photo ont été mises à jour avec succès !');
         onUserUpdated(data.user);
         setCurrentPassword('');
         setNewPassword('');
@@ -132,13 +193,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div>
         <h1 className="text-xl sm:text-2xl font-black text-slate-900">Paramètres de mon profil</h1>
         <p className="text-xs text-slate-500 mt-0.5">
-          Gérez vos coordonnées, photo de profil et mot de passe.
+          Gérez vos coordonnées, choisissez ou téléversez votre photo de profil et modifiez votre mot de passe.
         </p>
       </div>
 
+      {/* Hidden file input for direct photo upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handlePhotoUpload}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+      />
+
       {/* Success & Error Messages */}
       {successMessage && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between shadow-xs">
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between shadow-xs animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
             <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <span className="font-semibold">{successMessage}</span>
@@ -150,7 +220,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       )}
 
       {errorMessage && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between shadow-xs">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between shadow-xs animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
             <span className="font-semibold">{errorMessage}</span>
@@ -169,45 +239,79 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <span>Photo de profil</span>
           </h2>
 
-          <div className="flex flex-col sm:flex-row items-center gap-5">
-            <div className="relative group">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="relative group flex-shrink-0">
               <Avatar
                 src={avatar}
                 name={`${firstName} ${lastName}`}
                 size="xl"
-                className="w-20 h-20 sm:w-24 sm:h-24 shadow-md"
+                className="w-24 h-24 sm:w-28 sm:h-28 shadow-lg ring-4 ring-slate-50 border-2 border-indigo-100"
               />
               <button
                 type="button"
                 onClick={() => setShowAvatarModal(true)}
-                className="absolute inset-0 bg-slate-900/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute inset-0 bg-slate-900/60 rounded-full flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-xs"
+                title="Changer ma photo"
               >
-                <Camera className="w-5 h-5" />
+                <Camera className="w-6 h-6" />
+                <span className="text-[10px] font-bold mt-1">Modifier</span>
               </button>
             </div>
 
-            <div className="space-y-1.5 text-center sm:text-left flex-1">
-              <p className="text-xs font-bold text-slate-800">Personnalisez votre avatar</p>
-              <p className="text-[11px] text-slate-500">
-                Sélectionnez un avatar prédéfini ou générez une illustration personnalisée.
-              </p>
+            <div className="space-y-2 text-center sm:text-left flex-1">
+              <div>
+                <p className="text-sm font-bold text-slate-900">Votre photo personnelle</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Téléversez votre propre photo depuis votre appareil ou sélectionnez un avatar.
+                </p>
+              </div>
+
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setShowAvatarModal(true)}
-                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  Choisir un avatar
+                  {uploadingPhoto ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Téléversement...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Téléverser ma photo</span>
+                    </>
+                  )}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAvatarModalTab('preset');
+                    setShowAvatarModal(true);
+                  }}
+                  className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition-colors flex items-center gap-1.5"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Galerie d'avatars</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleGenerateDiceBear}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1"
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+                  title="Générer une illustration aléatoire"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Générer</span>
                 </button>
               </div>
+
+              {uploadError && (
+                <p className="text-xs font-semibold text-rose-600">{uploadError}</p>
+              )}
             </div>
           </div>
         </div>
@@ -363,37 +467,162 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </form>
 
-      {/* Modal Sélection d'Avatars */}
+      {/* Modal Sélection d'Avatars & Téléversement */}
       {showAvatarModal && (
         <Modal
           isOpen={showAvatarModal}
           onClose={() => setShowAvatarModal(false)}
-          title="Choisir un avatar"
+          title="Choisir votre photo de profil"
           icon={<Camera className="w-4 h-4 text-white" />}
           maxWidth="md"
         >
           <div className="space-y-4">
-            <div className="grid grid-cols-4 gap-3">
-              {presetAvatars.map((url, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    setAvatar(url);
-                    setShowAvatarModal(false);
-                  }}
-                  className={`p-1.5 rounded-2xl border-2 transition-all hover:scale-105 ${
-                    avatar === url
-                      ? 'border-indigo-600 bg-indigo-50 shadow-xs'
-                      : 'border-transparent hover:border-slate-200'
-                  }`}
-                >
-                  <img src={url} alt="" className="w-14 h-14 rounded-xl object-cover mx-auto" />
-                </button>
-              ))}
+            {/* Tabs */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setAvatarModalTab('upload')}
+                className={`flex-1 py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                  avatarModalTab === 'upload'
+                    ? 'bg-white text-indigo-600 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Téléverser</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAvatarModalTab('preset')}
+                className={`flex-1 py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                  avatarModalTab === 'preset'
+                    ? 'bg-white text-indigo-600 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>Galerie</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAvatarModalTab('dicebear')}
+                className={`flex-1 py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                  avatarModalTab === 'dicebear'
+                    ? 'bg-white text-indigo-600 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Illustrés</span>
+              </button>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex justify-end">
+            {/* TAB 1: UPLOAD PHOTO */}
+            {avatarModalTab === 'upload' && (
+              <div className="space-y-4 text-center py-2">
+                <input
+                  type="file"
+                  ref={modalFileInputRef}
+                  onChange={handlePhotoUpload}
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                />
+
+                <div
+                  onClick={() => modalFileInputRef.current?.click()}
+                  className="p-8 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/30 hover:bg-indigo-50/60 rounded-3xl cursor-pointer transition-all space-y-3"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-sm">
+                    {uploadingPhoto ? (
+                      <Loader2 className="w-7 h-7 animate-spin text-indigo-600" />
+                    ) : (
+                      <Upload className="w-7 h-7 text-indigo-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">
+                      {uploadingPhoto ? 'Téléversement en cours...' : 'Cliquez pour choisir une photo'}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Formats supportés : JPG, PNG, WEBP, GIF (Max 8 Mo)
+                    </p>
+                  </div>
+                </div>
+
+                {uploadError && (
+                  <p className="text-xs font-semibold text-rose-600">{uploadError}</p>
+                )}
+              </div>
+            )}
+
+            {/* TAB 2: PRESET AVATARS */}
+            {avatarModalTab === 'preset' && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-4 gap-3 max-h-64 overflow-y-auto pr-1">
+                  {presetAvatars.map((url, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setAvatar(url);
+                        setShowAvatarModal(false);
+                      }}
+                      className={`p-1.5 rounded-2xl border-2 transition-all hover:scale-105 ${
+                        avatar === url
+                          ? 'border-indigo-600 bg-indigo-50 shadow-xs'
+                          : 'border-transparent hover:border-slate-200'
+                      }`}
+                    >
+                      <img src={url} alt="" className="w-14 h-14 rounded-xl object-cover mx-auto" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: DICEBEAR ILLUSTRATIONS */}
+            {avatarModalTab === 'dicebear' && (
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-3 gap-3">
+                  {dicebearStyles.map((style, idx) => {
+                    const sampleUrl = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(firstName + lastName + idx)}`;
+                    return (
+                      <button
+                        key={style}
+                        type="button"
+                        onClick={() => {
+                          setAvatar(sampleUrl);
+                          setShowAvatarModal(false);
+                        }}
+                        className={`p-2 rounded-2xl border-2 transition-all hover:scale-105 ${
+                          avatar === sampleUrl
+                            ? 'border-indigo-600 bg-indigo-50'
+                            : 'border-slate-100 hover:border-slate-200 bg-slate-50/50'
+                        }`}
+                      >
+                        <img src={sampleUrl} alt="" className="w-14 h-14 rounded-xl object-contain mx-auto" />
+                        <span className="text-[10px] font-bold text-slate-700 capitalize mt-1 block truncate">
+                          {style}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={handleGenerateDiceBear}
+                    className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 flex items-center gap-1.5 transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Générer un nouvel avatar aléatoire</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
               <button
                 type="button"
                 onClick={() => setShowAvatarModal(false)}
