@@ -188,15 +188,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // Auto-focus initialSelectedEvent when navigated from Dashboard or elsewhere
   React.useEffect(() => {
     if (initialSelectedEvent) {
+      const eventDate = new Date(initialSelectedEvent.startsAt);
+      setCurrentDate(eventDate);
       setSelectedEvent(initialSelectedEvent);
       setSelectedDateStr(getLocalDateStr(initialSelectedEvent.startsAt));
-      if (canAccessEventDetailPage) {
-        setMobileEventDetail(initialSelectedEvent);
-      }
+      setMobileEventDetail(null);
       setMobileCalendarView('week');
       scrollToDetails();
     }
-  }, [initialSelectedEvent, canAccessEventDetailPage]);
+  }, [initialSelectedEvent]);
 
   // Events on active date
   const activeDateStr = selectedEvent
