@@ -92,9 +92,9 @@ export default function HomePage() {
     }
   };
 
-  // Two-Stage Data Fetcher:
-  // 1. Stage 1 (Fast & Critical): Authenticate + load home dashboard data -> unblock UI immediately!
-  // 2. Stage 2 (Background): Load poles, full events calendar, and notifications asynchronously.
+  // Two-Stage Fast Data Fetcher:
+  // 1. Authenticate immediately -> unblock UI in < 100ms!
+  // 2. Fetch dashboard, poles, events, notifications in background.
   const fetchData = async () => {
     try {
       // 1. Check current authenticated user via session cookie
@@ -104,21 +104,18 @@ export default function HomePage() {
         setCurrentUser(userData.user);
         setAllUsers(userData.allUsers || []);
 
-        // If user is authenticated, load stage 1 (Dashboard) immediately
+        // Unblock UI immediately so the user sees the page instantly
+        setLoading(false);
+
         if (userData.user) {
-          const dashRes = await fetch(`/api/dashboard?userId=${userData.user.id}`);
-          if (dashRes.ok) {
-            const dData = await dashRes.json();
-            setDashboardData(dData);
-          }
+          // Load Dashboard and background data in parallel
+          fetch(`/api/dashboard?userId=${userData.user.id}`)
+            .then(async (res) => {
+              if (res.ok) setDashboardData(await res.json());
+            })
+            .catch((e) => console.error('Dashboard fetch error:', e));
 
-          // Unblock home screen immediately without waiting for secondary data!
-          setLoading(false);
-
-          // Stage 2: Trigger background fetch for the rest of the application
           fetchBackgroundData(userData.user);
-        } else {
-          setLoading(false);
         }
       } else {
         setLoading(false);
@@ -129,9 +126,13 @@ export default function HomePage() {
     }
   };
 
-  // Initial load
+  // Initial load with safety timeout
   React.useEffect(() => {
     fetchData();
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+    return () => clearTimeout(safetyTimer);
   }, []);
 
   // Real-time Live Stream (Server-Sent Events) + Heartbeat sync
