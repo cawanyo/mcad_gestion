@@ -296,7 +296,7 @@ export default function HomePage() {
       </div>
 
       {/* Main Content Column */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Top Header */}
         <Header
           currentUser={currentUser}

@@ -1692,7 +1692,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {(!selectedEvent.assignments || selectedEvent.assignments.length === 0) ? (
                   <p className="text-xs text-slate-400">Aucun membre n'a encore été affecté à ce culte.</p>
                 ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  <div className="space-y-2">
                     {selectedEvent.assignments.map((a) => (
                       <div
                         key={a.id}

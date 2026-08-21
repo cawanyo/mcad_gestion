@@ -364,7 +364,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
               {myAssignments.length > 1 && (
                 <div className="space-y-2 pt-2">
                   <h4 className="text-xs font-bold text-slate-700">Autres services à venir ({myAssignments.length - 1})</h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  <div className="space-y-2">
                     {myAssignments.slice(1).map((a: any) => (
                       <div
                         key={a.id}
@@ -430,7 +430,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                     </button>
                   </div>
 
-                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  <div className="space-y-2">
                     {openEventsForVolunteering.slice(0, 3).map((ev: any) => {
                       const matchedReq = ev.requirements?.find((r: any) => myPoleIds.includes(r.poleId));
                       const targetPole = matchedReq?.pole || myPoles[0];
