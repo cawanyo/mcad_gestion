@@ -29,11 +29,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Numéro de téléphone et mot de passe requis' }, { status: 400 });
     }
 
-    // Search user by phone variations
+    // Search user by phone variations. Phone matching needs fuzzy
+    // normalization (spaces, +33 prefix, etc.) done in JS, so we still
+    // need to scan every user — but only pull the handful of scalar
+    // fields required for that match + the login response, instead of
+    // joining in every user's pole relationships (unused by this route).
     const users = await prisma.user.findMany({
-      include: {
-        poleLeaderships: { include: { pole: true } },
-        poleMemberships: { include: { pole: true } }
+      select: {
+        id: true,
+        phone: true,
+        password: true,
+        status: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        role: true,
+        avatar: true,
+        birthDate: true
       }
     });
 

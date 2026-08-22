@@ -1,34 +1,48 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { BottomTabBar } from '@/components/layout/BottomTabBar';
 import { SubViewHeader } from '@/components/layout/SubViewHeader';
 import { LandingPage } from '@/components/public/LandingPage';
-import { DesktopDashboard } from '@/components/dashboard/DesktopDashboard';
 import { MemberDashboard } from '@/components/dashboard/MemberDashboard';
-import { CalendarView } from '@/components/calendar/CalendarView';
-import { EventModal } from '@/components/calendar/EventModal';
-import { AssignmentsDrawer } from '@/components/calendar/AssignmentsDrawer';
-import { ChecklistsWeb } from '@/components/checklists/ChecklistsWeb';
-import { ServiceValidationTracking } from '@/components/checklists/ServiceValidationTracking';
-import { PolesManagement } from '@/components/poles/PolesManagement';
-import { MembersManagement } from '@/components/members/MembersManagement';
-import { SettingsView } from '@/components/settings/SettingsView';
-import { UnavailabilityModal } from '@/components/unavailability/UnavailabilityModal';
-import { UnavailabilitiesView } from '@/components/unavailability/UnavailabilitiesView';
-import { BirthdaysView } from '@/components/birthdays/BirthdaysView';
-import { StatsView } from '@/components/statistics/StatsView';
-import { MembershipRequestsView } from '@/components/requests/MembershipRequestsView';
-import { TrainingWeb } from '@/components/training/TrainingWeb';
-import { ServiceHubView } from '@/components/hubs/ServiceHubView';
-import { LifeHubView } from '@/components/hubs/LifeHubView';
-import { LeaderHubView } from '@/components/hubs/LeaderHubView';
 import { User, Pole, Event, NotificationItem } from '@/types';
 import { Sparkles, CheckCircle2 } from 'lucide-react';
-import { getCachedItem, setCachedItem, CacheKeys, CacheTTL } from '@/lib/cache';
+import { getCachedItem, setCachedItem, invalidateCache, CacheKeys, CacheTTL } from '@/lib/cache';
+
+// Lightweight fallback shown for a brief instant the first time a tab is
+// opened, while its code-split chunk downloads.
+const TabLoadingFallback = () => (
+  <div className="flex items-center justify-center h-full min-h-[40vh] w-full">
+    <div className="h-8 w-8 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin" />
+  </div>
+);
+
+// Every tab/modal below is only needed once the user actually navigates to
+// it (the initial view is always the 'dashboard' tab, rendered via
+// MemberDashboard above). Loading them via next/dynamic keeps them out of
+// the initial JS bundle so first load only ships what's shown immediately.
+const DesktopDashboard = dynamic(() => import('@/components/dashboard/DesktopDashboard').then(m => m.DesktopDashboard), { loading: TabLoadingFallback });
+const CalendarView = dynamic(() => import('@/components/calendar/CalendarView').then(m => m.CalendarView), { loading: TabLoadingFallback });
+const EventModal = dynamic(() => import('@/components/calendar/EventModal').then(m => m.EventModal));
+const AssignmentsDrawer = dynamic(() => import('@/components/calendar/AssignmentsDrawer').then(m => m.AssignmentsDrawer));
+const ChecklistsWeb = dynamic(() => import('@/components/checklists/ChecklistsWeb').then(m => m.ChecklistsWeb), { loading: TabLoadingFallback });
+const ServiceValidationTracking = dynamic(() => import('@/components/checklists/ServiceValidationTracking').then(m => m.ServiceValidationTracking), { loading: TabLoadingFallback });
+const PolesManagement = dynamic(() => import('@/components/poles/PolesManagement').then(m => m.PolesManagement), { loading: TabLoadingFallback });
+const MembersManagement = dynamic(() => import('@/components/members/MembersManagement').then(m => m.MembersManagement), { loading: TabLoadingFallback });
+const SettingsView = dynamic(() => import('@/components/settings/SettingsView').then(m => m.SettingsView), { loading: TabLoadingFallback });
+const UnavailabilityModal = dynamic(() => import('@/components/unavailability/UnavailabilityModal').then(m => m.UnavailabilityModal));
+const UnavailabilitiesView = dynamic(() => import('@/components/unavailability/UnavailabilitiesView').then(m => m.UnavailabilitiesView), { loading: TabLoadingFallback });
+const BirthdaysView = dynamic(() => import('@/components/birthdays/BirthdaysView').then(m => m.BirthdaysView), { loading: TabLoadingFallback });
+const StatsView = dynamic(() => import('@/components/statistics/StatsView').then(m => m.StatsView), { loading: TabLoadingFallback });
+const MembershipRequestsView = dynamic(() => import('@/components/requests/MembershipRequestsView').then(m => m.MembershipRequestsView), { loading: TabLoadingFallback });
+const TrainingWeb = dynamic(() => import('@/components/training/TrainingWeb').then(m => m.TrainingWeb), { loading: TabLoadingFallback });
+const ServiceHubView = dynamic(() => import('@/components/hubs/ServiceHubView').then(m => m.ServiceHubView), { loading: TabLoadingFallback });
+const LifeHubView = dynamic(() => import('@/components/hubs/LifeHubView').then(m => m.LifeHubView), { loading: TabLoadingFallback });
+const LeaderHubView = dynamic(() => import('@/components/hubs/LeaderHubView').then(m => m.LeaderHubView), { loading: TabLoadingFallback });
 
 export default function HomePage() {
   const router = useRouter();
@@ -70,12 +84,43 @@ export default function HomePage() {
     try {
       if (isInitial) {
         setLoadingProgress(20);
-        setLoadingStatus('Vérification de votre session...');
+        setLoadingStatus('Chargement de votre espace MCAD...');
       }
 
-      // 1. Check current authenticated user via session cookie
-      const userRes = await fetch('/api/auth/current', { cache: 'no-store' });
-      if (!userRes.ok) {
+      // Check cached events/poles for instant availability while fresh data loads
+      const now = new Date();
+      const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const cachedMonthEvents = getCachedItem<Event[]>(`${CacheKeys.EVENTS}_${currentMonthKey}`);
+      if (cachedMonthEvents) {
+        setEvents(cachedMonthEvents);
+      }
+
+      const cachedPoles = getCachedItem<Pole[]>(CacheKeys.POLES);
+      if (cachedPoles) {
+        setPoles(cachedPoles);
+      }
+
+      // Fire every request in parallel right away — nobody waits on anybody
+      // else's response to *start*. But an anonymous visitor only ever sees
+      // the public landing page, which uses none of this data, so we only
+      // block the UI on the cheap "who am I" check: as soon as it comes
+      // back "not logged in", we render the landing page immediately
+      // instead of sitting through the other four requests too. Those
+      // requests were already sent (no point cancelling them — the server
+      // itself now also fast-rejects the heavy ones without a session, see
+      // /api/dashboard), we simply stop waiting on them.
+      const userPromise = fetch('/api/auth/current', { cache: 'no-store' });
+      const dashPromise = fetch('/api/dashboard');
+      const eventsPromise = fetch(`/api/events?month=${currentMonthKey}`);
+      const polesPromise = cachedPoles ? Promise.resolve(null) : fetch('/api/poles');
+      const notifPromise = fetch('/api/notifications');
+      const usersPromise = fetch('/api/auth/current?includeAllUsers=true');
+      // Prevent "unhandled promise rejection" noise if we bail before
+      // awaiting these (e.g. anonymous visitor).
+      [dashPromise, eventsPromise, polesPromise, notifPromise, usersPromise].forEach((p) => p.catch(() => {}));
+
+      const userRes = await userPromise.catch(() => null);
+      if (!userRes || !userRes.ok) {
         if (isInitial) {
           setLoadingProgress(100);
           setLoading(false);
@@ -85,9 +130,12 @@ export default function HomePage() {
 
       const userData = await userRes.json();
       setCurrentUser(userData.user);
-      setAllUsers(userData.allUsers || []);
 
       if (!userData.user) {
+        // Authoritative "not logged in" response (e.g. expired session) —
+        // drop any cached profile/dashboard so a future visit doesn't
+        // instant-paint from stale, no-longer-valid data.
+        invalidateCache();
         if (isInitial) {
           setLoadingProgress(100);
           setLoading(false);
@@ -95,40 +143,28 @@ export default function HomePage() {
         return;
       }
 
-      if (isInitial) {
-        setLoadingProgress(45);
-        setLoadingStatus('Chargement du tableau de bord & des cultes du mois...');
-      }
-
-      // 2. Check cached events for current month
-      const now = new Date();
-      const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const cachedMonthEvents = getCachedItem<Event[]>(`${CacheKeys.EVENTS}_${currentMonthKey}`);
-      if (cachedMonthEvents) {
-        setEvents(cachedMonthEvents);
-      }
-
-      // 3. Check cached poles for instant availability
-      const cachedPoles = getCachedItem<Pole[]>(CacheKeys.POLES);
-      if (cachedPoles) {
-        setPoles(cachedPoles);
-      }
-
-      // 4. Load Dashboard, Current Month Events, Poles, and Notifications in parallel
-      const [dashRes, eventsRes, polesRes, notifRes] = await Promise.allSettled([
-        fetch(`/api/dashboard?userId=${userData.user.id}`),
-        fetch(`/api/events?month=${currentMonthKey}`),
-        cachedPoles ? Promise.resolve(null) : fetch('/api/poles'),
-        fetch('/api/notifications')
+      const [dashRes, eventsRes, polesRes, notifRes, usersRes] = await Promise.allSettled([
+        dashPromise,
+        eventsPromise,
+        polesPromise,
+        notifPromise,
+        usersPromise
       ]);
 
+      // Cache the profile so the next visit (this tab/session) can paint
+      // instantly from it instead of waiting on the network — see the
+      // "Initial load" effect below.
+      setCachedItem(CacheKeys.CURRENT_USER, userData.user, CacheTTL.LONG);
+
       if (isInitial) {
-        setLoadingProgress(75);
-        setLoadingStatus('Synchronisation des pôles, équipes & notifications...');
+        setLoadingProgress(85);
+        setLoadingStatus('Finalisation de votre espace MCAD...');
       }
 
       if (dashRes.status === 'fulfilled' && dashRes.value && dashRes.value.ok) {
-        setDashboardData(await dashRes.value.json());
+        const freshDashboard = await dashRes.value.json();
+        setDashboardData(freshDashboard);
+        setCachedItem(CacheKeys.DASHBOARD, freshDashboard, CacheTTL.LONG);
       }
 
       if (eventsRes.status === 'fulfilled' && eventsRes.value && eventsRes.value.ok) {
@@ -153,6 +189,11 @@ export default function HomePage() {
         setUnreadNotificationsCount(notifData.unreadCount ?? 0);
       }
 
+      if (usersRes.status === 'fulfilled' && usersRes.value && usersRes.value.ok) {
+        const usersData = await usersRes.value.json();
+        setAllUsers(usersData.allUsers || []);
+      }
+
       if (isInitial) {
         setLoadingProgress(100);
         setLoadingStatus('Finalisation et ouverture de votre espace MCAD...');
@@ -168,9 +209,22 @@ export default function HomePage() {
     }
   };
 
-  // Initial load
+  // Initial load. If we already have a cached profile + dashboard from
+  // earlier in this browser session, paint the app with that instantly
+  // (skipping the loading screen entirely) and silently refresh everything
+  // in the background. Otherwise fall back to the normal loading sequence.
   React.useEffect(() => {
-    fetchData(true);
+    const cachedUser = getCachedItem<User>(CacheKeys.CURRENT_USER);
+    const cachedDashboard = getCachedItem<any>(CacheKeys.DASHBOARD);
+
+    if (cachedUser && cachedDashboard) {
+      setCurrentUser(cachedUser);
+      setDashboardData(cachedDashboard);
+      setLoading(false);
+      fetchData(false);
+    } else {
+      fetchData(true);
+    }
   }, []);
 
   // Real-time Live Stream (Server-Sent Events) + Heartbeat sync
@@ -260,6 +314,7 @@ export default function HomePage() {
   // Logout handler
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
+    invalidateCache();
     setCurrentUser(null);
     window.location.href = '/login';
   };
@@ -334,11 +389,10 @@ export default function HomePage() {
             </div>
 
             {/* Stepper Dots */}
-            <div className="grid grid-cols-4 gap-1.5 pt-1">
+            <div className="grid grid-cols-3 gap-1.5 pt-1">
               {[
-                { label: 'Session', min: 20 },
-                { label: 'Cultes', min: 50 },
-                { label: 'Pôles', min: 75 },
+                { label: 'Connexion', min: 20 },
+                { label: 'Synchronisation', min: 85 },
                 { label: 'Prêt', min: 100 }
               ].map((step, idx) => {
                 const isPassed = loadingProgress >= step.min;

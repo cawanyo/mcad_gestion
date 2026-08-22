@@ -30,10 +30,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ user: null, allUsers: [] });
     }
 
-    const allUsers = await prisma.user.findMany({
-      where: { status: 'ACTIVE' },
-      select: { id: true, firstName: true, lastName: true, role: true, avatar: true, phone: true, gender: true }
-    });
+    const { searchParams } = new URL(req.url);
+    const includeAllUsers = searchParams.get('includeAllUsers') === 'true';
+
+    let allUsers: any[] = [];
+    if (includeAllUsers) {
+      allUsers = await prisma.user.findMany({
+        where: { status: 'ACTIVE' },
+        select: { id: true, firstName: true, lastName: true, role: true, avatar: true, phone: true, gender: true }
+      });
+    }
 
     return NextResponse.json({
       user: {

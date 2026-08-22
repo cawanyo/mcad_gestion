@@ -1,67 +1,88 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
+    // Bail out before running any query if there's no session. This route
+    // is only ever consumed by the authenticated app shell (an anonymous
+    // visitor sees the public landing page and never reads this data), so
+    // there's no reason to pay for ~9 queries — several with deep nested
+    // includes — just to compute a response nobody will look at.
+    const auth = await requireAuth();
+    if ('errorResponse' in auth) {
+      return auth.errorResponse;
+    }
+
     const { searchParams } = new URL(req.url);
     const cookieStore = cookies();
     const sessionUserId = searchParams.get('userId') || cookieStore.get('auth_session')?.value;
 
-    let currentUser = null;
-    if (sessionUserId) {
-      currentUser = await prisma.user.findUnique({
-        where: { id: sessionUserId },
+    // All of these queries are independent of one another, so run them
+    // concurrently instead of awaiting them one by one (which previously
+    // serialized ~9 separate round-trips to the database).
+    const [
+      currentUser,
+      totalUsers,
+      totalPoles,
+      upcomingEventsCount,
+      totalValidations,
+      pendingRequests,
+      upcomingEvents,
+      poles,
+      usersWithBirthdays
+    ] = await Promise.all([
+      sessionUserId
+        ? prisma.user.findUnique({
+            where: { id: sessionUserId },
+            include: {
+              poleMemberships: { include: { pole: true } },
+              poleLeaderships: { include: { pole: true } },
+              membershipRequests: { include: { pole: true } },
+              unavailabilities: true
+            }
+          })
+        : Promise.resolve(null),
+      prisma.user.count({ where: { status: 'ACTIVE' } }),
+      prisma.pole.count({ where: { status: 'ACTIVE' } }),
+      prisma.event.count({ where: { startsAt: { gte: new Date() } } }),
+      prisma.serviceValidation.count({ where: { status: 'VALIDATED' } }),
+      prisma.membershipRequest.findMany({
+        where: { status: 'PENDING' },
+        include: { user: true, pole: true },
+        take: 10,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.event.findMany({
+        where: { startsAt: { gte: new Date() } },
         include: {
-          poleMemberships: { include: { pole: true } },
-          poleLeaderships: { include: { pole: true } },
-          membershipRequests: { include: { pole: true } },
-          unavailabilities: true
-        }
-      });
-    }
-
-    const totalUsers = await prisma.user.count({ where: { status: 'ACTIVE' } });
-    const totalPoles = await prisma.pole.count({ where: { status: 'ACTIVE' } });
-    const upcomingEventsCount = await prisma.event.count({
-      where: { startsAt: { gte: new Date() } }
-    });
-    const totalValidations = await prisma.serviceValidation.count({
-      where: { status: 'VALIDATED' }
-    });
-
-    const pendingRequests = await prisma.membershipRequest.findMany({
-      where: { status: 'PENDING' },
-      include: { user: true, pole: true },
-      take: 10,
-      orderBy: { createdAt: 'desc' }
-    });
-
-    const upcomingEvents = await prisma.event.findMany({
-      where: { startsAt: { gte: new Date() } },
-      include: {
-        organizerPole: true,
-        requirements: { include: { pole: true } },
-        assignments: { include: { user: true, pole: true } },
-        eventChecklists: {
-          include: {
-            checklist: {
-              include: { pole: true, steps: { orderBy: { orderIndex: 'asc' } } }
+          organizerPole: true,
+          requirements: { include: { pole: true } },
+          assignments: { include: { user: true, pole: true } },
+          eventChecklists: {
+            include: {
+              checklist: {
+                include: { pole: true, steps: { orderBy: { orderIndex: 'asc' } } }
+              }
             }
           }
+        },
+        orderBy: { startsAt: 'asc' },
+        take: 6
+      }),
+      prisma.pole.findMany({
+        include: {
+          _count: { select: { memberships: true, assignments: true } }
         }
-      },
-      orderBy: { startsAt: 'asc' },
-      take: 6
-    });
-
-    const poles = await prisma.pole.findMany({
-      include: {
-        _count: { select: { memberships: true, assignments: true } }
-      }
-    });
+      }),
+      prisma.user.findMany({
+        where: { birthDate: { not: null } },
+        select: { id: true, firstName: true, lastName: true, birthDate: true, avatar: true }
+      })
+    ]);
 
     // Real Pole Distribution
     const totalMemberships = poles.reduce((acc, p) => acc + p._count.memberships, 0);
@@ -72,11 +93,6 @@ export async function GET(req: Request) {
     }));
 
     // Current Week Birthdays (Monday to Sunday of current week)
-    const usersWithBirthdays = await prisma.user.findMany({
-      where: { birthDate: { not: null } },
-      select: { id: true, firstName: true, lastName: true, birthDate: true, avatar: true }
-    });
-
     const now = new Date();
     const currentDayOfWeek = (now.getDay() + 6) % 7; // 0 = Monday, 6 = Sunday
     const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - currentDayOfWeek, 0, 0, 0);
@@ -125,25 +141,41 @@ export async function GET(req: Request) {
     // Member Specific Data
     let memberData = null;
     if (currentUser) {
-      const rawAssignments = await prisma.assignment.findMany({
-        where: { userId: currentUser.id },
-        include: {
-          event: {
-            include: {
-              organizerPole: true,
-              eventChecklists: {
-                include: {
-                  checklist: {
-                    include: { pole: true, steps: { orderBy: { orderIndex: 'asc' } } }
+      const [rawAssignments, myPendingRequests, myValidations, myUnavailabilities] = await Promise.all([
+        prisma.assignment.findMany({
+          where: { userId: currentUser.id },
+          include: {
+            event: {
+              include: {
+                organizerPole: true,
+                eventChecklists: {
+                  include: {
+                    checklist: {
+                      include: { pole: true, steps: { orderBy: { orderIndex: 'asc' } } }
+                    }
                   }
                 }
               }
-            }
+            },
+            pole: true
           },
-          pole: true
-        },
-        orderBy: { event: { startsAt: 'asc' } }
-      });
+          orderBy: { event: { startsAt: 'asc' } }
+        }),
+        prisma.membershipRequest.findMany({
+          where: { userId: currentUser.id, status: 'PENDING' },
+          include: { pole: true },
+          orderBy: { createdAt: 'desc' }
+        }),
+        prisma.serviceValidation.findMany({
+          where: { userId: currentUser.id },
+          include: { event: true, pole: true },
+          orderBy: { createdAt: 'desc' }
+        }),
+        prisma.unavailability.findMany({
+          where: { userId: currentUser.id },
+          orderBy: { startsAt: 'asc' }
+        })
+      ]);
 
       // Enrich assignments with the specific checklist linked for that pole
       const myAssignments = rawAssignments.map((a) => {
@@ -159,25 +191,7 @@ export async function GET(req: Request) {
         };
       });
 
-      const myPendingRequests = await prisma.membershipRequest.findMany({
-        where: { userId: currentUser.id, status: 'PENDING' },
-        include: { pole: true },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      const myValidations = await prisma.serviceValidation.findMany({
-        where: { userId: currentUser.id },
-        include: { event: true, pole: true },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      const myUnavailabilities = await prisma.unavailability.findMany({
-        where: { userId: currentUser.id },
-        orderBy: { startsAt: 'asc' }
-      });
-
       // Next service for this member: prioritize upcoming, or fallback to first assigned
-      const now = new Date();
       const upcomingAssignments = myAssignments.filter(a => new Date(a.event.endsAt) >= now);
       const nextAssignment = upcomingAssignments.length > 0 ? upcomingAssignments[0] : (myAssignments.length > 0 ? myAssignments[0] : null);
 

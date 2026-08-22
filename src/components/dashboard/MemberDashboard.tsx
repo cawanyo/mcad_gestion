@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { User, Pole, Event } from '@/types';
 import { ChecklistRunnerModal } from '../checklists/ChecklistRunnerModal';
+import { optimizedImageUrl } from '@/lib/image-url';
 
 interface MemberDashboardProps {
   currentUser: User | null;
@@ -647,7 +648,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                   >
                     <div className="flex items-center gap-2.5">
                       {b.avatar ? (
-                        <img src={b.avatar} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200" />
+                        <img src={optimizedImageUrl(b.avatar, 64)} alt="" loading="lazy" className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200" />
                       ) : (
                         <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center">
                           <Gift className="w-4 h-4" />

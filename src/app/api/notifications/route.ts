@@ -16,15 +16,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ notifications: [], unreadCount: 0 });
     }
 
-    const notifications = await prisma.notification.findMany({
-      where: { userId: userIdParam },
-      orderBy: { createdAt: 'desc' },
-      take: 20
-    });
-
-    const unreadCount = await prisma.notification.count({
-      where: { userId: userIdParam, isRead: false }
-    });
+    const [notifications, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where: { userId: userIdParam },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }),
+      prisma.notification.count({
+        where: { userId: userIdParam, isRead: false }
+      })
+    ]);
 
     return NextResponse.json({ notifications, unreadCount });
   } catch (error) {
