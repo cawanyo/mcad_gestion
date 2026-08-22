@@ -413,29 +413,17 @@ export default function HomePage() {
         {/* Dynamic Responsive View (with bottom padding on mobile for Bottom Tabs) */}
         <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 lg:pb-8">
           {/* ========================================================= */}
-          {/* TAB 1: MON ESPACE (Dashboard) */}
+          {/* TAB 1: ACCUEIL / MON ESPACE (MemberDashboard pour tous) */}
           {/* ========================================================= */}
           {activeTab === 'dashboard' && (
-            isLeaderOrAdmin ? (
-              <DesktopDashboard
-                currentUser={currentUser}
-                data={dashboardData}
-                onNavigateTab={setActiveTab}
-                onNavigateToEvent={handleNavigateToEvent}
-                onApproveRequest={handleApproveRequest}
-                onRejectRequest={handleRejectRequest}
-                onOpenCreateEvent={() => setShowEventModal(true)}
-              />
-            ) : (
-              <MemberDashboard
-                currentUser={currentUser}
-                data={dashboardData}
-                poles={poles}
-                onNavigateTab={setActiveTab}
-                onNavigateToEvent={handleNavigateToEvent}
-                onOpenUnavailabilityModal={() => setShowUnavailabilityModal(true)}
-              />
-            )
+            <MemberDashboard
+              currentUser={currentUser}
+              data={dashboardData}
+              poles={poles}
+              onNavigateTab={setActiveTab}
+              onNavigateToEvent={handleNavigateToEvent}
+              onOpenUnavailabilityModal={() => setShowUnavailabilityModal(true)}
+            />
           )}
 
           {/* ========================================================= */}
@@ -607,6 +595,28 @@ export default function HomePage() {
               pendingRequestsCount={dashboardData?.pendingRequests?.length || 0}
               membersCount={allUsers.length}
             />
+          )}
+
+          {(activeTab === 'leader_dashboard' || activeTab === 'admin_dashboard') && isLeaderOrAdmin && (
+            <div>
+              <div className="lg:hidden">
+                <SubViewHeader
+                  parentTitle="Responsable"
+                  parentTabId="leader_hub"
+                  currentTitle="Tableau de bord"
+                  onBack={() => setActiveTab('leader_hub')}
+                />
+              </div>
+              <DesktopDashboard
+                currentUser={currentUser}
+                data={dashboardData}
+                onNavigateTab={setActiveTab}
+                onNavigateToEvent={handleNavigateToEvent}
+                onApproveRequest={handleApproveRequest}
+                onRejectRequest={handleRejectRequest}
+                onOpenCreateEvent={() => setShowEventModal(true)}
+              />
+            </div>
           )}
 
           {activeTab === 'members' && isLeaderOrAdmin && (

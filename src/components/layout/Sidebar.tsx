@@ -55,7 +55,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Navigation tailored to role
   const navItems = isLeaderOrAdmin
     ? [
-        { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+        { id: 'dashboard', label: 'Accueil', icon: Home },
+        { id: 'leader_dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
         { id: 'calendar', label: 'Calendrier', icon: Calendar },
         { id: 'poles', label: 'Pôles', icon: Layers },
         { id: 'members', label: 'Membres', icon: Users },
@@ -69,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'settings', label: 'Paramètres', icon: Settings },
       ]
     : [
-        { id: 'dashboard', label: 'Mon Espace', icon: Home },
+        { id: 'dashboard', label: 'Accueil', icon: Home },
         { id: 'calendar', label: 'Calendrier des cultes', icon: Calendar },
         { id: 'training', label: 'Mes Formations', icon: GraduationCap },
         { id: 'checklists', label: 'Mes Checklists', icon: CheckSquare },

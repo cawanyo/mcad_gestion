@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { 
+  Home,
   LayoutDashboard, 
   CalendarDays, 
   GraduationCap, 
@@ -42,7 +43,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     if (['birthdays', 'stats', 'statistics', 'life_hub'].includes(activeTab)) {
       return 'life_hub';
     }
-    if (['members', 'requests', 'service_tracking', 'leader_hub'].includes(activeTab)) {
+    if (['members', 'requests', 'service_tracking', 'leader_hub', 'leader_dashboard', 'admin_dashboard'].includes(activeTab)) {
       return 'leader_hub';
     }
     if (activeTab === 'calendar' || activeTab === 'events') return 'calendar';
@@ -55,8 +56,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const tabs: TabItem[] = [
     {
       id: 'dashboard',
-      label: 'Espace',
-      icon: LayoutDashboard,
+      label: 'Accueil',
+      icon: Home,
     },
     {
       id: 'calendar',

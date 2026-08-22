@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {
+  LayoutDashboard,
   Calendar,
   CheckCircle2,
   Clock,
@@ -134,7 +135,16 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {currentUser && currentUser.role !== 'MEMBER' && (
+              <button
+                onClick={() => onNavigateTab('leader_dashboard')}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold rounded-2xl text-xs shadow-md transition-all"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Tableau de bord</span>
+              </button>
+            )}
             <button
               onClick={onOpenUnavailabilityModal}
               className="flex items-center gap-1.5 px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-2xl text-xs font-bold transition-all backdrop-blur-xs"

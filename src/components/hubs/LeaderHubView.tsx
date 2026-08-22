@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { 
+  LayoutDashboard,
   Users, 
   UserPlus, 
   FileCheck2, 
@@ -26,13 +27,22 @@ export const LeaderHubView: React.FC<LeaderHubViewProps> = ({
 }) => {
   const cards = [
     {
+      id: 'leader_dashboard',
+      title: 'Tableau de bord',
+      description: "Supervision globale du département, cultes à venir, effectifs mobilisés et indicateurs clés.",
+      icon: LayoutDashboard,
+      badge: 'Vue Pilotage',
+      iconBg: 'bg-indigo-50 text-indigo-600 border border-indigo-100',
+      badgeStyle: 'text-indigo-700 bg-indigo-50 border-indigo-200',
+    },
+    {
       id: 'members',
       title: 'Membres',
       description: "Consultez l'annuaire complet des membres, gérez les rôles d'équipe et supervisez les affectations.",
       icon: Users,
       badge: membersCount > 0 ? `${membersCount} Membres` : 'Gestion globale',
-      iconBg: 'bg-indigo-50 text-indigo-600 border border-indigo-100',
-      badgeStyle: 'text-indigo-700 bg-indigo-50 border-indigo-200',
+      iconBg: 'bg-sky-50 text-sky-600 border border-sky-100',
+      badgeStyle: 'text-sky-700 bg-sky-50 border-sky-200',
     },
     {
       id: 'requests',
@@ -81,8 +91,8 @@ export const LeaderHubView: React.FC<LeaderHubViewProps> = ({
         </div>
       </div>
 
-      {/* Grid of 3 Leader Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+      {/* Grid of Leader Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
