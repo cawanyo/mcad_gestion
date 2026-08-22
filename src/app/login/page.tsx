@@ -18,7 +18,7 @@ export default function LoginPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
-          router.replace('/');
+          router.replace('/dashboard');
         }
       })
       .catch(() => {});
@@ -41,7 +41,11 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.error || 'Identifiants invalides');
       } else {
-        window.location.href = '/';
+        // Client-side transition straight into the app shell — a hard
+        // reload isn't needed for the session cookie to take effect (it's
+        // already active server-side as soon as the login response sets
+        // it), it would just add a full page reload for nothing.
+        router.push('/dashboard');
       }
     } catch (err) {
       setError('Erreur de connexion au serveur');

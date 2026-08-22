@@ -30,7 +30,7 @@ export default function RegisterPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
-          router.replace('/');
+          router.replace('/dashboard');
         }
       })
       .catch(() => {});
@@ -92,7 +92,7 @@ export default function RegisterPage() {
       if (!res.ok) {
         setError(data.error || 'Erreur lors de la création du compte');
       } else {
-        window.location.href = '/';
+        router.push('/dashboard');
       }
     } catch (err) {
       setError('Erreur de connexion au serveur');

@@ -33,7 +33,8 @@ import {
   X,
   UserMinus,
   Hand,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 import { Event, Pole, User, Assignment, Checklist } from '@/types';
 import { EventModal } from './EventModal';
@@ -716,8 +717,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <h2 className="text-sm font-extrabold text-slate-900">
+              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
                 {capitalizedMonthTitle}
+                {loadingMonth && <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />}
               </h2>
 
               <button
@@ -739,7 +741,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
 
             {/* Days Grid */}
-            <div className="grid grid-cols-7 gap-1">
+            <div className={`grid grid-cols-7 gap-1 transition-opacity duration-200 ${loadingMonth ? 'opacity-40' : 'opacity-100'}`}>
               {calendarCells.map((cell, idx) => {
                 const isSelected = selectedDateStr === cell.dateStr;
                 const hasEvents = cell.events.length > 0;
@@ -1107,8 +1109,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <h2 className="text-base font-extrabold text-slate-900 min-w-36 text-center">
+            <h2 className="text-base font-extrabold text-slate-900 min-w-36 text-center flex items-center justify-center gap-2">
               {capitalizedMonthTitle}
+              {loadingMonth && <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />}
             </h2>
 
             <button
@@ -1186,7 +1189,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
 
               {/* Grid Cells */}
-              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+              <div className={`grid grid-cols-7 gap-1.5 sm:gap-2 transition-opacity duration-200 ${loadingMonth ? 'opacity-40' : 'opacity-100'}`}>
                 {calendarCells.map((cell, idx) => {
                   const isSelected =
                     (selectedEvent && getLocalDateStr(selectedEvent.startsAt) === cell.dateStr) ||
@@ -1272,7 +1275,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* MODE: LIST VIEW */}
           {calendarMode === 'list' && (
-            <div className="space-y-3">
+            <div className={`space-y-3 transition-opacity duration-200 ${loadingMonth ? 'opacity-40' : 'opacity-100'}`}>
               {filteredEvents.length === 0 ? (
                 <div className="py-12 text-center text-xs text-slate-500">
                   Aucun culte ou événement ne correspond à vos filtres.
