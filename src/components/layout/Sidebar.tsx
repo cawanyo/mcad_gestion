@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { tabToPath } from '@/lib/navigation';
 import {
   LayoutDashboard,
   Calendar,
@@ -27,26 +29,21 @@ import { User as UserType } from '@/types';
 import { Avatar } from '@/components/ui';
 
 interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
   currentUser: UserType | null;
-  allUsers: UserType[];
-  onSwitchUser: (user: UserType) => void;
   pendingRequestsCount?: number;
   onCloseMobile?: () => void;
   onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  activeTab,
-  setActiveTab,
   currentUser,
-  allUsers = [],
-  onSwitchUser,
   pendingRequestsCount = 0,
   onCloseMobile,
   onLogout
 }) => {
+  const router = useRouter();
+  const pathname = usePathname();
+
   const isLeaderOrAdmin = currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER' ||
     currentUser?.role === 'POLE_LEADER' ||
@@ -93,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const handleSelectTab = (id: string) => {
-    setActiveTab(id);
+    router.push(tabToPath(id));
     if (onCloseMobile) onCloseMobile();
   };
 
@@ -127,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = pathname === tabToPath(item.id);
           return (
             <button
               key={item.id}
@@ -175,7 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="flex items-center gap-1.5 pt-1">
           <button
-            onClick={() => setActiveTab('settings')}
+            onClick={() => router.push('/settings')}
             className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors"
           >
             <Settings className="w-3.5 h-3.5" />

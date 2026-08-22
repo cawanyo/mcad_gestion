@@ -1,16 +1,18 @@
 'use client';
 
 import React from 'react';
-import { 
+import { useRouter, usePathname } from 'next/navigation';
+import {
   Home,
-  LayoutDashboard, 
-  CalendarDays, 
-  GraduationCap, 
-  HandHeart, 
-  Sparkles, 
-  ShieldCheck 
+  LayoutDashboard,
+  CalendarDays,
+  GraduationCap,
+  HandHeart,
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 import { User } from '@/types';
+import { tabToPath, getBottomTabForPath } from '@/lib/navigation';
 
 export interface TabItem {
   id: string;
@@ -21,37 +23,19 @@ export interface TabItem {
 }
 
 interface BottomTabBarProps {
-  activeTab: string;
-  onTabChange: (tabId: string) => void;
   currentUser: User | null;
   pendingRequestsCount?: number;
 }
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
-  activeTab,
-  onTabChange,
   currentUser,
   pendingRequestsCount = 0,
 }) => {
+  const router = useRouter();
+  const pathname = usePathname();
   const isLeader = currentUser?.role && currentUser.role !== 'MEMBER';
 
-  // Map sub-views to their parent tab
-  const getSelectedTab = () => {
-    if (['poles', 'checklists', 'unavailability', 'unavailabilities', 'service_validation', 'validations', 'service_hub'].includes(activeTab)) {
-      return 'service_hub';
-    }
-    if (['birthdays', 'stats', 'statistics', 'life_hub'].includes(activeTab)) {
-      return 'life_hub';
-    }
-    if (['members', 'requests', 'service_tracking', 'leader_hub', 'leader_dashboard', 'admin_dashboard'].includes(activeTab)) {
-      return 'leader_hub';
-    }
-    if (activeTab === 'calendar' || activeTab === 'events') return 'calendar';
-    if (activeTab === 'training') return 'training';
-    return 'dashboard';
-  };
-
-  const currentParentTab = getSelectedTab();
+  const currentParentTab = getBottomTabForPath(pathname);
 
   const tabs: TabItem[] = [
     {
@@ -107,7 +91,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => onTabChange(tab.id)}
+                onClick={() => router.push(tabToPath(tab.id))}
                 className={`relative flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-xl transition-all duration-150 select-none ${
                   isActive
                     ? 'text-indigo-600 font-black'
