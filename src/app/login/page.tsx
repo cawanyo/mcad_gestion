@@ -11,20 +11,17 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
-  const [checkingAuth, setCheckingAuth] = React.useState(true);
 
-  // Check if already authenticated
+  // Background check: if already authenticated, redirect to home
   React.useEffect(() => {
     fetch('/api/auth/current')
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
           router.replace('/');
-        } else {
-          setCheckingAuth(false);
         }
       })
-      .catch(() => setCheckingAuth(false));
+      .catch(() => {});
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,16 +49,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-lg text-slate-950 font-bold animate-pulse">
-          <Sparkles className="w-6 h-6" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans relative overflow-hidden">

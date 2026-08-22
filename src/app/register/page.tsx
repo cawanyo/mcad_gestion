@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Sparkles, UserPlus, User, Lock, Calendar, ArrowLeft, Check, AlertCircle } from 'lucide-react';
 import { PhoneInputWithCountry } from '@/components/ui';
 import { Pole } from '@/types';
+import { CacheKeys, getCachedItem, setCachedItem } from '@/lib/cache';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -15,32 +16,36 @@ export default function RegisterPage() {
   const [birthDate, setBirthDate] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
-  const [poles, setPoles] = React.useState<Pole[]>([]);
+  const [poles, setPoles] = React.useState<Pole[]>(() => {
+    return getCachedItem<Pole[]>(CacheKeys.POLES) || [];
+  });
   const [selectedPoles, setSelectedPoles] = React.useState<string[]>([]);
   const [motivation, setMotivation] = React.useState('');
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
-  const [checkingAuth, setCheckingAuth] = React.useState(true);
 
-  // Check if already authenticated
+  // Background check: if already authenticated, redirect to home
   React.useEffect(() => {
     fetch('/api/auth/current')
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
           router.replace('/');
-        } else {
-          setCheckingAuth(false);
         }
       })
-      .catch(() => setCheckingAuth(false));
+      .catch(() => {});
   }, [router]);
 
   // Fetch available poles
   React.useEffect(() => {
     fetch('/api/poles')
       .then((res) => res.json())
-      .then((data) => setPoles(data))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPoles(data);
+          setCachedItem(CacheKeys.POLES, data);
+        }
+      })
       .catch((e) => console.error(e));
   }, []);
 
@@ -95,16 +100,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-lg text-slate-950 font-bold animate-pulse">
-          <Sparkles className="w-6 h-6" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans relative overflow-hidden">
