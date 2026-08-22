@@ -36,7 +36,8 @@ import {
 import { Pole, User } from '@/types';
 import { ChecklistRunnerModal } from '@/components/checklists/ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from '@/components/checklists/ChecklistFeedbackModal';
-import { ConfirmModal } from '@/components/ui';
+import { ConfirmModal, MediaViewer } from '@/components/ui';
+import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
 
 interface PoleDetailViewProps {
   poleId: string;
@@ -145,42 +146,38 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     setShowAddMemberModal(true);
   };
 
-  // Direct File Upload handler for steps
+  const [stepUploadProgress, setStepUploadProgress] = React.useState<Record<number, UploadProgressInfo | null>>({});
+
+  // Direct File Upload handler for steps with High-Speed Cloudinary
   const handleFileUpload = async (stepIndex: number, file: File) => {
     const newSteps = [...checklistSteps];
     newSteps[stepIndex].uploading = true;
+    newSteps[stepIndex].error = undefined;
     setChecklistSteps(newSteps);
+    setStepUploadProgress((prev) => ({ ...prev, [stepIndex]: null }));
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      const result = await uploadMediaWithProgress(file, {
+        folder: 'mcad_checklists/steps',
+        onProgress: (p) => {
+          setStepUploadProgress((prev) => ({ ...prev, [stepIndex]: p }));
+        }
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.url) {
-        const updated = [...checklistSteps];
-        updated[stepIndex].mediaUrl = data.url;
-        updated[stepIndex].mediaType = data.mediaType;
-        updated[stepIndex].uploading = false;
-        updated[stepIndex].error = undefined;
-        setChecklistSteps(updated);
-      } else {
-        const updated = [...checklistSteps];
-        updated[stepIndex].uploading = false;
-        updated[stepIndex].error = data.error || 'Erreur lors du téléversement';
-        setChecklistSteps(updated);
-      }
-    } catch (err) {
+      const updated = [...checklistSteps];
+      updated[stepIndex].mediaUrl = result.url;
+      updated[stepIndex].mediaType = result.mediaType;
+      updated[stepIndex].uploading = false;
+      updated[stepIndex].error = undefined;
+      setChecklistSteps(updated);
+    } catch (err: any) {
       console.error('Upload error:', err);
       const updated = [...checklistSteps];
       updated[stepIndex].uploading = false;
-      updated[stepIndex].error = 'Erreur de connexion lors du téléversement';
+      updated[stepIndex].error = err.message || 'Erreur lors du téléversement';
       setChecklistSteps(updated);
+    } finally {
+      setStepUploadProgress((prev) => ({ ...prev, [stepIndex]: null }));
     }
   };
 
@@ -1349,32 +1346,75 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
                             </button>
                           </div>
 
-                          {step.mediaType === 'PHOTO' ? (
-                            <img src={step.mediaUrl} alt="" className="w-full h-32 object-cover rounded-lg border" />
-                          ) : (
-                            <video src={step.mediaUrl} controls className="w-full h-32 bg-black rounded-lg" />
-                          )}
+                          <div className="max-w-md">
+                            <MediaViewer
+                              url={step.mediaUrl}
+                              mediaType={step.mediaType}
+                              title={step.title}
+                            />
+                          </div>
                         </div>
                       ) : (
-                        <div>
-                          <label className="flex flex-col items-center justify-center p-3 bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 rounded-xl cursor-pointer transition-colors group">
-                            <Upload className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 mb-1" />
-                            <span className="text-xs font-semibold text-slate-600 group-hover:text-indigo-700">
-                              Choisir une photo ou vidéo depuis votre appareil
-                            </span>
-                            <span className="text-[10px] text-slate-400 mt-0.5">
-                              Formats supportés : PNG, JPG, MP4, MOV, WEBM
-                            </span>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
                             <input
-                              type="file"
-                              accept="image/*,video/*"
-                              className="hidden"
+                              type="text"
+                              placeholder="Collez un lien vidéo (YouTube, Vimeo, MP4) ou téléversez..."
+                              value={step.mediaUrl}
                               onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleFileUpload(idx, file);
+                                const val = e.target.value;
+                                const isVid =
+                                  val.includes('youtube.com') ||
+                                  val.includes('youtu.be') ||
+                                  val.includes('vimeo.com') ||
+                                  val.includes('loom.com') ||
+                                  /\.(mp4|webm|mov|m4v)$/i.test(val);
+                                const updated = [...checklistSteps];
+                                updated[idx].mediaUrl = val;
+                                updated[idx].mediaType = isVid ? 'VIDEO' : val ? 'PHOTO' : 'NONE';
+                                setChecklistSteps(updated);
                               }}
+                              className="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
                             />
-                          </label>
+                            <label className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                              {step.uploading ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                              ) : (
+                                <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                              )}
+                              <span>{step.uploading ? 'Envoi...' : 'Téléverser'}</span>
+                              <input
+                                type="file"
+                                accept="image/*,video/*"
+                                className="hidden"
+                                disabled={step.uploading}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleFileUpload(idx, file);
+                                }}
+                              />
+                            </label>
+                          </div>
+
+                          {/* Progress bar */}
+                          {stepUploadProgress[idx] && (
+                            <div className="p-2.5 bg-indigo-50/90 border border-indigo-200 rounded-xl space-y-1 animate-in fade-in">
+                              <div className="flex items-center justify-between text-[11px] font-bold text-indigo-900">
+                                <span>{stepUploadProgress[idx]?.statusText}</span>
+                                <span>{stepUploadProgress[idx]?.percent}%</span>
+                              </div>
+                              <div className="w-full bg-indigo-200/70 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300 ease-out"
+                                  style={{ width: `${stepUploadProgress[idx]?.percent}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {step.error && (
+                            <p className="text-xs text-rose-600 font-semibold">⚠️ {step.error}</p>
+                          )}
                         </div>
                       )}
                     </div>

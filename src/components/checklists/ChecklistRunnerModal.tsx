@@ -18,6 +18,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { Checklist, User } from '@/types';
+import { MediaViewer } from '@/components/ui';
 
 interface ChecklistRunnerModalProps {
   checklist: any;
@@ -248,21 +249,12 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
 
               {/* Direct Media Player / Image Display */}
               {currentStep.mediaUrl && (
-                <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-black">
-                  {currentStep.mediaType === 'VIDEO' ? (
-                    <video
-                      src={currentStep.mediaUrl}
-                      controls
-                      autoPlay={false}
-                      className="w-full max-h-72 bg-black"
-                    />
-                  ) : (
-                    <img
-                      src={currentStep.mediaUrl}
-                      alt={currentStep.title}
-                      className="w-full max-h-72 object-contain bg-slate-900 mx-auto"
-                    />
-                  )}
+                <div className="rounded-2xl overflow-hidden shadow-sm">
+                  <MediaViewer
+                    url={currentStep.mediaUrl}
+                    mediaType={currentStep.mediaType}
+                    title={currentStep.title}
+                  />
                 </div>
               )}
             </div>

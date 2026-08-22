@@ -11,11 +11,11 @@ export const dynamic = 'force-dynamic';
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const ALLOWED_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
 
-const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
-const ALLOWED_VIDEO_EXTS = new Set(['.mp4', '.webm', '.mov']);
+const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v', 'video/m4v', 'video/3gpp']);
+const ALLOWED_VIDEO_EXTS = new Set(['.mp4', '.webm', '.mov', '.m4v']);
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_IMAGE_SIZE = 15 * 1024 * 1024; // 15 MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
 
 export async function POST(req: Request) {
   try {
@@ -38,12 +38,12 @@ export async function POST(req: Request) {
 
     // 2. Validate Type & Extension
     const isImage = ALLOWED_IMAGE_TYPES.has(mimeType) && ALLOWED_IMAGE_EXTS.has(originalExt);
-    const isVideo = ALLOWED_VIDEO_TYPES.has(mimeType) && ALLOWED_VIDEO_EXTS.has(originalExt);
+    const isVideo = (ALLOWED_VIDEO_TYPES.has(mimeType) || mimeType.startsWith('video/')) && ALLOWED_VIDEO_EXTS.has(originalExt);
 
     if (!isImage && !isVideo) {
       return NextResponse.json(
         {
-          error: 'Format non autorisé. Formats acceptés : JPG, PNG, WEBP, GIF, MP4, WEBM, MOV.'
+          error: 'Format non autorisé. Formats acceptés : JPG, PNG, WEBP, GIF, MP4, WEBM, MOV, M4V.'
         },
         { status: 400 }
       );
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     // 3. Validate File Size
     const mediaType: 'PHOTO' | 'VIDEO' = isVideo ? 'VIDEO' : 'PHOTO';
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
-    const maxMb = isVideo ? 50 : 10;
+    const maxMb = isVideo ? 100 : 15;
 
     if (file.size > maxSize) {
       return NextResponse.json(

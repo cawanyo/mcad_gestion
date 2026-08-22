@@ -24,6 +24,8 @@ import {
   Play
 } from 'lucide-react';
 import { Pole, TrainingModule } from '@/types';
+import { MediaViewer } from '@/components/ui';
+import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
 
 interface TrainingModuleEditorPageProps {
   poles: Pole[];
@@ -114,58 +116,53 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
     }
   }, [editingModule, poles]);
 
-  // Handle Cover Image Upload
+  const [coverUploadProgress, setCoverUploadProgress] = React.useState<UploadProgressInfo | null>(null);
+  const [lessonUploadProgress, setLessonUploadProgress] = React.useState<Record<number, UploadProgressInfo | null>>({});
+
+  // Handle Cover Image Upload with High-speed direct Cloudinary
   const handleCoverUpload = async (file: File) => {
     try {
       setCoverUploading(true);
       setError(null);
-      const formData = new FormData();
-      formData.append('file', file);
+      setCoverUploadProgress(null);
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      const result = await uploadMediaWithProgress(file, {
+        folder: 'mcad_training/covers',
+        onProgress: (p) => setCoverUploadProgress(p)
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Erreur lors de l'envoi de l'image");
-      }
-      setCoverImage(data.url);
+      setCoverImage(result.url);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Erreur lors du téléversement de l'image");
     } finally {
       setCoverUploading(false);
+      setCoverUploadProgress(null);
     }
   };
 
-  // Handle Lesson Media Upload
+  // Handle Lesson Media Upload (Video & Photo) with High-speed direct Cloudinary
   const handleLessonMediaUpload = async (file: File, index: number) => {
     try {
       setLessons((prev) =>
         prev.map((l, i) => (i === index ? { ...l, uploading: true } : l))
       );
       setError(null);
-      const formData = new FormData();
-      formData.append('file', file);
+      setLessonUploadProgress((prev) => ({ ...prev, [index]: null }));
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      const result = await uploadMediaWithProgress(file, {
+        folder: 'mcad_training/lessons',
+        onProgress: (p) => {
+          setLessonUploadProgress((prev) => ({ ...prev, [index]: p }));
+        }
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Erreur lors de l'envoi du média");
-      }
 
       setLessons((prev) =>
         prev.map((l, i) => {
           if (i === index) {
             return {
               ...l,
-              mediaUrl: data.url,
-              mediaType: data.mediaType === 'VIDEO' ? 'VIDEO' : 'PHOTO',
+              mediaUrl: result.url,
+              mediaType: result.mediaType === 'VIDEO' ? 'VIDEO' : 'PHOTO',
               uploading: false
             };
           }
@@ -173,10 +170,12 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
         })
       );
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Erreur lors du téléversement du média");
       setLessons((prev) =>
         prev.map((l, i) => (i === index ? { ...l, uploading: false } : l))
       );
+    } finally {
+      setLessonUploadProgress((prev) => ({ ...prev, [index]: null }));
     }
   };
 
@@ -804,28 +803,42 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                   {/* Média Upload / URL */}
                   <div className="sm:col-span-2">
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Lien ou Fichier Média
+                      Vidéo ou Photo (Fichier direct ou lien YouTube, Vimeo, MP4)
                     </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
-                        placeholder="URL de vidéo, photo ou téléversez le fichier..."
+                        placeholder="Collez un lien vidéo (YouTube, Vimeo, Cloudinary, MP4) ou téléversez ci-contre..."
                         value={lesson.mediaUrl}
                         onChange={(e) => {
                           const val = e.target.value;
+                          const isVid =
+                            val.includes('youtube.com') ||
+                            val.includes('youtu.be') ||
+                            val.includes('vimeo.com') ||
+                            val.includes('loom.com') ||
+                            /\.(mp4|webm|mov|m4v)$/i.test(val);
                           setLessons((prev) =>
-                            prev.map((l, i) => (i === idx ? { ...l, mediaUrl: val } : l))
+                            prev.map((l, i) =>
+                              i === idx
+                                ? {
+                                    ...l,
+                                    mediaUrl: val,
+                                    mediaType: isVid ? 'VIDEO' : l.mediaType === 'NONE' && val ? 'PHOTO' : l.mediaType
+                                  }
+                                : l
+                            )
                           );
                         }}
                         className="flex-1 p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
                       />
-                      <label className="px-3 py-2.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs">
+                      <label className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-2xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
                         {lesson.uploading ? (
                           <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
                         ) : (
                           <Upload className="w-3.5 h-3.5 text-indigo-600" />
                         )}
-                        <span>Téléverser</span>
+                        <span>{lesson.uploading ? 'Envoi...' : 'Téléverser'}</span>
                         <input
                           type="file"
                           accept="video/*,image/*"
@@ -841,21 +854,54 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                     </div>
                   </div>
 
-                  {/* Mini Media Preview if present */}
-                  {lesson.mediaUrl && (
-                    <div className="sm:col-span-3 p-3 bg-white rounded-2xl border border-slate-200">
-                      <p className="text-[10px] uppercase font-bold text-slate-400 mb-1.5">
-                        Aperçu du média :
-                      </p>
-                      {lesson.mediaType === 'VIDEO' || lesson.mediaUrl.endsWith('.mp4') || lesson.mediaUrl.endsWith('.mov') ? (
-                        <div className="max-w-md aspect-video rounded-xl overflow-hidden bg-slate-950">
-                          <video src={lesson.mediaUrl} controls className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="max-w-xs max-h-36 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                          <img src={lesson.mediaUrl} alt="Aperçu" className="w-full h-full object-cover" />
-                        </div>
-                      )}
+                  {/* Lesson Upload Progress Bar */}
+                  {lessonUploadProgress[idx] && (
+                    <div className="sm:col-span-3 p-3 bg-indigo-50/90 border border-indigo-200 rounded-2xl space-y-1.5 animate-in fade-in">
+                      <div className="flex items-center justify-between text-xs font-bold text-indigo-900">
+                        <span className="flex items-center gap-1.5">
+                          <RefreshCw className="w-3 h-3 animate-spin text-indigo-600" />
+                          {lessonUploadProgress[idx]?.statusText}
+                        </span>
+                        <span>{lessonUploadProgress[idx]?.percent}%</span>
+                      </div>
+                      <div className="w-full bg-indigo-200/70 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full transition-all duration-300 ease-out"
+                          style={{ width: `${lessonUploadProgress[idx]?.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Media Preview */}
+                  {lesson.mediaUrl && !lesson.uploading && (
+                    <div className="sm:col-span-3 p-3 bg-white rounded-2xl border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] uppercase font-bold text-slate-400">
+                          Aperçu en direct :
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLessons((prev) =>
+                              prev.map((l, i) =>
+                                i === idx ? { ...l, mediaUrl: '', mediaType: 'NONE' } : l
+                              )
+                            );
+                          }}
+                          className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Supprimer le média</span>
+                        </button>
+                      </div>
+                      <div className="max-w-md">
+                        <MediaViewer
+                          url={lesson.mediaUrl}
+                          mediaType={lesson.mediaType}
+                          title={lesson.title}
+                        />
+                      </div>
                     </div>
                   )}
 

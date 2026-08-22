@@ -27,7 +27,8 @@ import {
 import { Checklist, Pole, Event, User } from '@/types';
 import { ChecklistRunnerModal } from './ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from './ChecklistFeedbackModal';
-import { ConfirmModal, Modal, Badge, Toast, ToastState } from '@/components/ui';
+import { ConfirmModal, Modal, Badge, Toast, ToastState, MediaViewer } from '@/components/ui';
+import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
 
 interface ChecklistsWebProps {
   checklists?: Checklist[];
@@ -116,36 +117,32 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     }
   }, [selectedPoleId]);
 
+  const [stepUploadProgress, setStepUploadProgress] = React.useState<UploadProgressInfo | null>(null);
+
   const handleFileUpload = async (file: File) => {
     setUploadingMedia(true);
+    setStepUploadProgress(null);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      const result = await uploadMediaWithProgress(file, {
+        folder: 'mcad_checklists/steps',
+        onProgress: (p) => setStepUploadProgress(p)
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.url) {
-        setNewStepMediaUrl(data.url);
-        setNewStepMediaType(data.mediaType);
-      } else {
-        setToast({
-          message: data.error || 'Erreur lors du téléversement',
-          type: 'error'
-        });
-      }
-    } catch (err) {
+      setNewStepMediaUrl(result.url);
+      setNewStepMediaType(result.mediaType);
+      setToast({
+        message: 'Média téléversé avec succès !',
+        type: 'success'
+      });
+    } catch (err: any) {
       console.error('Upload error:', err);
       setToast({
-        message: 'Erreur lors du téléversement du média.',
+        message: err.message || 'Erreur lors du téléversement du média.',
         type: 'error'
       });
     } finally {
       setUploadingMedia(false);
+      setStepUploadProgress(null);
     }
   };
 
@@ -934,32 +931,69 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                       </button>
                     </div>
 
-                    {newStepMediaType === 'PHOTO' ? (
-                      <img src={newStepMediaUrl} alt="" className="w-full h-32 object-cover rounded-xl border" />
-                    ) : (
-                      <video src={newStepMediaUrl} controls className="w-full h-32 bg-black rounded-xl" />
-                    )}
+                    <div className="max-w-md">
+                      <MediaViewer
+                        url={newStepMediaUrl}
+                        mediaType={newStepMediaType}
+                        title={newStepTitle}
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <div>
-                    <label className="flex flex-col items-center justify-center p-3 bg-white hover:bg-indigo-50/50 border border-slate-200 rounded-xl cursor-pointer transition-colors group">
-                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 mb-1" />
-                      <span className="text-xs font-semibold text-slate-600 group-hover:text-indigo-700">
-                        Choisir une photo ou vidéo sur votre appareil
-                      </span>
-                      <span className="text-[10px] text-slate-400 mt-0.5">
-                        PNG, JPG, MP4, MOV, WEBM
-                      </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
                       <input
-                        type="file"
-                        accept="image/*,video/*"
-                        className="hidden"
+                        type="text"
+                        placeholder="Collez un lien vidéo (YouTube, Vimeo, MP4) ou téléversez..."
+                        value={newStepMediaUrl}
                         onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(file);
+                          const val = e.target.value;
+                          const isVid =
+                            val.includes('youtube.com') ||
+                            val.includes('youtu.be') ||
+                            val.includes('vimeo.com') ||
+                            val.includes('loom.com') ||
+                            /\.(mp4|webm|mov|m4v)$/i.test(val);
+                          setNewStepMediaUrl(val);
+                          setNewStepMediaType(isVid ? 'VIDEO' : val ? 'PHOTO' : 'NONE');
                         }}
+                        className="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
                       />
-                    </label>
+                      <label className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                        {uploadingMedia ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                        )}
+                        <span>{uploadingMedia ? 'Envoi...' : 'Téléverser'}</span>
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          className="hidden"
+                          disabled={uploadingMedia}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file);
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Progress bar */}
+                    {stepUploadProgress && (
+                      <div className="p-2.5 bg-indigo-50/90 border border-indigo-200 rounded-xl space-y-1 animate-in fade-in">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-indigo-900">
+                          <span>{stepUploadProgress?.statusText}</span>
+                          <span>{stepUploadProgress?.percent}%</span>
+                        </div>
+                        <div className="w-full bg-indigo-200/70 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${stepUploadProgress?.percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

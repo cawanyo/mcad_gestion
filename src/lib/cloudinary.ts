@@ -60,21 +60,31 @@ export async function uploadToCloudinary(
   const { folder = 'mcad_media', resource_type = 'auto', filename } = options;
 
   return new Promise((resolve, reject) => {
+    const isVideo = resource_type === 'video';
+
+    const uploadOptions: Record<string, any> = {
+      folder,
+      resource_type: isVideo ? 'video' : resource_type,
+      public_id: filename ? filename.replace(/\.[^/.]+$/, '') : undefined,
+      overwrite: true,
+      // Use 6MB chunk size for video and large assets to prevent stream timeouts
+      chunk_size: isVideo || buffer.length > 5 * 1024 * 1024 ? 6000000 : undefined
+    };
+
+    if (isVideo) {
+      uploadOptions.timeout = 180000; // 3 minute timeout for videos
+    }
+
     const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type,
-        public_id: filename ? filename.replace(/\.[^/.]+$/, '') : undefined,
-        overwrite: true
-      },
+      uploadOptions,
       (error, result: UploadApiResponse | undefined) => {
         if (error || !result) {
           return reject(error || new Error('Erreur de téléversement Cloudinary'));
         }
 
         resolve({
-          url: result.url,
-          secure_url: result.secure_url,
+          url: result.secure_url || result.url,
+          secure_url: result.secure_url || result.url,
           public_id: result.public_id,
           format: result.format,
           resource_type: result.resource_type,
@@ -85,6 +95,10 @@ export async function uploadToCloudinary(
         });
       }
     );
+
+    uploadStream.on('error', (err) => {
+      reject(err);
+    });
 
     uploadStream.end(buffer);
   });

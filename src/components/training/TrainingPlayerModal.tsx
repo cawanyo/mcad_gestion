@@ -18,7 +18,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { TrainingModule, TrainingLesson, User } from '@/types';
-import { Badge } from '@/components/ui';
+import { Badge, MediaViewer } from '@/components/ui';
 
 interface TrainingPlayerModalProps {
   module: TrainingModule;
@@ -101,55 +101,17 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
   };
 
   const renderMedia = (lesson: TrainingLesson) => {
-    if (!lesson.mediaUrl) return null;
+    if (!lesson.mediaUrl || lesson.mediaType === 'NONE') return null;
 
-    if (lesson.mediaType === 'VIDEO') {
-      const url = lesson.mediaUrl;
-      const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-
-      if (isYouTube) {
-        let videoId = '';
-        if (url.includes('v=')) {
-          videoId = url.split('v=')[1]?.split('&')[0];
-        } else if (url.includes('youtu.be/')) {
-          videoId = url.split('youtu.be/')[1]?.split('?')[0];
-        }
-
-        if (videoId) {
-          return (
-            <div className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-black">
-              <iframe
-                src={`https://www.youtube.com/embed/${videoId}?rel=0&autoplay=0`}
-                title={lesson.title}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          );
-        }
-      }
-
-      return (
-        <div className="relative rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-black">
-          <video src={lesson.mediaUrl} controls className="w-full max-h-[420px] object-contain" />
-        </div>
-      );
-    }
-
-    if (lesson.mediaType === 'PHOTO') {
-      return (
-        <div className="relative rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-slate-950 flex items-center justify-center max-h-[420px]">
-          <img
-            src={lesson.mediaUrl}
-            alt={lesson.title}
-            className="max-w-full max-h-[400px] object-contain p-2 rounded-xl"
-          />
-        </div>
-      );
-    }
-
-    return null;
+    return (
+      <div className="max-w-3xl">
+        <MediaViewer
+          url={lesson.mediaUrl}
+          mediaType={lesson.mediaType}
+          title={lesson.title}
+        />
+      </div>
+    );
   };
 
   return (
