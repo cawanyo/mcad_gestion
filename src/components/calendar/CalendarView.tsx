@@ -399,6 +399,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const newDateStr = getLocalDateStr(base);
     setSelectedDateStr(newDateStr);
     setCurrentDate(base);
+    // activeDateStr (and the day's events list) prefers selectedEvent's date
+    // over selectedDateStr when a specific event is still selected — clear
+    // it here so the events list actually follows the new date instead of
+    // staying pinned to whatever event was selected before.
+    setSelectedEvent(null);
   };
 
   const handleNextWeekMobile = () => {
@@ -407,6 +412,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const newDateStr = getLocalDateStr(base);
     setSelectedDateStr(newDateStr);
     setCurrentDate(base);
+    setSelectedEvent(null);
   };
 
   const handleSelectDateCellMobile = (cell: { events: Event[]; date: Date; dateStr: string }) => {
