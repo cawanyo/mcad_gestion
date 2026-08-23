@@ -147,9 +147,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
+  // Only needed once an event's full page is opened (checklist run/preview
+  // there) — fetching every active checklist with its steps/pole/events for
+  // the whole department on every calendar visit was needless DB load for
+  // the vast majority of visits that never open that page.
   React.useEffect(() => {
-    fetchAllChecklists();
-  }, []);
+    if (mobileEventDetail && allChecklists.length === 0) {
+      fetchAllChecklists();
+    }
+  }, [mobileEventDetail]);
 
   // Loaded Events with Month-keyed Cache
   const [loadedEvents, setLoadedEvents] = React.useState<Event[]>(events);
@@ -573,9 +579,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <div>
               <h1 className="text-base font-black text-slate-900 flex items-center gap-1.5">
                 <span>Calendrier des Cultes</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                  {filteredEvents.length}
-                </span>
               </h1>
               <p className="text-[11px] text-slate-500">
                 {mobileCalendarView === 'month' ? 'Vue mensuelle' : 'Vue semaine & cultes'}
@@ -964,9 +967,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
               <span>Calendrier des Cultes & Événements</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                {filteredEvents.length} culte(s)
-              </span>
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
               {isLeaderOrAdmin

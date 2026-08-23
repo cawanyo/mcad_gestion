@@ -64,6 +64,8 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
   }, [poles, selectedPoleId]);
 
   // Fetch real members of the selected pole from DB
+  const [loadingMembers, setLoadingMembers] = React.useState(false);
+
   const fetchPoleMembers = async (poleId: string) => {
     if (!poleId) return;
     try {
@@ -74,11 +76,20 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoadingMembers(false);
     }
   };
 
   React.useEffect(() => {
     if (selectedPoleId) {
+      // Clear the previous pole's members immediately — otherwise, while the
+      // new pole's list is loading, the old pole's members still pass the
+      // eligibility check below (it trusts poleMembers to already match
+      // selectedPoleId) and render briefly before being swapped out once
+      // the real data arrives.
+      setPoleMembers([]);
+      setLoadingMembers(true);
       fetchPoleMembers(selectedPoleId);
     }
   }, [selectedPoleId]);
@@ -307,7 +318,12 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
                 </span>
               </div>
 
-              {filteredMembers.length === 0 ? (
+              {loadingMembers ? (
+                <div className="py-12 px-4 text-center space-y-3">
+                  <Loader2 className="w-6 h-6 text-indigo-500 mx-auto animate-spin" />
+                  <p className="text-xs font-bold text-slate-500">Vérification des membres disponibles...</p>
+                </div>
+              ) : filteredMembers.length === 0 ? (
                 <div className="py-12 px-4 text-center space-y-3 bg-slate-50 rounded-2xl border border-slate-200">
                   <UserX className="w-8 h-8 text-slate-400 mx-auto" />
                   <p className="text-xs font-bold text-slate-700">Aucun membre éligible disponible</p>
