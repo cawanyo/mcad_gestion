@@ -223,13 +223,18 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
           try {
             const payload = JSON.parse(event.data);
 
-            if (payload.type === 'REFRESH_ALL' || payload.type === 'DATA_UPDATED') {
-              fetchData();
-            } else if (payload.type === 'NOTIFICATION') {
+            if (payload.type === 'NOTIFICATION') {
               if (payload.notification?.userId === currentUser.id) {
                 setNotifications((prev) => [payload.notification, ...prev]);
                 setUnreadNotificationsCount((prev) => prev + 1);
               }
+            } else if (payload.type !== 'PING' && payload.type !== 'CONNECTED') {
+              // Every mutation broadcasts its own specific type (EVENT_CREATED,
+              // ASSIGNMENT_CREATED, POLE_UPDATED, ...) — treat any of them as
+              // "something changed, refresh" so every connected user sees
+              // updates made by others without waiting for the 15s poll or a
+              // manual reload.
+              fetchData();
             }
           } catch (e) {
             console.error('SSE parse error:', e);

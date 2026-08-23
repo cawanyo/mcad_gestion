@@ -22,9 +22,7 @@ import {
   Edit3,
   Trash2,
   Search,
-  Check,
   Layers,
-  ArrowRight,
   User as UserIcon,
   CalendarDays,
   Play,
@@ -66,7 +64,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onRefresh
 }) => {
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
-  const [calendarMode, setCalendarMode] = React.useState<'month' | 'week' | 'list'>('month');
   const [selectedPoleFilter, setSelectedPoleFilter] = React.useState<string>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = React.useState<'all' | 'my_services'>('all');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
@@ -171,17 +168,49 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   }, [events]);
 
+  const getMonthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+  // Fetches one month's events from the API, merges them into loadedEvents,
+  // and refreshes the cache. Used both by the cache-first month loader below
+  // and by refreshCurrentMonth() (which always skips the cache, since it's
+  // called precisely when we know the cached data is now stale: right after
+  // creating/editing/deleting an event, or on a real-time notification that
+  // another user just did so).
+  const loadMonthEvents = React.useCallback(async (monthKey: string) => {
+    try {
+      setLoadingMonth(true);
+      const res = await fetch(`/api/events?month=${monthKey}`);
+      if (res.ok) {
+        const freshMonthEvents: Event[] = await res.json();
+        setCachedItem(`${CacheKeys.EVENTS}_${monthKey}`, freshMonthEvents, CacheTTL.MEDIUM);
+        setLoadedEvents((prev) => {
+          const map = new Map(prev.map((e) => [e.id, e]));
+          freshMonthEvents.forEach((e) => map.set(e.id, e));
+          return Array.from(map.values());
+        });
+      }
+    } catch (e) {
+      console.error('Error fetching month events:', e);
+    } finally {
+      setLoadingMonth(false);
+    }
+  }, []);
+
+  // Re-fetches whichever month is currently being viewed, bypassing the
+  // cache. Exposed so the create/edit/delete flows and the real-time
+  // listener below can force the calendar to reflect a change immediately
+  // instead of waiting for the cache to expire or a manual page reload.
+  const refreshCurrentMonth = React.useCallback(() => {
+    invalidateCache(`${CacheKeys.EVENTS}_${getMonthKey(currentDate)}`);
+    loadMonthEvents(getMonthKey(currentDate));
+  }, [currentDate, loadMonthEvents]);
+
   // Dynamic month loader with caching:
   // When currentDate changes, check if that month's events are in loadedEvents / cache.
   // If not, fetch /api/events?month=YYYY-MM, cache it, and merge into loadedEvents!
   React.useEffect(() => {
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const monthKey = `${year}-${month}`;
-    const cacheKey = `${CacheKeys.EVENTS}_${monthKey}`;
-
-    // 1. Check cache first for instant display
-    const cached = getCachedItem<Event[]>(cacheKey);
+    const monthKey = getMonthKey(currentDate);
+    const cached = getCachedItem<Event[]>(`${CacheKeys.EVENTS}_${monthKey}`);
     if (cached && cached.length > 0) {
       setLoadedEvents((prev) => {
         const map = new Map(prev.map((e) => [e.id, e]));
@@ -190,30 +219,43 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       });
       return;
     }
+    loadMonthEvents(monthKey);
+  }, [currentDate, loadMonthEvents]);
 
-    // 2. Otherwise, fetch from API
-    const fetchMonthEvents = async () => {
-      try {
-        setLoadingMonth(true);
-        const res = await fetch(`/api/events?month=${monthKey}`);
-        if (res.ok) {
-          const newMonthEvents: Event[] = await res.json();
-          setCachedItem(cacheKey, newMonthEvents, CacheTTL.MEDIUM);
-          setLoadedEvents((prev) => {
-            const map = new Map(prev.map((e) => [e.id, e]));
-            newMonthEvents.forEach((e) => map.set(e.id, e));
-            return Array.from(map.values());
-          });
+  // Real-time: pick up event/assignment changes made by anyone (leaders
+  // creating/editing/deleting services, members self-assigning, etc.) and
+  // refresh the currently-viewed month automatically, for every connected
+  // user — not just whoever made the change.
+  React.useEffect(() => {
+    const calendarRelevantTypes = new Set([
+      'EVENT_CREATED',
+      'EVENT_UPDATED',
+      'EVENT_DELETED',
+      'ASSIGNMENT_CREATED',
+      'ASSIGNMENT_DELETED'
+    ]);
+
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/realtime');
+      eventSource.onmessage = (msg) => {
+        try {
+          const payload = JSON.parse(msg.data);
+          if (calendarRelevantTypes.has(payload.type)) {
+            refreshCurrentMonth();
+          }
+        } catch (e) {
+          console.error('Calendar SSE parse error:', e);
         }
-      } catch (e) {
-        console.error('Error fetching month events:', e);
-      } finally {
-        setLoadingMonth(false);
-      }
-    };
+      };
+    } catch (e) {
+      console.error('Calendar SSE initialization error:', e);
+    }
 
-    fetchMonthEvents();
-  }, [currentDate]);
+    return () => {
+      if (eventSource) eventSource.close();
+    };
+  }, [refreshCurrentMonth]);
 
   // Filtered Events
   const eventsPool = loadedEvents.length > 0 ? loadedEvents : events;
@@ -273,17 +315,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     ? filteredEvents.filter((ev) => getLocalDateStr(ev.startsAt) === activeDateStr)
     : [];
 
-  // Date Navigation handlers
+  // Date Navigation handlers. Changing month clears the current selection —
+  // otherwise the side details panel (and mobile's day strip) keeps
+  // showing whatever event/date was selected in the previous month instead
+  // of resetting for the newly-viewed one.
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    setSelectedEvent(null);
+    setSelectedDateStr(null);
   };
 
   const handleNextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    setSelectedEvent(null);
+    setSelectedDateStr(null);
   };
 
   const handleToday = () => {
     setCurrentDate(new Date());
+    setSelectedEvent(null);
+    setSelectedDateStr(null);
   };
 
   // Month Grid Calculation (Monday = index 0)
@@ -607,6 +658,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             poles={poles}
             editingEvent={editingEvent}
             onEventCreated={() => {
+              refreshCurrentMonth();
               if (onRefresh) onRefresh();
             }}
           />
@@ -1051,34 +1103,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Mode Switcher */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-xs">
-              <button
-                onClick={() => setCalendarMode('month')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  calendarMode === 'month' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Mois
-              </button>
-              <button
-                onClick={() => setCalendarMode('week')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  calendarMode === 'week' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Semaine
-              </button>
-              <button
-                onClick={() => setCalendarMode('list')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  calendarMode === 'list' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Liste
-              </button>
-            </div>
-
             {/* Action buttons */}
             <button
               onClick={onOpenUnavailabilities}
@@ -1182,9 +1206,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Calendar Area */}
         <div className="lg:col-span-7 xl:col-span-8 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-4 sm:p-6 space-y-4">
-          {/* MODE: MONTH VIEW */}
-          {calendarMode === 'month' && (
-            <div className="space-y-2">
+          <div className="space-y-2">
               {/* Day Headers (Lun - Dim) */}
               <div className="grid grid-cols-7 gap-1 text-center">
                 {weekDays.map((d) => (
@@ -1277,130 +1299,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 })}
               </div>
             </div>
-          )}
-
-          {/* MODE: LIST VIEW */}
-          {calendarMode === 'list' && (
-            <div className={`space-y-3 transition-opacity duration-200 ${loadingMonth ? 'opacity-40' : 'opacity-100'}`}>
-              {filteredEvents.length === 0 ? (
-                <div className="py-12 text-center text-xs text-slate-500">
-                  Aucun culte ou événement ne correspond à vos filtres.
-                </div>
-              ) : (
-                filteredEvents.map((ev) => {
-                  const isAssigned = currentUser && ev.assignments?.some((a) => a.userId === currentUser.id);
-                  const isSelected = selectedEvent?.id === ev.id;
-                  const totalRequired = (ev.requirements || []).reduce((acc, r) => acc + r.requiredCount, 0);
-                  const totalAssigned = ev.assignments?.length || 0;
-
-                  return (
-                    <div
-                      key={ev.id}
-                      onClick={() => handleSelectEvent(ev)}
-                      className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-indigo-50/50 border-indigo-300 shadow-sm'
-                          : 'bg-slate-50/60 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3.5">
-                        <div className="p-3 bg-white rounded-2xl border border-slate-200 text-center min-w-16 shadow-xs flex-shrink-0">
-                          <span className="text-[10px] font-bold text-indigo-600 uppercase block">
-                            {new Date(ev.startsAt).toLocaleDateString('fr-FR', { month: 'short' })}
-                          </span>
-                          <span className="text-lg font-black text-slate-900 block leading-tight">
-                            {new Date(ev.startsAt).getDate()}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-extrabold text-slate-900">{ev.title}</h3>
-                            {isAssigned && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                                <Check className="w-3 h-3" />
-                                <span>Mon service</span>
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-slate-400" />
-                              <span>
-                                {new Date(ev.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(ev.endsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                              <span>{ev.location}</span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2.5 self-end sm:self-center">
-                        <span className="text-xs font-bold px-3 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 shadow-xs">
-                          👥 {totalAssigned} / {totalRequired} STAR(S)
-                        </span>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectEvent(ev);
-                          }}
-                          className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-                        >
-                          <span>Détails</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
-
-          {/* MODE: WEEK VIEW */}
-          {calendarMode === 'week' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {calendarCells
-                  .filter((c) => c.isCurrentMonth && c.events.length > 0)
-                  .map((c) => (
-                    <div key={c.dateStr} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
-                      <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-                        <span className="text-xs font-extrabold text-slate-900">
-                          {c.date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}
-                        </span>
-                        {c.isToday && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-600 text-white">
-                            Aujourd'hui
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        {c.events.map((ev) => (
-                          <div
-                            key={ev.id}
-                            onClick={() => handleSelectEvent(ev)}
-                            className="p-3 bg-white rounded-xl border border-slate-200 hover:border-indigo-300 cursor-pointer shadow-xs space-y-1 transition-all"
-                          >
-                            <h4 className="text-xs font-bold text-slate-900">{ev.title}</h4>
-                            <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              <span>{new Date(ev.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Side Panel: Selected Event Details & Management (Auto-scrolled ONLY when date has event) */}
