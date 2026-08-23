@@ -18,7 +18,6 @@ import {
   Play,
   MessageSquare,
   Hand,
-  UserMinus,
   SlidersHorizontal,
   ChevronRight,
   ShieldCheck,
@@ -63,7 +62,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
   const [selfAssigning, setSelfAssigning] = React.useState<boolean>(false);
   const [feedbackSuccess, setFeedbackSuccess] = React.useState<string | null>(null);
   const [feedbackError, setFeedbackError] = React.useState<string | null>(null);
-  const [withdrawConfirmId, setWithdrawConfirmId] = React.useState<string | null>(null);
+  const [showSelfAssignConfirm, setShowSelfAssignConfirm] = React.useState(false);
 
   // Sync prop changes
   React.useEffect(() => {
@@ -92,15 +91,10 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
 
   const requiredPoleIds = (currentEvent.requirements || []).map((r) => r.poleId);
 
-  // Strict pole selection:
-  // - Admin / Leader: can select all department poles
-  // - Regular Member: can ONLY select poles they belong to
-  const selectablePoles = React.useMemo(() => {
-    if (isLeaderOrAdmin) {
-      return poles.length > 0 ? poles : userPoles;
-    }
-    return userPoles;
-  }, [isLeaderOrAdmin, poles, userPoles]);
+  // Self-positioning is strictly limited to poles the member actually
+  // belongs to — role doesn't grant an exception here (leaders manage
+  // other people's assignments through "Gérer les affectations" instead).
+  const selectablePoles = React.useMemo(() => userPoles, [userPoles]);
 
   // Set default selected pole if empty
   React.useEffect(() => {
@@ -128,6 +122,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
     try {
       setSelfAssigning(true);
       setFeedbackSuccess(null);
+      setShowSelfAssignConfirm(false);
 
       const res = await fetch('/api/assignments', {
         method: 'POST',
@@ -172,32 +167,6 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
       setFeedbackError('Erreur de connexion au serveur.');
     } finally {
       setSelfAssigning(false);
-    }
-  };
-
-  // Unassign / Withdraw Trigger
-  const handleUnassignSelf = (assignmentId: string) => {
-    setWithdrawConfirmId(assignmentId);
-  };
-
-  const executeUnassignSelf = async () => {
-    if (!withdrawConfirmId) return;
-    try {
-      const res = await fetch(`/api/assignments/${withdrawConfirmId}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        setFeedbackSuccess('Votre positionnement a été retiré.');
-        setCurrentEvent((prev) => ({
-          ...prev,
-          assignments: (prev.assignments || []).filter((a) => a.id !== withdrawConfirmId)
-        }));
-        setWithdrawConfirmId(null);
-        onRefresh();
-      }
-    } catch (e) {
-      console.error(e);
-      setWithdrawConfirmId(null);
     }
   };
 
@@ -388,15 +357,9 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    <button
-                      onClick={() => handleUnassignSelf(a.id)}
-                      className="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-1 transition-colors"
-                    >
-                      <UserMinus className="w-3.5 h-3.5" />
-                      <span>Retirer mon positionnement</span>
-                    </button>
-                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium self-end sm:self-center">
+                    Pour vous retirer, contactez votre responsable.
+                  </p>
                 </div>
               ))}
             </div>
@@ -465,7 +428,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
                 <button
                   type="button"
                   disabled={selfAssigning || selectablePoles.length === 0}
-                  onClick={handleSelfAssign}
+                  onClick={() => setShowSelfAssignConfirm(true)}
                   className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
                 >
                   <Sparkles className="w-4 h-4 text-amber-300" />
@@ -695,16 +658,19 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
         )}
       </div>
 
-      {/* Withdraw Confirmation Modal */}
+      {/* Self-Assign Confirmation Modal */}
       <ConfirmModal
-        isOpen={Boolean(withdrawConfirmId)}
-        onClose={() => setWithdrawConfirmId(null)}
-        onConfirm={executeUnassignSelf}
-        title="Retirer mon positionnement"
-        message="Êtes-vous certain de vouloir vous désister de ce culte ?"
-        confirmLabel="Oui, me désister"
-        cancelLabel="Garder mon service"
-        variant="danger"
+        isOpen={showSelfAssignConfirm}
+        onClose={() => setShowSelfAssignConfirm(false)}
+        onConfirm={handleSelfAssign}
+        title="Confirmer mon positionnement"
+        message={`Vous vous engagez à servir sur "${currentEvent.title}" au pôle ${
+          poles.find((p) => p.id === selfAssignPoleId)?.name || ''
+        }. Pour vous retirer par la suite, vous devrez contacter votre responsable. Confirmez-vous votre positionnement ?`}
+        confirmLabel="Oui, je me positionne"
+        cancelLabel="Annuler"
+        variant="info"
+        loading={selfAssigning}
       />
     </div>
   );
