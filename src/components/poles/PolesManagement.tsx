@@ -38,6 +38,11 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
   const [joinedSuccess, setJoinedSuccess] = React.useState<string | null>(null);
   const [deleteConfirmPole, setDeleteConfirmPole] = React.useState<Pole | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  // poles comes from shared context as a prop, not local state — this
+  // tracks poles removed here so they vanish immediately instead of
+  // waiting on the shell's refresh round-trip to catch up.
+  const [locallyDeletedIds, setLocallyDeletedIds] = React.useState<Set<string>>(new Set());
+  const visiblePoles = poles.filter((p) => !locallyDeletedIds.has(p.id));
 
   // If a pole is selected, render the dedicated PoleDetailView
   if (selectedPoleId) {
@@ -108,18 +113,33 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
 
   const handleDeletePole = async () => {
     if (!deleteConfirmPole) return;
+    const poleId = deleteConfirmPole.id;
+    // Optimistic: hide immediately, don't wait on the refresh round-trip.
+    setLocallyDeletedIds((prev) => new Set(prev).add(poleId));
+    setDeleteConfirmPole(null);
     try {
       setDeleting(true);
-      const res = await fetch(`/api/poles/${deleteConfirmPole.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/poles/${poleId}`, { method: 'DELETE' });
       if (res.ok) {
         invalidateCache(CacheKeys.POLES);
         onRefresh();
+      } else {
+        // Roll back — deletion failed server-side
+        setLocallyDeletedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(poleId);
+          return next;
+        });
       }
     } catch (e) {
       console.error(e);
+      setLocallyDeletedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(poleId);
+        return next;
+      });
     } finally {
       setDeleting(false);
-      setDeleteConfirmPole(null);
     }
   };
 
@@ -160,7 +180,7 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
             <span>Pôles d'activité</span>
             <Badge variant="primary" size="md">
-              {poles.length} pôles
+              {visiblePoles.length} pôles
             </Badge>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -195,7 +215,7 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
       )}
 
       {/* Grid of Poles */}
-      {poles.length === 0 ? (
+      {visiblePoles.length === 0 ? (
         <EmptyState
           icon={<Layers className="w-6 h-6" />}
           title="Aucun pôle configuré"
@@ -203,7 +223,7 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {poles.map((pole) => {
+          {visiblePoles.map((pole) => {
             const isMember = isMemberOfPole(pole.id);
             const isPending = isPendingForPole(pole.id);
             const isLeader = pole.leaders?.some((l) => l.user.id === currentUser?.id);

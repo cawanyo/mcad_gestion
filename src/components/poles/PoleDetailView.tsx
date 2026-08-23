@@ -75,6 +75,7 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
 
   // Available users to add directly
   const [availableUsers, setAvailableUsers] = React.useState<any[]>([]);
+  const [loadingAvailableUsers, setLoadingAvailableUsers] = React.useState(false);
   const [userSearchQuery, setUserSearchQuery] = React.useState('');
 
   // Form states: New or Edit Checklist
@@ -139,6 +140,7 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
 
   const fetchAvailableUsers = async () => {
     try {
+      setLoadingAvailableUsers(true);
       const res = await fetch('/api/members');
       if (res.ok) {
         const allMembers = await res.json();
@@ -148,10 +150,15 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoadingAvailableUsers(false);
     }
   };
 
   const handleOpenAddMemberModal = () => {
+    // Clear the previous list right away — otherwise the modal briefly
+    // shows last time's (now stale) members before the fresh fetch lands.
+    setAvailableUsers([]);
     fetchAvailableUsers();
     setShowAddMemberModal(true);
   };
@@ -1113,7 +1120,12 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
             </div>
 
             <div className="space-y-2 max-h-60 overflow-y-auto pt-1">
-              {filteredAvailableUsers.length === 0 ? (
+              {loadingAvailableUsers ? (
+                <div className="py-8 text-center space-y-2">
+                  <Loader2 className="w-5 h-5 text-indigo-500 mx-auto animate-spin" />
+                  <p className="text-xs font-semibold text-slate-500">Chargement des membres disponibles...</p>
+                </div>
+              ) : filteredAvailableUsers.length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-6">
                   {userSearchQuery ? 'Aucun membre correspondant trouvé.' : 'Tous les membres de MCAD font déjà partie de ce pôle.'}
                 </p>
