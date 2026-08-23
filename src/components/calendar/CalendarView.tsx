@@ -628,28 +628,36 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* Filters on Mobile */}
           <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-            <select
-              value={selectedPoleFilter}
-              onChange={(e) => setSelectedPoleFilter(e.target.value)}
-              className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-hidden"
-            >
-              <option value="all">Tous les pôles</option>
-              {poles.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <Layers className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={selectedPoleFilter}
+                onChange={(e) => setSelectedPoleFilter(e.target.value)}
+                title="Filtrer par pôle"
+                className="w-full pl-7 pr-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-hidden"
+              >
+                <option value="all">Tous les pôles</option>
+                {poles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {currentUser && (
-              <select
-                value={selectedTypeFilter}
-                onChange={(e) => setSelectedTypeFilter(e.target.value as any)}
-                className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-hidden"
-              >
-                <option value="all">Tous les cultes</option>
-                <option value="my_services">Mes affectations</option>
-              </select>
+              <div className="relative">
+                <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={selectedTypeFilter}
+                  onChange={(e) => setSelectedTypeFilter(e.target.value as any)}
+                  title="Filtrer par type de culte"
+                  className="w-full pl-7 pr-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-hidden"
+                >
+                  <option value="all">Tous les cultes</option>
+                  <option value="my_services">Mes affectations</option>
+                </select>
+              </div>
             )}
           </div>
         </div>
@@ -1064,29 +1072,37 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
 
             {/* Pole Selector */}
-            <select
-              value={selectedPoleFilter}
-              onChange={(e) => setSelectedPoleFilter(e.target.value)}
-              className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
-            >
-              <option value="all">Tous les pôles</option>
-              {poles.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <Layers className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={selectedPoleFilter}
+                onChange={(e) => setSelectedPoleFilter(e.target.value)}
+                title="Filtrer par pôle"
+                className="pl-8 pr-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
+              >
+                <option value="all">Tous les pôles</option>
+                {poles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {/* Type filter */}
             {currentUser && (
-              <select
-                value={selectedTypeFilter}
-                onChange={(e) => setSelectedTypeFilter(e.target.value as any)}
-                className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
-              >
-                <option value="all">Tous les cultes</option>
-                <option value="my_services">Mes affectations</option>
-              </select>
+              <div className="relative">
+                <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={selectedTypeFilter}
+                  onChange={(e) => setSelectedTypeFilter(e.target.value as any)}
+                  title="Filtrer par type de culte"
+                  className="pl-8 pr-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
+                >
+                  <option value="all">Tous les cultes</option>
+                  <option value="my_services">Mes affectations</option>
+                </select>
+              </div>
             )}
           </div>
         </div>

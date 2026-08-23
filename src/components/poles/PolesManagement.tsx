@@ -11,11 +11,13 @@ import {
   Clock,
   Sparkles,
   Check,
-  ArrowRight
+  ArrowRight,
+  Trash2
 } from 'lucide-react';
 import { Pole, User } from '@/types';
 import { PoleDetailView } from './PoleDetailView';
-import { Modal, Badge, Avatar, EmptyState } from '@/components/ui';
+import { Modal, Badge, Avatar, EmptyState, ConfirmModal } from '@/components/ui';
+import { invalidateCache, CacheKeys } from '@/lib/cache';
 
 interface PolesManagementProps {
   poles: Pole[];
@@ -34,6 +36,8 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
   const [loading, setLoading] = React.useState(false);
   const [localPendingPoles, setLocalPendingPoles] = React.useState<string[]>([]);
   const [joinedSuccess, setJoinedSuccess] = React.useState<string | null>(null);
+  const [deleteConfirmPole, setDeleteConfirmPole] = React.useState<Pole | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
 
   // If a pole is selected, render the dedicated PoleDetailView
   if (selectedPoleId) {
@@ -88,12 +92,34 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
         setDescription('');
         setColor('#3b68f0');
         setShowAddModal(false);
+        // The shared poles list is cached (10 min TTL) for instant paint
+        // elsewhere in the app — without invalidating it here, the next
+        // refresh would just serve the stale cached list back and the new
+        // pole wouldn't show up until the cache naturally expired.
+        invalidateCache(CacheKeys.POLES);
         onRefresh();
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeletePole = async () => {
+    if (!deleteConfirmPole) return;
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/poles/${deleteConfirmPole.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        invalidateCache(CacheKeys.POLES);
+        onRefresh();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmPole(null);
     }
   };
 
@@ -193,6 +219,19 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
                   className="absolute top-0 left-0 right-0 h-1.5"
                   style={{ backgroundColor: pole.color || '#3b68f0' }}
                 />
+
+                {isDepartmentLeaderOrAdmin && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteConfirmPole(pole);
+                    }}
+                    title="Supprimer ce pôle"
+                    className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
 
                 <div className="space-y-3">
                   {/* Top line with Icon and Badges */}
@@ -388,6 +427,19 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
           </form>
         </Modal>
       )}
+
+      {/* Delete Pole Confirmation */}
+      <ConfirmModal
+        isOpen={Boolean(deleteConfirmPole)}
+        onClose={() => setDeleteConfirmPole(null)}
+        onConfirm={handleDeletePole}
+        title="Supprimer ce pôle"
+        message={`Êtes-vous certain de vouloir supprimer définitivement le pôle "${deleteConfirmPole?.name}" ? Ses membres, responsables, checklists et affectations liées seront également supprimés. Cette action est irréversible.`}
+        confirmLabel="Supprimer définitivement"
+        cancelLabel="Annuler"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 };

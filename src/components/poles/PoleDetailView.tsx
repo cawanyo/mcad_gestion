@@ -106,6 +106,16 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   const [actionSuccess, setActionSuccess] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
 
+  // Auto-dismiss the toast — it's rendered as a floating overlay (see
+  // below) so it stays visible even while the add-member modal is open,
+  // and it shouldn't need a manual "Fermer" click every time.
+  React.useEffect(() => {
+    if (actionSuccess) {
+      const t = setTimeout(() => setActionSuccess(null), 3500);
+      return () => clearTimeout(t);
+    }
+  }, [actionSuccess]);
+
   const fetchPoleDetails = async () => {
     try {
       const res = await fetch(`/api/poles/${poleId}`);
@@ -333,18 +343,32 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   };
 
   const handleAddMemberDirectly = async (userId: string, userName: string) => {
+    // Optimistic: remove from the "available" list immediately instead of
+    // waiting on a round-trip (fetchAvailableUsers() re-derives its filter
+    // from `pole.memberships`, which hasn't been refreshed yet at this
+    // point — waiting on it would show the member as still available for
+    // a beat after they were actually added).
+    setAvailableUsers((prev) => prev.filter((u) => u.id !== userId));
+    setActionSuccess(`${userName} ajouté(e) !`);
+
     try {
-      await fetch(`/api/poles/${poleId}/members`, {
+      const res = await fetch(`/api/poles/${poleId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action: 'ADD_MEMBER' })
       });
-      setActionSuccess(`${userName} a été ajouté(e) au pôle.`);
-      fetchAvailableUsers();
-      fetchPoleDetails();
-      onRefreshAll();
+      if (res.ok) {
+        fetchPoleDetails();
+        onRefreshAll();
+      } else {
+        // Roll back the optimistic removal on failure
+        setActionSuccess(null);
+        fetchAvailableUsers();
+      }
     } catch (e) {
       console.error(e);
+      setActionSuccess(null);
+      fetchAvailableUsers();
     }
   };
 
@@ -490,15 +514,15 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
         )}
       </div>
 
-      {/* Action Toast */}
+      {/* Action Toast — fixed overlay so it stays visible even above the
+          add-member modal, instead of sitting in the page flow where an
+          open modal would hide it. */}
       {actionSuccess && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <span className="font-semibold">{actionSuccess}</span>
-          </div>
-          <button onClick={() => setActionSuccess(null)} className="text-emerald-700 font-bold hover:underline">
-            Fermer
+        <div className="fixed bottom-6 right-6 z-[70] max-w-sm p-4 rounded-2xl bg-emerald-600 text-white text-xs flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <span className="font-semibold flex-1">{actionSuccess}</span>
+          <button onClick={() => setActionSuccess(null)} className="text-emerald-100 hover:text-white flex-shrink-0">
+            ✕
           </button>
         </div>
       )}
