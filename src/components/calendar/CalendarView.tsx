@@ -172,6 +172,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   }, [events]);
 
+  // Keep the open event detail page in sync with loadedEvents. Editing an
+  // event (or any real-time update to it) refreshes loadedEvents, but
+  // mobileEventDetail is a separate snapshot captured at the moment the
+  // user opened that event — without this, the detail page would keep
+  // showing the pre-edit version until manually reopened/reloaded.
+  React.useEffect(() => {
+    if (mobileEventDetail) {
+      const updated = loadedEvents.find((e) => e.id === mobileEventDetail.id);
+      if (updated && updated !== mobileEventDetail) {
+        setMobileEventDetail(updated);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadedEvents]);
+
   const getMonthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
   // Fetches one month's events from the API, merges them into loadedEvents,
@@ -511,6 +526,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           allChecklists={allChecklists}
           onBack={() => setMobileEventDetail(null)}
           onRefresh={() => {
+            refreshCurrentMonth();
             if (onRefresh) onRefresh();
           }}
           onOpenEditModal={(ev) => {

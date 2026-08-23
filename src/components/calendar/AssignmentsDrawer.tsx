@@ -57,11 +57,18 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
     }
   }, [event]);
 
+  // Only poles the event actually requires volunteers from — not every
+  // pole in the department.
+  const requestedPoles = React.useMemo(() => {
+    const requiredPoleIds = new Set((localEvent?.requirements || []).map((r) => r.poleId));
+    return poles.filter((p) => requiredPoleIds.has(p.id));
+  }, [poles, localEvent]);
+
   React.useEffect(() => {
-    if (poles.length > 0 && !selectedPoleId) {
-      setSelectedPoleId(poles[0].id);
+    if (requestedPoles.length > 0 && !selectedPoleId) {
+      setSelectedPoleId(requestedPoles[0].id);
     }
-  }, [poles, selectedPoleId]);
+  }, [requestedPoles, selectedPoleId]);
 
   // Fetch real members of the selected pole from DB
   const [loadingMembers, setLoadingMembers] = React.useState(false);
@@ -276,9 +283,9 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
 
         {activeTab === 'pole' ? (
           <>
-            {/* Pole selector strip */}
+            {/* Pole selector strip — only poles this event actually requested */}
             <div className="px-4 py-2 bg-white border-b border-slate-100 flex items-center gap-2 overflow-x-auto">
-              {poles.map((p) => (
+              {requestedPoles.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setSelectedPoleId(p.id)}
@@ -293,6 +300,16 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
               ))}
             </div>
 
+            {requestedPoles.length === 0 ? (
+              <div className="flex-1 p-8 text-center space-y-3">
+                <ShieldAlert className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-xs font-bold text-slate-700">Aucun pôle sollicité pour ce culte</p>
+                <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                  Ajoutez des exigences par pôle en modifiant ce culte pour pouvoir y affecter des membres.
+                </p>
+              </div>
+            ) : (
+              <>
             {/* Search */}
             <div className="p-4 border-b border-slate-100">
               <div className="relative">
@@ -389,6 +406,8 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
                 })
               )}
             </div>
+              </>
+            )}
           </>
         ) : (
           /* Roster of all currently assigned members */
