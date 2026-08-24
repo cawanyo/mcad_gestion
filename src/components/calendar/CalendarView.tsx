@@ -86,6 +86,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [runningChecklist, setRunningChecklist] = React.useState<any | null>(null);
   const [feedbackChecklist, setFeedbackChecklist] = React.useState<any | null>(null);
   const [deleteConfirmEventId, setDeleteConfirmEventId] = React.useState<string | null>(null);
+  const [eventToast, setEventToast] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (eventToast) {
+      const t = setTimeout(() => setEventToast(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [eventToast]);
 
   const isLeaderOrAdmin =
     currentUser?.role === 'SUPER_ADMIN' ||
@@ -553,6 +561,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             poles={poles}
             editingEvent={editingEvent}
             onEventCreated={() => {
+              setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
               refreshCurrentMonth();
               if (onRefresh) onRefresh();
             }}
@@ -1363,6 +1372,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           poles={poles}
           editingEvent={editingEvent}
           onEventCreated={() => {
+            setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
+            refreshCurrentMonth();
             if (onRefresh) onRefresh();
           }}
         />
@@ -1400,6 +1411,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         cancelLabel="Annuler"
         variant="danger"
       />
+
+      {/* Event created/updated toast */}
+      {eventToast && (
+        <div className="fixed bottom-6 right-6 z-[70] max-w-sm p-4 rounded-2xl bg-emerald-600 text-white text-xs font-semibold flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-1">{eventToast}</span>
+          <button onClick={() => setEventToast(null)} className="text-emerald-100 hover:text-white flex-shrink-0">
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 };

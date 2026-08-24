@@ -335,7 +335,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    {openEventsForVolunteering.slice(0, 3).map((ev: any) => {
+                    {openEventsForVolunteering.slice(0, 1).map((ev: any) => {
                       const matchedReq = ev.requirements?.find((r: any) => myPoleIds.includes(r.poleId));
                       const targetPole = matchedReq?.pole || myPoles[0];
 
@@ -373,7 +373,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
         <div className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">Mes Pôles de service</h2>
+              <h2 className="text-sm sm:text-base font-bold text-slate-900">Mes Pôles</h2>
               <span className="text-xs text-slate-500 font-medium">{myPoles.length} pôle(s)</span>
             </div>
 

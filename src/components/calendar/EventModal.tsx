@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Calendar, Clock, MapPin, Layers, Plus, Minus, Check, Sparkles, CheckSquare, Repeat, Info } from 'lucide-react';
+import { X, Calendar, AlertCircle, CheckSquare, Repeat, Info } from 'lucide-react';
 import { Pole, Event, Checklist } from '@/types';
 
 interface EventModalProps {
@@ -26,7 +26,6 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [startTime, setStartTime] = React.useState('09:30');
   const [endTime, setEndTime] = React.useState('12:30');
   const [location, setLocation] = React.useState('Temple Principal');
-  const [organizerPoleId, setOrganizerPoleId] = React.useState(poles[0]?.id || '');
   const [description, setDescription] = React.useState('Culte de célébration et louange.');
   const [poleRequirements, setPoleRequirements] = React.useState<Record<string, number>>({});
   const [poleChecklists, setPoleChecklists] = React.useState<Record<string, string>>({});
@@ -81,7 +80,6 @@ export const EventModal: React.FC<EventModalProps> = ({
       setStartTime(start.toTimeString().slice(0, 5));
       setEndTime(end.toTimeString().slice(0, 5));
       setLocation(editingEvent.location || 'Temple Principal');
-      setOrganizerPoleId(editingEvent.organizerPoleId || poles[0]?.id || '');
       setRecurrenceRule('NONE');
 
       const reqMap: Record<string, number> = {};
@@ -104,7 +102,6 @@ export const EventModal: React.FC<EventModalProps> = ({
       setStartTime('09:30');
       setEndTime('12:30');
       setLocation('Temple Principal');
-      setOrganizerPoleId(poles[0]?.id || '');
       setRecurrenceRule('NONE');
       setRecurrenceCount(4);
 
@@ -164,7 +161,6 @@ export const EventModal: React.FC<EventModalProps> = ({
             startsAt,
             endsAt,
             location,
-            organizerPoleId: organizerPoleId || null,
             requirements,
             checklistIds
           })
@@ -188,7 +184,6 @@ export const EventModal: React.FC<EventModalProps> = ({
             startsAt,
             endsAt,
             location,
-            organizerPoleId: organizerPoleId || poles[0]?.id,
             requirements,
             checklistIds,
             recurrenceRule,
@@ -221,12 +216,9 @@ export const EventModal: React.FC<EventModalProps> = ({
             <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
               <Calendar className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-base font-bold">
-                {editingEvent ? 'Modifier le culte / événement' : 'Ajouter un culte / événement récurrent'}
-              </h2>
-              <p className="text-xs text-indigo-200">Planification globale, quotas et checklists associées</p>
-            </div>
+            <h2 className="text-base font-bold">
+              {editingEvent ? 'Modifier le culte' : 'Nouveau culte'}
+            </h2>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 text-white/80">
             <X className="w-5 h-5" />
@@ -287,7 +279,7 @@ export const EventModal: React.FC<EventModalProps> = ({
             <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold text-indigo-900">
                 <Repeat className="w-4 h-4 text-indigo-600" />
-                <span>Récurrence & Planification automatique</span>
+                <span>Récurrence</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -324,41 +316,25 @@ export const EventModal: React.FC<EventModalProps> = ({
               </div>
 
               {recurrenceRule !== 'NONE' && (
-                <div className="flex items-start gap-2 text-[11px] text-indigo-700 bg-white/80 p-2.5 rounded-xl border border-indigo-100">
-                  <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                  <p>
-                    {recurrenceCount} cultes identiques seront créés automatiquement avec les effectifs requis et les checklists par pôle ci-dessous. Vous n'aurez plus qu'à affecter les membres pour chaque date.
-                  </p>
+                <div className="flex items-center gap-2 text-[11px] text-indigo-700 bg-white/80 p-2.5 rounded-xl border border-indigo-100">
+                  <Info className="w-3.5 h-3.5 flex-shrink-0" />
+                  <p>{recurrenceCount} cultes identiques seront créés.</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Lieu & Pôle Organisateur */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Lieu *</label>
-              <input
-                type="text"
-                required
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
-                placeholder="ex: Temple Principal, Salle Polyvalente"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Pôle organisateur</label>
-              <select
-                value={organizerPoleId}
-                onChange={(e) => setOrganizerPoleId(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
-              >
-                {poles.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
+          {/* Lieu */}
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1">Lieu *</label>
+            <input
+              type="text"
+              required
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+              placeholder="ex: Temple Principal, Salle Polyvalente"
+            />
           </div>
 
           {/* Description */}
@@ -376,12 +352,9 @@ export const EventModal: React.FC<EventModalProps> = ({
           {/* Quotas & Checklists par Pôle */}
           <div className="space-y-3 pt-3 border-t border-slate-100">
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-bold text-slate-800">Besoins & Checklists par pôle</h3>
-                <p className="text-[10px] text-slate-500">Effectifs requis et checklist opérationnelle assignée à chaque pôle</p>
-              </div>
+              <h3 className="text-xs font-bold text-slate-800">Besoins par pôle</h3>
               <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                Total : {Object.values(poleRequirements).reduce((a, b) => a + b, 0)} STAR(S) / date
+                {Object.values(poleRequirements).reduce((a, b) => a + b, 0)} STAR(S)
               </span>
             </div>
 
@@ -437,7 +410,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                           <option value="">-- Aucune checklist associée --</option>
                           {poleAvailableChecklists.map((chk) => (
                             <option key={chk.id} value={chk.id}>
-                              📋 {chk.title} ({chk.steps?.length || 0} étapes)
+                              {chk.title} ({chk.steps?.length || 0} étapes)
                             </option>
                           ))}
                         </select>
@@ -452,7 +425,10 @@ export const EventModal: React.FC<EventModalProps> = ({
           {/* Error banner */}
           {errorMessage && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center justify-between">
-              <span>⚠️ {errorMessage}</span>
+              <span className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {errorMessage}
+              </span>
               <button
                 type="button"
                 onClick={() => setErrorMessage(null)}
