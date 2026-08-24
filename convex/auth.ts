@@ -1,0 +1,60 @@
+import { convexAuth, createAccount, retrieveAccount } from "@convex-dev/auth/server";
+import { ConvexCredentials } from "@convex-dev/auth/providers/ConvexCredentials";
+import bcrypt from "bcryptjs";
+import { normalizePhone } from "./phone";
+
+const PROVIDER_ID = "phone-password";
+
+export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
+  providers: [
+    ConvexCredentials({
+      id: PROVIDER_ID,
+      // bcryptjs matches the hashing MCAD's existing Postgres auth uses,
+      // so migrated password hashes stay verifiable after the Convex switch.
+      crypto: {
+        hashSecret: (secret) => bcrypt.hash(secret, 10),
+        verifySecret: (secret, hash) => bcrypt.compare(secret, hash),
+      },
+      authorize: async (params, ctx) => {
+        const phone = normalizePhone(String(params.phone ?? ""));
+        const password = String(params.password ?? "");
+        const flow = String(params.flow ?? "signIn");
+
+        if (!phone || !password) {
+          throw new Error("Numéro de téléphone et mot de passe requis.");
+        }
+
+        if (flow === "signUp") {
+          const firstName = String(params.firstName ?? "").trim();
+          const lastName = String(params.lastName ?? "").trim();
+          if (!firstName || !lastName) {
+            throw new Error("Prénom et nom requis.");
+          }
+          if (password.length < 8) {
+            throw new Error("Le mot de passe doit contenir au moins 8 caractères.");
+          }
+
+          const { user } = await createAccount(ctx, {
+            provider: PROVIDER_ID,
+            account: { id: phone, secret: password },
+            profile: {
+              phone,
+              firstName,
+              lastName,
+              gender: params.gender ? String(params.gender) : "HOMME",
+              role: "MEMBER",
+              status: "ACTIVE",
+            },
+          });
+          return { userId: user._id };
+        }
+
+        const { user } = await retrieveAccount(ctx, {
+          provider: PROVIDER_ID,
+          account: { id: phone, secret: password },
+        });
+        return { userId: user._id };
+      },
+    }),
+  ],
+});
