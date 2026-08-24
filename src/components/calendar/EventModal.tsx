@@ -9,7 +9,11 @@ interface EventModalProps {
   onClose: () => void;
   poles: Pole[];
   editingEvent?: any | null;
-  onEventCreated: () => void;
+  // Receives the created/updated event straight from the API response
+  // (or an array, for a recurring series) — callers use this to update
+  // their own state immediately instead of relying solely on a follow-up
+  // refetch to pick up the change.
+  onEventCreated: (result?: any) => void;
 }
 
 export const EventModal: React.FC<EventModalProps> = ({
@@ -167,7 +171,8 @@ export const EventModal: React.FC<EventModalProps> = ({
         });
 
         if (res.ok) {
-          onEventCreated();
+          const updated = await res.json();
+          onEventCreated(updated);
           onClose();
         } else {
           const err = await res.json().catch(() => ({}));
@@ -192,7 +197,8 @@ export const EventModal: React.FC<EventModalProps> = ({
         });
 
         if (res.ok) {
-          onEventCreated();
+          const created = await res.json();
+          onEventCreated(created);
           onClose();
         } else {
           const err = await res.json().catch(() => ({}));

@@ -211,6 +211,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedEvents]);
 
+  // Merges one or more event objects (as returned directly by the
+  // create/update API response) into loadedEvents right away — no
+  // refetch, no round-trip, so there's no window where the change is
+  // "not there yet".
+  const mergeEventsIntoLoaded = React.useCallback((result: Event | Event[] | undefined) => {
+    if (!result) return;
+    const incoming = Array.isArray(result) ? result : [result];
+    if (incoming.length === 0) return;
+    setLoadedEvents((prev) => {
+      const map = new Map(prev.map((e) => [e.id, e]));
+      incoming.forEach((e) => map.set(e.id, e));
+      return Array.from(map.values());
+    });
+  }, []);
+
   const getMonthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
   // Fetches one month's events from the API, merges them into loadedEvents,
@@ -588,8 +603,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             }}
             poles={poles}
             editingEvent={editingEvent}
-            onEventCreated={() => {
+            onEventCreated={(result) => {
               setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
+              mergeEventsIntoLoaded(result);
               refreshCurrentMonth();
               if (onRefresh) onRefresh();
             }}
@@ -1400,8 +1416,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           }}
           poles={poles}
           editingEvent={editingEvent}
-          onEventCreated={() => {
+          onEventCreated={(result) => {
             setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
+            mergeEventsIntoLoaded(result);
             refreshCurrentMonth();
             if (onRefresh) onRefresh();
           }}
