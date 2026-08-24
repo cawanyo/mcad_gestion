@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { broadcastUpdate } from '@/lib/events';
+import { requireLeaderOrAdmin } from '@/lib/auth-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
+    const auth = await requireLeaderOrAdmin();
+    if ('errorResponse' in auth) {
+      return auth.errorResponse;
+    }
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const poleId = searchParams.get('poleId');

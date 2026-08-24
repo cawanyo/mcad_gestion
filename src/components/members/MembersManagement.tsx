@@ -68,6 +68,7 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
     currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'DEPARTMENT_LEADER';
 
   const [search, setSearch] = React.useState('');
+  const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [selectedPole, setSelectedPole] = React.useState('all');
   const [selectedRoleFilter, setSelectedRoleFilter] = React.useState('all');
   const [members, setMembers] = React.useState<any[]>([]);
@@ -83,12 +84,19 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [toast, setToast] = React.useState<ToastState | null>(null);
 
+  // Debounce the search box — without this, every keystroke fired its own
+  // request + DB query instead of waiting for the user to pause typing.
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const fetchMembers = async () => {
     setLoading(true);
     try {
       let url = '/api/members';
       const params = new URLSearchParams();
-      if (search.trim()) params.append('search', search.trim());
+      if (debouncedSearch.trim()) params.append('search', debouncedSearch.trim());
       if (selectedPole !== 'all') params.append('poleId', selectedPole);
       if (params.toString()) url += `?${params.toString()}`;
 
@@ -106,7 +114,7 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
 
   React.useEffect(() => {
     fetchMembers();
-  }, [search, selectedPole]);
+  }, [debouncedSearch, selectedPole]);
 
   // Real-time SSE listener
   React.useEffect(() => {
