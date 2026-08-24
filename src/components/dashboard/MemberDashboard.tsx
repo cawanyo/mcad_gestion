@@ -6,14 +6,11 @@ import {
   Calendar,
   Clock,
   Layers,
-  Sparkles,
   Gift,
   ArrowRight,
   AlertCircle,
   CheckSquare,
   Plus,
-  Send,
-  HeartHandshake,
   MapPin,
   CalendarDays,
   UserCheck,
@@ -106,7 +103,10 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
       {/* In-app error feedback banner */}
       {dashboardFeedback && (
         <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
-          <span>⚠️ {dashboardFeedback}</span>
+          <span className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {dashboardFeedback}
+          </span>
           <button
             onClick={() => setDashboardFeedback(null)}
             className="text-rose-400 hover:text-rose-800 text-xs font-bold ml-2"
@@ -122,16 +122,9 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs text-xs font-semibold text-indigo-200 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Espace Membre • Département</span>
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Bonjour, {currentUser ? `${currentUser.firstName}` : 'Bienvenue'} ! 👋
+              Bonjour, {currentUser ? `${currentUser.firstName}` : 'Bienvenue'}
             </h1>
-            <p className="text-xs sm:text-sm text-indigo-200 mt-1 max-w-xl leading-relaxed">
-              Consultez vos cultes, positionnez-vous comme STAR et exécutez vos checklists opérationnelles.
-            </p>
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -164,10 +157,10 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-extrabold text-white">
-                Étape 1 : Rejoignez votre premier pôle de service !
+                Rejoignez votre premier pôle
               </h2>
               <p className="text-xs text-amber-100 mt-1 max-w-xl leading-relaxed">
-                Pour que les responsables puissent vous planifier lors des cultes (Louange, Accueil, Technique, etc.), choisissez une ou plusieurs équipes à rejoindre.
+                Nécessaire pour être planifié sur les cultes.
               </p>
             </div>
           </div>
@@ -253,13 +246,12 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
         {/* Left: Mon Prochain Service */}
         <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">Mon prochain service</h2>
-              <p className="text-xs text-slate-500">Événement et culte où vous êtes planifié.</p>
-            </div>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold">
-              {nextService ? 'Assigné' : 'Aucun service imminent'}
-            </span>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900">Mon prochain service</h2>
+            {!nextService && (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 font-bold">
+                Aucun service imminent
+              </span>
+            )}
           </div>
 
           {nextService ? (
@@ -271,7 +263,9 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                     className="cursor-pointer group"
                   >
                     <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{nextService.title}</h3>
-                    <p className="text-xs text-slate-600 mt-0.5">{nextService.description || 'Culte dominical et temps de célébration.'}</p>
+                    {nextService.description && (
+                      <p className="text-xs text-slate-600 mt-0.5">{nextService.description}</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
                     {memberData?.nextAssignmentPole?.name && (
@@ -300,7 +294,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* 📋 SPECIFIC ASSOCIATED CHECKLIST FOR THIS SERVICE */}
+                {/* Checklist associated with this service, if any */}
                 {memberData?.nextAssignmentChecklist ? (
                   <div className="p-3.5 bg-white rounded-2xl border border-indigo-100 shadow-xs space-y-2.5">
                     <div className="flex items-center justify-between">
@@ -335,16 +329,13 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3.5 bg-white/90 rounded-2xl border border-dashed border-indigo-200 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-                    <p className="text-xs text-slate-600 font-medium">📋 Culte planifié avec succès.</p>
-                    <button
-                      onClick={() => (onNavigateToEvent ? onNavigateToEvent(nextService) : onNavigateTab('calendar'))}
-                      className="text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Détails</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => (onNavigateToEvent ? onNavigateToEvent(nextService) : onNavigateTab('calendar'))}
+                    className="text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Détails</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
                 )}
               </div>
 
@@ -379,9 +370,6 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                               <span>{a.assignedChecklist.title}</span>
                             </button>
                           )}
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Confirmé
-                          </span>
                           <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
                         </div>
                       </div>
@@ -441,7 +429,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                             className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-bold shadow-xs flex items-center gap-1 self-end sm:self-center transition-all disabled:opacity-50"
                           >
                             <UserCheck className="w-3.5 h-3.5" />
-                            <span>{positioningId === ev.id ? 'Inscription...' : `✋ Me positionner (${targetPole?.name})`}</span>
+                            <span>{positioningId === ev.id ? 'Inscription...' : `Me positionner (${targetPole?.name})`}</span>
                           </button>
                         </div>
                       );
@@ -489,9 +477,6 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                         <p className="text-[10px] text-slate-500">{p.description || 'Pôle de service'}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                      Membre actif
-                    </span>
                   </div>
                 ))}
               </div>
@@ -521,10 +506,10 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
               </span>
             </div>
             <h3 className="text-sm sm:text-base font-black text-white mt-1">
-              Modules de Formation & Tutoriels de Pôles
+              Modules de Formation
             </h3>
             <p className="text-xs text-slate-300 mt-0.5 font-medium">
-              Suivez les formations de vos pôles à votre rythme avec suivi de progression en temps réel.
+              Suivez les formations de vos pôles à votre rythme.
             </p>
           </div>
         </div>
@@ -543,10 +528,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
         {/* Left: Mes Indisponibilités */}
         <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">Mes Indisponibilités déclarées</h2>
-              <p className="text-xs text-slate-500">Périodes bloquées pour éviter les conflits d'affectation.</p>
-            </div>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900">Mes Indisponibilités</h2>
             <button
               onClick={onOpenUnavailabilityModal}
               className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold rounded-xl flex items-center gap-1"
@@ -573,9 +555,6 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                       </p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                    Bloqué
-                  </span>
                 </div>
               ))}
             </div>
@@ -586,7 +565,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
         <div className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">Anniversaires de la semaine 🎂</h2>
+              <h2 className="text-sm sm:text-base font-bold text-slate-900">Anniversaires de la semaine</h2>
               {birthdays.length > 0 && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700">
                   {birthdays.length}
