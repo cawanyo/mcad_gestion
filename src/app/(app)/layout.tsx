@@ -3,7 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { useConvexAuth, useQuery } from 'convex/react';
+import { useConvexAuth, useQuery, useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../../../convex/_generated/api';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -13,7 +13,9 @@ import { User, Pole, Event, NotificationItem } from '@/types';
 import { Sparkles } from 'lucide-react';
 import { getCachedItem, setCachedItem, invalidateCache, CacheKeys, CacheTTL } from '@/lib/cache';
 import { tabToPath } from '@/lib/navigation';
+import { adaptDashboard, adaptEvent, adaptPole } from '@/lib/convexAdapters';
 import { AppShellContext, AppShellContextValue } from '@/contexts/AppShellContext';
+import { Id } from '../../../convex/_generated/dataModel';
 
 // These three overlays can be opened from several different routes (the
 // calendar page, the dashboard, the unavailabilities page...), so they live
@@ -56,22 +58,47 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 
   // Application Data States
   const [allUsers, setAllUsers] = React.useState<User[]>([]);
-  const [dashboardData, setDashboardData] = React.useState<any>(null);
-  const [poles, setPoles] = React.useState<Pole[]>([]);
-  const [events, setEvents] = React.useState<Event[]>([]);
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = React.useState(0);
-  const [loading, setLoading] = React.useState(true);
   const [loadingProgress, setLoadingProgress] = React.useState(15);
   const [loadingStatus, setLoadingStatus] = React.useState('Vérification de votre session...');
+
+  // Dashboard, poles and the current month's events are all reactive Convex
+  // queries now — no fetch/cache/polling needed, every mutation anywhere in
+  // the app updates these automatically.
+  const dashboardDataRaw = useQuery(api.dashboard.get, isAuthenticated ? {} : 'skip');
+  const dashboardData = React.useMemo(() => adaptDashboard(dashboardDataRaw), [dashboardDataRaw]);
+  const polesRaw = useQuery(api.poles.list, isAuthenticated ? {} : 'skip');
+  const poles = React.useMemo(() => (polesRaw || []).map(adaptPole), [polesRaw]);
+  const currentMonthKey = React.useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+  const eventsRaw = useQuery(api.events.list, isAuthenticated ? { month: currentMonthKey } : 'skip');
+  const events = React.useMemo(() => (eventsRaw || []).map(adaptEvent), [eventsRaw]);
+
+  const loading =
+    authLoading || (isAuthenticated && (viewer === undefined || polesRaw === undefined || dashboardDataRaw === undefined));
+
+  React.useEffect(() => {
+    if (authLoading) {
+      setLoadingProgress(15);
+      setLoadingStatus('Vérification de votre session...');
+    } else if (loading) {
+      setLoadingProgress(70);
+      setLoadingStatus('Synchronisation de votre espace MCAD...');
+    } else {
+      setLoadingProgress(100);
+      setLoadingStatus('Espace MCAD prêt.');
+    }
+  }, [authLoading, loading]);
 
   // Modals & Drawers (shared across every route)
   const [showEventModal, setShowEventModal] = React.useState(false);
   const [showAssignmentsDrawer, setShowAssignmentsDrawer] = React.useState(false);
-  const [selectedEventForAssignments, setSelectedEventForAssignments] = React.useState<Event | null>(null);
+  const [selectedEventIdForAssignments, setSelectedEventIdForAssignments] = React.useState<Id<'events'> | null>(null);
   const [selectedEventForCalendar, setSelectedEventForCalendar] = React.useState<Event | null>(null);
   const [showUnavailabilityModal, setShowUnavailabilityModal] = React.useState(false);
-  const [lastEventUpdate, setLastEventUpdate] = React.useState<Event | null>(null);
 
   const navigateTab = React.useCallback((tabId: string) => {
     router.push(tabToPath(tabId));
@@ -82,121 +109,38 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     router.push('/calendar');
   }, [router]);
 
-  // Full Initial & Background Data Loader
-  const fetchData = async (isInitial: boolean = false) => {
+  // Notifications and allUsers are the only remaining shell-level data still
+  // backed by the old Postgres routes (their pages/consumers haven't been
+  // migrated to Convex yet) — dashboard, poles and events above are now
+  // reactive Convex queries and need no fetch/refresh call at all.
+  const fetchData = async () => {
     try {
-      if (isInitial) {
-        setLoadingProgress(20);
-        setLoadingStatus('Chargement de votre espace MCAD...');
-      }
-
-      // Check cached events/poles for instant availability while fresh data loads
-      const now = new Date();
-      const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const cachedMonthEvents = getCachedItem<Event[]>(`${CacheKeys.EVENTS}_${currentMonthKey}`);
-      if (cachedMonthEvents) {
-        setEvents(cachedMonthEvents);
-      }
-
-      const cachedPoles = getCachedItem<Pole[]>(CacheKeys.POLES);
-      if (cachedPoles) {
-        setPoles(cachedPoles);
-      }
-
-      // Fire every request in parallel — nobody waits on anybody else's
-      // response to *start*. The caller only invokes fetchData() once
-      // Convex confirms there's an authenticated user (see the effect
-      // below), so there's no "who am I" gate here anymore. These still
-      // hit the old Postgres-backed routes (feature pages aren't migrated
-      // yet), which will 401 for a Convex-only session until the data
-      // migration phase lands — each response is checked with `.ok` below
-      // so that degrades to empty state instead of crashing.
-      const dashPromise = fetch('/api/dashboard');
-      const eventsPromise = fetch(`/api/events?month=${currentMonthKey}`);
-      const polesPromise = cachedPoles ? Promise.resolve(null) : fetch('/api/poles');
-      const notifPromise = fetch('/api/notifications');
-      const usersPromise = fetch('/api/auth/current?includeAllUsers=true');
-      // Prevent "unhandled promise rejection" noise if we bail before
-      // awaiting these (e.g. anonymous visitor).
-      [dashPromise, eventsPromise, polesPromise, notifPromise, usersPromise].forEach((p) => p.catch(() => {}));
-
-      const [dashRes, eventsRes, polesRes, notifRes, usersRes] = await Promise.allSettled([
-        dashPromise,
-        eventsPromise,
-        polesPromise,
-        notifPromise,
-        usersPromise
+      const [notifRes, usersRes] = await Promise.allSettled([
+        fetch('/api/notifications'),
+        fetch('/api/auth/current?includeAllUsers=true')
       ]);
 
-      if (isInitial) {
-        setLoadingProgress(85);
-        setLoadingStatus('Finalisation de votre espace MCAD...');
-      }
-
-      if (dashRes.status === 'fulfilled' && dashRes.value && dashRes.value.ok) {
-        const freshDashboard = await dashRes.value.json();
-        setDashboardData(freshDashboard);
-      }
-
-      if (eventsRes.status === 'fulfilled' && eventsRes.value && eventsRes.value.ok) {
-        const freshEvents = await eventsRes.value.json();
-        setEvents(freshEvents);
-        setCachedItem(`${CacheKeys.EVENTS}_${currentMonthKey}`, freshEvents, CacheTTL.SHORT);
-        setSelectedEventForAssignments((prev) => {
-          if (!prev) return null;
-          return freshEvents.find((e: any) => e.id === prev.id) || prev;
-        });
-      }
-
-      if (polesRes.status === 'fulfilled' && polesRes.value && polesRes.value.ok) {
-        const freshPoles = await polesRes.value.json();
-        setPoles(freshPoles);
-        setCachedItem(CacheKeys.POLES, freshPoles, CacheTTL.MEDIUM);
-      }
-
-      if (notifRes.status === 'fulfilled' && notifRes.value && notifRes.value.ok) {
+      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
         const notifData = await notifRes.value.json();
         setNotifications(notifData.notifications || []);
         setUnreadNotificationsCount(notifData.unreadCount ?? 0);
       }
 
-      if (usersRes.status === 'fulfilled' && usersRes.value && usersRes.value.ok) {
+      if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
         const usersData = await usersRes.value.json();
         setAllUsers(usersData.allUsers || []);
       }
-
-      if (isInitial) {
-        setLoadingProgress(100);
-        setLoadingStatus('Finalisation et ouverture de votre espace MCAD...');
-        setTimeout(() => {
-          setLoading(false);
-        }, 200);
-      }
     } catch (e) {
       console.error('Data fetch error:', e);
-      if (isInitial) {
-        setLoading(false);
-      }
     }
   };
 
-  // Initial load: fetchData() runs once Convex confirms who's logged in.
-  // Neither the current user nor the dashboard are cached in sessionStorage
-  // anymore — Convex's `useQuery(api.users.viewer)` above is already the
-  // reactive, per-session source of truth for the user, and a sessionStorage
-  // dashboard cache isn't scoped per user (a stale dashboard from a
-  // previous session on the same browser could otherwise flash before the
-  // real fetch resolves).
   const fetchedForUserId = React.useRef<string | null>(null);
   React.useEffect(() => {
-    if (authLoading) return;
-    if (!isAuthenticated || !viewer) {
-      setLoading(false);
-      return;
-    }
+    if (authLoading || !isAuthenticated || !viewer) return;
     if (fetchedForUserId.current === viewer._id) return;
     fetchedForUserId.current = viewer._id;
-    fetchData(true);
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, viewer]);
 
@@ -219,17 +163,13 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   // they're migrated (same as before this pass, minus the polling papering
   // over it).
 
-  // Request actions (Admin)
+  // Request actions (Admin) — dashboardData.pendingRequests is a reactive
+  // Convex query, so approving/rejecting here updates the dashboard on its
+  // own; no follow-up refresh call needed.
+  const reviewMembershipRequest = useMutation(api.membershipRequests.review);
   const handleApproveRequest = async (requestId: string) => {
     try {
-      const res = await fetch(`/api/membership-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'APPROVED' })
-      });
-      if (res.ok) {
-        await fetchData();
-      }
+      await reviewMembershipRequest({ requestId: requestId as Id<'membershipRequests'>, status: 'APPROVED' });
     } catch (e) {
       console.error('Approval error:', e);
     }
@@ -237,14 +177,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 
   const handleRejectRequest = async (requestId: string) => {
     try {
-      const res = await fetch(`/api/membership-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'REJECTED' })
-      });
-      if (res.ok) {
-        await fetchData();
-      }
+      await reviewMembershipRequest({ requestId: requestId as Id<'membershipRequests'>, status: 'REJECTED' });
     } catch (e) {
       console.error('Rejection error:', e);
     }
@@ -380,7 +313,6 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     unreadNotificationsCount,
     isLeaderOrAdmin,
     selectedEventForCalendar,
-    lastEventUpdate,
     fetchData,
     handleLogout,
     handleApproveRequest,
@@ -391,7 +323,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     navigateToEvent,
     openEventModal: () => setShowEventModal(true),
     openAssignmentsDrawer: (event: Event) => {
-      setSelectedEventForAssignments(event);
+      setSelectedEventIdForAssignments(event.id as Id<'events'>);
       setShowAssignmentsDrawer(true);
     },
     openUnavailabilityModal: () => setShowUnavailabilityModal(true)
@@ -440,22 +372,19 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
             isOpen={showEventModal}
             onClose={() => setShowEventModal(false)}
             poles={poles}
-            onEventCreated={fetchData}
+            onEventCreated={() => {}}
           />
         )}
 
-        {showAssignmentsDrawer && selectedEventForAssignments && (
+        {showAssignmentsDrawer && selectedEventIdForAssignments && (
           <AssignmentsDrawer
             isOpen={showAssignmentsDrawer}
             onClose={() => {
               setShowAssignmentsDrawer(false);
-              setSelectedEventForAssignments(null);
+              setSelectedEventIdForAssignments(null);
             }}
-            event={selectedEventForAssignments}
+            eventId={selectedEventIdForAssignments}
             poles={poles}
-            allUsers={allUsers}
-            onRefreshEvent={fetchData}
-            onEventUpdated={setLastEventUpdate}
           />
         )}
 

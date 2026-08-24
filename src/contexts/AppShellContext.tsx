@@ -14,13 +14,10 @@ export interface AppShellContextValue {
   unreadNotificationsCount: number;
   isLeaderOrAdmin: boolean;
   selectedEventForCalendar: Event | null;
-  // Fresh event data pushed by the shared assignments drawer (or other
-  // shell-level modals) right after it changes something, so any page
-  // showing that same event — the calendar grid, an open event detail
-  // page — can update immediately instead of waiting on a broader
-  // refresh or a real-time broadcast round-trip to notice.
-  lastEventUpdate: Event | null;
-  fetchData: (isInitial?: boolean) => Promise<void>;
+  // Refreshes notifications/allUsers — the only shell-level data still
+  // backed by the old Postgres routes. Dashboard/poles/events are reactive
+  // Convex queries and update on their own without this.
+  fetchData: () => Promise<void>;
   handleLogout: () => Promise<void>;
   handleApproveRequest: (requestId: string) => Promise<void>;
   handleRejectRequest: (requestId: string) => Promise<void>;

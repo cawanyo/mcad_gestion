@@ -1,0 +1,192 @@
+// Convex documents use `_id`/numeric timestamps; the rest of the app's
+// components (calendar, dashboard, poles UI not yet migrated) are written
+// against the `@/types` shapes (`id: string`, ISO date strings). Rather than
+// touch every component that reads `.id`/`new Date(x.startsAt)`, these
+// adapters translate Convex query results into those existing shapes at the
+// point they're consumed, so migrated pages keep working with unmigrated
+// sibling components/types without a repo-wide rename.
+import type { Event, Pole, User, Assignment, EventRequirement, Checklist, ChecklistStep } from '@/types';
+
+const iso = (ms: number | null | undefined): string => (ms ? new Date(ms).toISOString() : '');
+
+export function adaptUserCard(u: any): User {
+  if (!u) return u;
+  return {
+    id: u._id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    phone: u.phone ?? null,
+    gender: u.gender ?? null,
+    birthDate: u.birthDate ? iso(u.birthDate) : null,
+    avatar: u.avatar ?? null,
+    role: u.role,
+    status: u.status ?? 'ACTIVE',
+    departmentId: u.departmentId ?? null,
+  } as User;
+}
+
+export function adaptPole(p: any): Pole {
+  if (!p) return p;
+  return {
+    id: p._id,
+    name: p.name,
+    description: p.description ?? null,
+    color: p.color,
+    icon: p.icon,
+    orderIndex: p.orderIndex,
+    status: p.status,
+    membersCount: p.membersCount,
+    leadersCount: p.leadersCount,
+    leaders: (p.leaders || []).map((l: any) => ({
+      id: l._id,
+      user: adaptUserCard(l.user),
+      roleTitle: l.roleTitle,
+    })),
+  } as Pole;
+}
+
+export function adaptRequirement(r: any): EventRequirement {
+  if (!r) return r;
+  return {
+    id: r._id,
+    eventId: r.eventId,
+    poleId: r.poleId,
+    pole: adaptPole(r.pole),
+    requiredCount: r.requiredCount,
+    notes: r.notes ?? null,
+    roleExpected: r.roleExpected ?? null,
+  } as EventRequirement;
+}
+
+export function adaptAssignment(a: any): Assignment {
+  if (!a) return a;
+  return {
+    id: a._id,
+    eventId: a.eventId,
+    poleId: a.poleId,
+    pole: adaptPole(a.pole),
+    userId: a.userId,
+    user: adaptUserCard(a.user),
+    roleTag: a.roleTag ?? null,
+    status: a.status,
+    assignedById: a.assignedById ?? null,
+    createdAt: iso(a._creationTime),
+  } as Assignment;
+}
+
+export function adaptChecklistStep(s: any): ChecklistStep {
+  if (!s) return s;
+  return {
+    id: s._id,
+    checklistId: s.checklistId,
+    orderIndex: s.orderIndex,
+    title: s.title,
+    description: s.description ?? null,
+    details: s.details ?? null,
+    mediaType: s.mediaType,
+    mediaUrl: s.mediaUrl ?? null,
+    mediaThumbnail: s.mediaThumbnail ?? null,
+    isRequired: s.isRequired,
+  } as ChecklistStep;
+}
+
+export function adaptChecklist(c: any): Checklist {
+  if (!c) return c;
+  return {
+    id: c._id,
+    poleId: c.poleId,
+    pole: c.pole ? adaptPole(c.pole) : undefined,
+    title: c.title,
+    description: c.description ?? null,
+    status: c.status,
+    orderIndex: c.orderIndex,
+    steps: (c.steps || []).map(adaptChecklistStep),
+    eventChecklists: (c.eventChecklists || []).map((ec: any) => ({
+      eventId: ec.eventId,
+      event: ec.event ? adaptEvent(ec.event) : ec.event,
+    })),
+  } as Checklist;
+}
+
+export function adaptEvent(e: any): Event {
+  if (!e) return e;
+  return {
+    id: e._id,
+    title: e.title,
+    description: e.description ?? null,
+    startsAt: iso(e.startsAt),
+    endsAt: iso(e.endsAt),
+    location: e.location,
+    status: e.status,
+    coverImage: e.coverImage ?? null,
+    organizerPoleId: e.organizerPoleId ?? null,
+    organizerPole: e.organizerPole ? adaptPole(e.organizerPole) : null,
+    requirements: (e.requirements || []).map(adaptRequirement),
+    assignments: (e.assignments || []).map(adaptAssignment),
+    eventChecklists: (e.eventChecklists || []).map((ec: any) => ({ checklist: adaptChecklist(ec.checklist) })),
+  } as Event;
+}
+
+function adaptMembershipRequestLite(r: any) {
+  if (!r) return r;
+  return {
+    id: r._id,
+    userId: r.userId,
+    user: adaptUserCard(r.user),
+    poleId: r.poleId,
+    pole: adaptPole(r.pole),
+    status: r.status,
+    motivation: r.motivation ?? null,
+    createdAt: iso(r._creationTime),
+  };
+}
+
+// Shapes convex/dashboard.ts's `get` query result into the same structure
+// DesktopDashboard/MemberDashboard were already written against (the old
+// /api/dashboard response) — everything nested (events, poles, users) goes
+// through the adapters above so `.id`/date-string access keeps working.
+export function adaptDashboard(raw: any) {
+  if (!raw) return raw;
+  const memberData = raw.memberData
+    ? {
+        myAssignments: (raw.memberData.myAssignments || []).map((a: any) => ({
+          id: a._id,
+          eventId: a.eventId,
+          poleId: a.poleId,
+          pole: adaptPole(a.pole),
+          event: a.event ? adaptEvent(a.event) : null,
+          roleTag: a.roleTag ?? null,
+          status: a.status,
+          assignedChecklist: a.assignedChecklist ? adaptChecklist(a.assignedChecklist) : null,
+        })),
+        myUnavailabilities: (raw.memberData.myUnavailabilities || []).map((u: any) => ({
+          id: u._id,
+          userId: u.userId,
+          startsAt: iso(u.startsAt),
+          endsAt: iso(u.endsAt),
+          reason: u.reason ?? null,
+          recurrence: u.recurrence,
+        })),
+        myPoles: (raw.memberData.myPoles || []).filter(Boolean).map(adaptPole),
+        nextService: raw.memberData.nextService ? adaptEvent(raw.memberData.nextService) : null,
+        nextAssignmentRole: raw.memberData.nextAssignmentRole,
+        nextAssignmentPole: raw.memberData.nextAssignmentPole ? adaptPole(raw.memberData.nextAssignmentPole) : null,
+        nextAssignmentChecklist: raw.memberData.nextAssignmentChecklist
+          ? adaptChecklist(raw.memberData.nextAssignmentChecklist)
+          : null,
+      }
+    : null;
+
+  return {
+    currentUserRole: raw.currentUserRole,
+    memberData,
+    kpis: raw.kpis,
+    serviceTrend: raw.serviceTrend,
+    annualStats: raw.annualStats,
+    poleDistribution: raw.poleDistribution,
+    upcomingEvents: (raw.upcomingEvents || []).map(adaptEvent),
+    pendingRequests: (raw.pendingRequests || []).map(adaptMembershipRequestLite),
+    birthdays: (raw.birthdays || []).map((b: any) => ({ ...b, id: b._id })),
+    annualSummary: raw.annualSummary,
+  };
+}

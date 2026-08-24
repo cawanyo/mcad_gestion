@@ -2,6 +2,11 @@
 
 import React from 'react';
 import { X, Calendar, AlertCircle, CheckSquare, Repeat, Info } from 'lucide-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { adaptEvent } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
 import { Pole, Event, Checklist } from '@/types';
 
 interface EventModalProps {
@@ -48,6 +53,9 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [recurrenceCount, setRecurrenceCount] = React.useState<number>(4);
   const [loading, setLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
+  const createEvent = useMutation(api.events.create);
+  const updateEvent = useMutation(api.events.update);
 
   const wasOpenRef = React.useRef(false);
 
@@ -153,69 +161,46 @@ export const EventModal: React.FC<EventModalProps> = ({
     setLoading(true);
 
     try {
-      const startsAt = new Date(`${date}T${startTime}:00`).toISOString();
-      const endsAt = new Date(`${date}T${endTime}:00`).toISOString();
+      const startsAt = new Date(`${date}T${startTime}:00`).getTime();
+      const endsAt = new Date(`${date}T${endTime}:00`).getTime();
 
       const requirements = Object.entries(poleRequirements)
         .filter(([_, count]) => count > 0)
-        .map(([poleId, requiredCount]) => ({ poleId, requiredCount }));
+        .map(([poleId, requiredCount]) => ({ poleId: poleId as Id<'poles'>, requiredCount }));
 
-      const checklistIds = Object.values(poleChecklists).filter(Boolean);
+      const checklistIds = Object.values(poleChecklists).filter(Boolean) as Id<'checklists'>[];
 
       if (editingEvent) {
-        // Update existing event
-        const res = await fetch(`/api/events/${editingEvent.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            description,
-            startsAt,
-            endsAt,
-            location,
-            requirements,
-            checklistIds
-          })
+        const updated = await updateEvent({
+          eventId: editingEvent.id as Id<'events'>,
+          title,
+          description,
+          startsAt,
+          endsAt,
+          location,
+          requirements,
+          checklistIds
         });
-
-        if (res.ok) {
-          const updated = await res.json();
-          onEventCreated(updated);
-          onClose();
-        } else {
-          const err = await res.json().catch(() => ({}));
-          setErrorMessage(err.error || 'Erreur lors de la mise à jour de l\'événement');
-        }
+        onEventCreated(adaptEvent(updated));
+        onClose();
       } else {
-        // Create new event (with recurrence)
-        const res = await fetch('/api/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            description,
-            startsAt,
-            endsAt,
-            location,
-            requirements,
-            checklistIds,
-            recurrenceRule,
-            recurrenceCount: recurrenceRule === 'NONE' ? 1 : recurrenceCount
-          })
+        const created = await createEvent({
+          title,
+          description,
+          startsAt,
+          endsAt,
+          location,
+          requirements,
+          checklistIds,
+          recurrenceRule,
+          recurrenceCount: recurrenceRule === 'NONE' ? 1 : recurrenceCount
         });
-
-        if (res.ok) {
-          const created = await res.json();
-          onEventCreated(created);
-          onClose();
-        } else {
-          const err = await res.json().catch(() => ({}));
-          setErrorMessage(err.error || 'Erreur lors de la création de l\'événement');
-        }
+        onEventCreated(Array.isArray(created) ? created.map(adaptEvent) : adaptEvent(created));
+        onClose();
       }
     } catch (err) {
       console.error(err);
-      setErrorMessage('Erreur réseau lors de la communication avec le serveur.');
+      setErrorMessage(convexErrorMessage(err, editingEvent ? 'Erreur lors de la mise à jour de l\'événement' : 'Erreur lors de la création de l\'événement'));
     } finally {
       setLoading(false);
     }

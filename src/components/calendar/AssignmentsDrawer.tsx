@@ -16,31 +16,35 @@ import {
   Trash2,
   Loader2
 } from 'lucide-react';
-import { Event, Pole, User, Assignment } from '@/types';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { adaptEvent } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
+import { Pole } from '@/types';
 
 interface AssignmentsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  event: Event | null;
+  eventId: Id<'events'> | null;
   poles: Pole[];
-  allUsers: User[];
-  onRefreshEvent: () => void;
-  onEventUpdated?: (event: Event) => void;
 }
 
 export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
   isOpen,
   onClose,
-  event,
-  poles,
-  allUsers,
-  onRefreshEvent,
-  onEventUpdated
+  eventId,
+  poles
 }) => {
-  const [localEvent, setLocalEvent] = React.useState<Event | null>(event);
+  // Reactive: the event (and its assignments) and the selected pole's
+  // member list both come straight from Convex — a mutation anywhere
+  // updates every subscriber automatically, so this drawer no longer keeps
+  // its own copy of the event or manually refetches after each change.
+  const rawEvent = useQuery(api.events.get, eventId ? { eventId } : 'skip');
+  const localEvent = rawEvent ? adaptEvent(rawEvent) : null;
+
   const [activeTab, setActiveTab] = React.useState<'pole' | 'person'>('pole');
   const [selectedPoleId, setSelectedPoleId] = React.useState<string>('');
-  const [poleMembers, setPoleMembers] = React.useState<any[]>([]);
   const [conflictModal, setConflictModal] = React.useState<{
     show: boolean;
     title: string;
@@ -52,12 +56,8 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
   const [searchMember, setSearchMember] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
-  // Sync local event with prop
-  React.useEffect(() => {
-    if (event) {
-      setLocalEvent(event);
-    }
-  }, [event]);
+  const createAssignment = useMutation(api.assignments.create);
+  const removeAssignment = useMutation(api.assignments.remove);
 
   // Only poles the event actually requires volunteers from — not every
   // pole in the department.
@@ -72,111 +72,43 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
     }
   }, [requestedPoles, selectedPoleId]);
 
-  // Fetch real members of the selected pole from DB
-  const [loadingMembers, setLoadingMembers] = React.useState(false);
+  const poleMembersRaw = useQuery(
+    api.members.list,
+    selectedPoleId ? { poleId: selectedPoleId as Id<'poles'> } : 'skip'
+  );
+  const poleMembers = poleMembersRaw || [];
+  const loadingMembers = Boolean(selectedPoleId) && poleMembersRaw === undefined;
 
-  const fetchPoleMembers = async (poleId: string) => {
-    if (!poleId) return;
-    try {
-      const res = await fetch(`/api/members?poleId=${poleId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPoleMembers(data);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingMembers(false);
-    }
-  };
+  if (!isOpen || !eventId) return null;
 
-  React.useEffect(() => {
-    if (selectedPoleId) {
-      // Clear the previous pole's members immediately — otherwise, while the
-      // new pole's list is loading, the old pole's members still pass the
-      // eligibility check below (it trusts poleMembers to already match
-      // selectedPoleId) and render briefly before being swapped out once
-      // the real data arrives.
-      setPoleMembers([]);
-      setLoadingMembers(true);
-      fetchPoleMembers(selectedPoleId);
-    }
-  }, [selectedPoleId]);
-
-  if (!isOpen || !localEvent) return null;
-
-  const currentAssignments = localEvent.assignments || [];
+  const currentAssignments = localEvent?.assignments || [];
   const assignedUserMap = new Map(currentAssignments.map((a) => [a.userId, a]));
 
-  const currentRequirement = localEvent.requirements?.find((r) => r.poleId === selectedPoleId);
+  const currentRequirement = localEvent?.requirements?.find((r) => r.poleId === selectedPoleId);
   const requiredCount = currentRequirement?.requiredCount || 1;
   const currentAssignedToPole = currentAssignments.filter((a) => a.poleId === selectedPoleId);
   const assignedCount = currentAssignedToPole.length;
 
-  const refreshEventData = async () => {
-    try {
-      const res = await fetch(`/api/events/${localEvent.id}`);
-      if (res.ok) {
-        const fresh = await res.json();
-        setLocalEvent(fresh);
-        // Hand the fresh event back up so whoever opened this drawer (the
-        // calendar grid, the event's own detail page...) can update
-        // immediately instead of waiting on a broader page refresh to
-        // eventually notice — this drawer previously only updated its own
-        // local view, so assignment changes were invisible everywhere else
-        // until the page was reloaded.
-        onEventUpdated?.(fresh);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const handleAssign = async (userId: string, poleId: string, roleTag: string, force = false) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/assignments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId: localEvent.id,
-          poleId,
-          userId,
-          roleTag: roleTag || 'Membre assigné',
-          force
-        })
+      await createAssignment({
+        eventId,
+        poleId: poleId as Id<'poles'>,
+        userId: userId as Id<'users'>,
+        roleTag: roleTag || 'Membre assigné',
+        force
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setConflictModal({
-          show: true,
-          title: '⚠️ Conflit détecté',
-          message: data.error || 'Erreur lors de l\'affectation',
-          userId,
-          poleId,
-          roleTag
-        });
-      } else {
-        setConflictModal({ show: false, title: '', message: '' });
-
-        // ⚡ INSTANT LOCAL UPDATE: Add assignment immediately to state
-        setLocalEvent((prev) => {
-          if (!prev) return null;
-          const prevAssignments = prev.assignments || [];
-          return {
-            ...prev,
-            assignments: [...prevAssignments, data]
-          };
-        });
-
-        // Trigger global refresh and pole member reload
-        onRefreshEvent();
-        refreshEventData();
-        fetchPoleMembers(poleId);
-      }
+      setConflictModal({ show: false, title: '', message: '' });
     } catch (err) {
-      console.error(err);
+      setConflictModal({
+        show: true,
+        title: '⚠️ Conflit détecté',
+        message: convexErrorMessage(err, "Erreur lors de l'affectation"),
+        userId,
+        poleId,
+        roleTag
+      });
     } finally {
       setLoading(false);
     }
@@ -185,21 +117,7 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
   const handleRemoveAssignment = async (assignmentId: string) => {
     setLoading(true);
     try {
-      // ⚡ INSTANT LOCAL UPDATE: Remove assignment immediately
-      setLocalEvent((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          assignments: (prev.assignments || []).filter((a) => a.id !== assignmentId)
-        };
-      });
-
-      await fetch(`/api/assignments/${assignmentId}`, { method: 'DELETE' });
-
-      // Trigger global refresh
-      onRefreshEvent();
-      refreshEventData();
-      if (selectedPoleId) fetchPoleMembers(selectedPoleId);
+      await removeAssignment({ assignmentId: assignmentId as Id<'assignments'> });
     } catch (err) {
       console.error(err);
     } finally {
@@ -207,8 +125,8 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
     }
   };
 
-  const eventStart = new Date(localEvent.startsAt).getTime();
-  const eventEnd = new Date(localEvent.endsAt).getTime();
+  const eventStart = localEvent ? new Date(localEvent.startsAt).getTime() : 0;
+  const eventEnd = localEvent ? new Date(localEvent.endsAt).getTime() : 0;
 
   // Strict eligibility filtering per user specification:
   // - ONLY members who belong to the selected pole
@@ -216,7 +134,7 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
   // - HIDE members who are unavailable on this event's date/time (unless already assigned to this pole)
   const eligiblePoleMembers = React.useMemo(() => {
     return poleMembers.filter((m) => {
-      const assignment = assignedUserMap.get(m.id);
+      const assignment = assignedUserMap.get(m._id);
 
       // 1. If member is already assigned to THIS selected pole: keep in list so leader can view / unassign
       if (assignment?.poleId === selectedPoleId) {
@@ -230,9 +148,7 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
 
       // 3. If member is unavailable on this event's date: EXCLUDE
       const isUnavailable = (m.unavailabilities || []).some((u: any) => {
-        const uStart = new Date(u.startDate || u.startsAt).getTime();
-        const uEnd = new Date(u.endDate || u.endsAt).getTime();
-        return uStart <= eventEnd && uEnd >= eventStart;
+        return u.startsAt <= eventEnd && u.endsAt >= eventStart;
       });
 
       if (isUnavailable) {
@@ -241,7 +157,7 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
 
       // 4. Otherwise, member belongs to this pole and is 100% available & eligible!
       return true;
-    });
+    }).map((m) => ({ id: m._id, firstName: m.firstName, lastName: m.lastName, avatar: m.avatar, phone: m.phone }));
   }, [poleMembers, assignedUserMap, selectedPoleId, eventStart, eventEnd]);
 
   const filteredMembers = React.useMemo(() => {
@@ -251,6 +167,16 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
       return fullName.includes(searchMember.toLowerCase().trim());
     });
   }, [eligiblePoleMembers, searchMember]);
+
+  if (!localEvent) {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex justify-end font-sans">
+        <div className="bg-white w-full max-w-lg h-full shadow-2xl flex items-center justify-center">
+          <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex justify-end font-sans">

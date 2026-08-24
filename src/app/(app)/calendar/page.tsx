@@ -6,12 +6,9 @@ import { useAppShell } from '@/contexts/AppShellContext';
 export default function CalendarPage() {
   const {
     currentUser,
-    events,
     poles,
     selectedEventForCalendar,
-    lastEventUpdate,
     isLeaderOrAdmin,
-    fetchData,
     openEventModal,
     openAssignmentsDrawer,
     openUnavailabilityModal
@@ -21,11 +18,9 @@ export default function CalendarPage() {
 
   return (
     <CalendarView
-      events={events}
       poles={poles}
       currentUser={currentUser}
       initialSelectedEvent={selectedEventForCalendar}
-      externalEventUpdate={lastEventUpdate}
       onOpenCreateEventModal={openEventModal}
       onOpenAssignmentsDrawer={(ev) => {
         if (isLeaderOrAdmin) {
@@ -33,7 +28,6 @@ export default function CalendarPage() {
         }
       }}
       onOpenUnavailabilities={openUnavailabilityModal}
-      onRefresh={fetchData}
     />
   );
 }

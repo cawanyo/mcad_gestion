@@ -26,16 +26,20 @@ import {
   Award,
   Zap
 } from 'lucide-react';
-import { Event, Pole, User, Assignment, Checklist } from '@/types';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { adaptEvent } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
+import { Event, Pole, User, Checklist } from '@/types';
 import { Avatar, Badge, ConfirmModal } from '@/components/ui';
 
 interface EventDetailPageProps {
-  event: Event;
+  eventId: Id<'events'>;
   currentUser: User | null;
   poles: Pole[];
   allChecklists?: Checklist[];
   onBack: () => void;
-  onRefresh: () => void;
   onOpenEditModal: (event: Event) => void;
   onOpenAssignmentsDrawer: (event: Event) => void;
   onRunChecklist: (checklist: Checklist, event: Event) => void;
@@ -44,19 +48,24 @@ interface EventDetailPageProps {
 }
 
 export const EventDetailPage: React.FC<EventDetailPageProps> = ({
-  event,
+  eventId,
   currentUser,
   poles = [],
   allChecklists = [],
   onBack,
-  onRefresh,
   onOpenEditModal,
   onOpenAssignmentsDrawer,
   onRunChecklist,
   onFeedbackChecklist,
   onDeleteEvent
 }) => {
-  const [currentEvent, setCurrentEvent] = React.useState<Event>(event);
+  // Reactive: any mutation anywhere (self-assign, a leader's assignment
+  // change, an edit) re-renders this automatically — no local snapshot
+  // state or manual refresh callback needed.
+  const rawEvent = useQuery(api.events.get, { eventId });
+  const currentEvent = rawEvent ? adaptEvent(rawEvent) : null;
+  const createAssignment = useMutation(api.assignments.create);
+
   const [selfAssignPoleId, setSelfAssignPoleId] = React.useState<string>('');
   const [selfAssignRoleTag, setSelfAssignRoleTag] = React.useState<string>('STAR Volontaire');
   const [selfAssigning, setSelfAssigning] = React.useState<boolean>(false);
@@ -64,16 +73,21 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
   const [feedbackError, setFeedbackError] = React.useState<string | null>(null);
   const [showSelfAssignConfirm, setShowSelfAssignConfirm] = React.useState(false);
 
-  // Sync prop changes
-  React.useEffect(() => {
-    setCurrentEvent(event);
-  }, [event]);
-
   const isLeaderOrAdmin =
     currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER' ||
     currentUser?.role === 'POLE_LEADER' ||
     currentUser?.role === 'CALENDAR_MANAGER';
+
+  if (!currentEvent) {
+    return (
+      <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-6 font-sans pb-32">
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs text-center">
+          <p className="text-xs font-bold text-slate-500">Chargement du culte...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Check if current user is assigned to this culte
   const userAssignments = (currentEvent.assignments || []).filter(
@@ -124,47 +138,20 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
       setFeedbackSuccess(null);
       setShowSelfAssignConfirm(false);
 
-      const res = await fetch('/api/assignments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId: currentEvent.id,
-          userId: currentUser.id,
-          poleId: targetPoleId,
-          roleTag: selfAssignRoleTag || 'STAR Volontaire'
-        })
+      await createAssignment({
+        eventId: currentEvent.id as Id<'events'>,
+        userId: currentUser.id as Id<'users'>,
+        poleId: targetPoleId as Id<'poles'>,
+        roleTag: selfAssignRoleTag || 'STAR Volontaire'
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setFeedbackSuccess('✨ Félicitations ! Vous êtes positionné(e) avec succès comme STAR sur ce culte.');
-
-        // Optimistically update local state for immediate UI feedback
-        const targetPoleObj = poles.find((p) => p.id === targetPoleId);
-        const newAssignment: Assignment = {
-          id: data.id || `temp-${Date.now()}`,
-          eventId: currentEvent.id,
-          userId: currentUser.id,
-          poleId: targetPoleId,
-          roleTag: selfAssignRoleTag || 'STAR Volontaire',
-          status: 'CONFIRMED',
-          createdAt: new Date().toISOString(),
-          user: currentUser,
-          pole: targetPoleObj as Pole
-        };
-
-        setCurrentEvent((prev) => ({
-          ...prev,
-          assignments: [...(prev.assignments || []), newAssignment]
-        }));
-
-        onRefresh();
-      } else {
-        setFeedbackError(data.error || 'Erreur lors du positionnement');
-      }
+      // The event query above is reactive — it re-renders with the new
+      // assignment on its own once the mutation lands, no manual state
+      // update or refresh callback needed.
+      setFeedbackSuccess('✨ Félicitations ! Vous êtes positionné(e) avec succès comme STAR sur ce culte.');
     } catch (e) {
       console.error(e);
-      setFeedbackError('Erreur de connexion au serveur.');
+      setFeedbackError(convexErrorMessage(e, 'Erreur lors du positionnement'));
     } finally {
       setSelfAssigning(false);
     }
