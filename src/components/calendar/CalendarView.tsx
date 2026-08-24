@@ -47,6 +47,7 @@ interface CalendarViewProps {
   poles: Pole[];
   currentUser: User | null;
   initialSelectedEvent?: Event | null;
+  externalEventUpdate?: Event | null;
   onOpenCreateEventModal: () => void;
   onOpenAssignmentsDrawer: (event: Event) => void;
   onOpenUnavailabilities: () => void;
@@ -58,6 +59,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   poles = [],
   currentUser,
   initialSelectedEvent,
+  externalEventUpdate,
   onOpenCreateEventModal,
   onOpenAssignmentsDrawer,
   onOpenUnavailabilities,
@@ -179,6 +181,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       });
     }
   }, [events]);
+
+  // Fresh event data pushed down from the shared assignments drawer (see
+  // AppShellContext.lastEventUpdate) — merge it in immediately so the
+  // calendar and any open event detail page reflect assignment changes
+  // right away, without waiting on a real-time broadcast round-trip.
+  React.useEffect(() => {
+    if (externalEventUpdate) {
+      setLoadedEvents((prev) => {
+        const map = new Map(prev.map((e) => [e.id, e]));
+        map.set(externalEventUpdate.id, externalEventUpdate);
+        return Array.from(map.values());
+      });
+    }
+  }, [externalEventUpdate]);
 
   // Keep the open event detail page in sync with loadedEvents. Editing an
   // event (or any real-time update to it) refreshes loadedEvents, but

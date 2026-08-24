@@ -41,6 +41,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   const [selectedEventForAssignments, setSelectedEventForAssignments] = React.useState<Event | null>(null);
   const [selectedEventForCalendar, setSelectedEventForCalendar] = React.useState<Event | null>(null);
   const [showUnavailabilityModal, setShowUnavailabilityModal] = React.useState(false);
+  const [lastEventUpdate, setLastEventUpdate] = React.useState<Event | null>(null);
 
   const navigateTab = React.useCallback((tabId: string) => {
     router.push(tabToPath(tabId));
@@ -428,6 +429,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     unreadNotificationsCount,
     isLeaderOrAdmin,
     selectedEventForCalendar,
+    lastEventUpdate,
     fetchData,
     handleLogout,
     handleApproveRequest,
@@ -502,6 +504,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
             poles={poles}
             allUsers={allUsers}
             onRefreshEvent={fetchData}
+            onEventUpdated={setLastEventUpdate}
           />
         )}
 

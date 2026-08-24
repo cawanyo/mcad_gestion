@@ -9,6 +9,7 @@ export default function CalendarPage() {
     events,
     poles,
     selectedEventForCalendar,
+    lastEventUpdate,
     isLeaderOrAdmin,
     fetchData,
     openEventModal,
@@ -24,6 +25,7 @@ export default function CalendarPage() {
       poles={poles}
       currentUser={currentUser}
       initialSelectedEvent={selectedEventForCalendar}
+      externalEventUpdate={lastEventUpdate}
       onOpenCreateEventModal={openEventModal}
       onOpenAssignmentsDrawer={(ev) => {
         if (isLeaderOrAdmin) {

@@ -38,11 +38,23 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
   const [joinedSuccess, setJoinedSuccess] = React.useState<string | null>(null);
   const [deleteConfirmPole, setDeleteConfirmPole] = React.useState<Pole | null>(null);
   const [deleting, setDeleting] = React.useState(false);
-  // poles comes from shared context as a prop, not local state — this
-  // tracks poles removed here so they vanish immediately instead of
+  // poles comes from shared context as a prop, not local state — these
+  // track poles removed/added here so they update immediately instead of
   // waiting on the shell's refresh round-trip to catch up.
   const [locallyDeletedIds, setLocallyDeletedIds] = React.useState<Set<string>>(new Set());
-  const visiblePoles = poles.filter((p) => !locallyDeletedIds.has(p.id));
+  const [locallyAddedPoles, setLocallyAddedPoles] = React.useState<Pole[]>([]);
+
+  // Once the real poles list catches up and includes an optimistically
+  // added pole, drop our stand-in — the real one (with counts/leaders
+  // filled in) takes over.
+  React.useEffect(() => {
+    setLocallyAddedPoles((prev) => prev.filter((p) => !poles.some((real) => real.id === p.id)));
+  }, [poles]);
+
+  const visiblePoles = [
+    ...poles.filter((p) => !locallyDeletedIds.has(p.id)),
+    ...locallyAddedPoles
+  ];
 
   // If a pole is selected, render the dedicated PoleDetailView
   if (selectedPoleId) {
@@ -93,6 +105,14 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
       });
 
       if (res.ok) {
+        const created = await res.json();
+        // Optimistic: show the new pole immediately instead of waiting on
+        // the full shell refresh (dashboard + events + poles + ...) below
+        // to come back — that round-trip is what made creation feel like
+        // it wasn't working. The real entry (with counts/leaders filled
+        // in) takes over automatically once the refresh lands, via the
+        // dedup effect above.
+        setLocallyAddedPoles((prev) => [...prev, { ...created, membersCount: 0, leadersCount: 0, leaders: [] }]);
         setName('');
         setDescription('');
         setColor('#3b68f0');

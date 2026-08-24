@@ -25,6 +25,7 @@ interface AssignmentsDrawerProps {
   poles: Pole[];
   allUsers: User[];
   onRefreshEvent: () => void;
+  onEventUpdated?: (event: Event) => void;
 }
 
 export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
@@ -33,7 +34,8 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
   event,
   poles,
   allUsers,
-  onRefreshEvent
+  onRefreshEvent,
+  onEventUpdated
 }) => {
   const [localEvent, setLocalEvent] = React.useState<Event | null>(event);
   const [activeTab, setActiveTab] = React.useState<'pole' | 'person'>('pole');
@@ -117,6 +119,13 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
       if (res.ok) {
         const fresh = await res.json();
         setLocalEvent(fresh);
+        // Hand the fresh event back up so whoever opened this drawer (the
+        // calendar grid, the event's own detail page...) can update
+        // immediately instead of waiting on a broader page refresh to
+        // eventually notice — this drawer previously only updated its own
+        // local view, so assignment changes were invisible everywhere else
+        // until the page was reloaded.
+        onEventUpdated?.(fresh);
       }
     } catch (e) {
       console.error(e);
