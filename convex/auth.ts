@@ -11,9 +11,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       id: PROVIDER_ID,
       // bcryptjs matches the hashing MCAD's existing Postgres auth uses,
       // so migrated password hashes stay verifiable after the Convex switch.
+      // Must use the *sync* API: bcryptjs's async functions chunk work via
+      // setTimeout, which Convex's mutation runtime (used internally by
+      // createAccount/retrieveAccount) doesn't allow.
       crypto: {
-        hashSecret: (secret) => bcrypt.hash(secret, 10),
-        verifySecret: (secret, hash) => bcrypt.compare(secret, hash),
+        hashSecret: async (secret) => bcrypt.hashSync(secret, 10),
+        verifySecret: async (secret, hash) => bcrypt.compareSync(secret, hash),
       },
       authorize: async (params, ctx) => {
         const phone = normalizePhone(String(params.phone ?? ""));
