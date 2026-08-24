@@ -9,6 +9,13 @@ interface EventModalProps {
   onClose: () => void;
   poles: Pole[];
   editingEvent?: any | null;
+  // Which date to default the "Date" field to when creating a new event
+  // (YYYY-MM-DD). Callers should pass a date within whatever month is
+  // currently being viewed — otherwise this always defaults to today,
+  // which silently creates the event in today's month even if the user
+  // opened the form while browsing a different one, making the new event
+  // look like it "didn't show up" on the calendar they were looking at.
+  defaultDate?: string;
   // Receives the created/updated event straight from the API response
   // (or an array, for a recurring series) — callers use this to update
   // their own state immediately instead of relying solely on a follow-up
@@ -21,9 +28,10 @@ export const EventModal: React.FC<EventModalProps> = ({
   onClose,
   poles,
   editingEvent,
+  defaultDate,
   onEventCreated
 }) => {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = defaultDate || new Date().toISOString().split('T')[0];
 
   const [title, setTitle] = React.useState('Culte dominical');
   const [date, setDate] = React.useState(todayStr);

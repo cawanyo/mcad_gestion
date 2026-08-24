@@ -228,6 +228,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const getMonthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
+  // Default date for the "create event" form: today, if we're browsing
+  // today's real month; otherwise the 1st of whichever month is currently
+  // in view. Without this, the form always defaulted to today's exact
+  // date regardless of which month the user had navigated to — so
+  // creating an event while browsing e.g. next month silently created it
+  // in *this* month instead, and it never appeared where the user was
+  // looking.
+  const now = new Date();
+  const modalDefaultDate =
+    currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth()
+      ? undefined
+      : `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
+
   // Fetches one month's events from the API, merges them into loadedEvents,
   // and refreshes the cache. Used both by the cache-first month loader below
   // and by refreshCurrentMonth() (which always skips the cache, since it's
@@ -603,6 +616,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             }}
             poles={poles}
             editingEvent={editingEvent}
+            defaultDate={modalDefaultDate}
             onEventCreated={(result) => {
               setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
               mergeEventsIntoLoaded(result);
@@ -1416,6 +1430,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           }}
           poles={poles}
           editingEvent={editingEvent}
+          defaultDate={modalDefaultDate}
           onEventCreated={(result) => {
             setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
             mergeEventsIntoLoaded(result);
