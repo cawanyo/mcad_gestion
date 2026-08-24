@@ -3,6 +3,9 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { useConvexAuth, useQuery } from 'convex/react';
+import { useAuthActions } from '@convex-dev/auth/react';
+import { api } from '../../../convex/_generated/api';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { BottomTabBar } from '@/components/layout/BottomTabBar';
@@ -22,9 +25,36 @@ const UnavailabilityModal = dynamic(() => import('@/components/unavailability/Un
 
 export default function AppShellLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const { signOut } = useAuthActions();
+  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
+
+  // The current user is now sourced from Convex (reactive, no polling
+  // needed). `currentUserOverride` exists only so the settings page's
+  // optimistic `setCurrentUser(u)` call after a profile edit keeps working
+  // without rewriting that still-untouched page in this pass.
+  const [currentUserOverride, setCurrentUserOverride] = React.useState<User | null>(null);
+  const currentUser = React.useMemo<User | null>(() => {
+    if (currentUserOverride) return currentUserOverride;
+    if (!viewer) return null;
+    return {
+      id: viewer._id,
+      firstName: viewer.firstName,
+      lastName: viewer.lastName,
+      phone: viewer.phone ?? null,
+      gender: viewer.gender ?? null,
+      birthDate: viewer.birthDate ? new Date(viewer.birthDate).toISOString() : null,
+      avatar: viewer.avatar ?? null,
+      role: viewer.role as User['role'],
+      status: viewer.status,
+      departmentId: viewer.departmentId ?? null,
+      poleMemberships: [],
+      poleLeaderships: [],
+    };
+  }, [viewer, currentUserOverride]);
+  const setCurrentUser: React.Dispatch<React.SetStateAction<User | null>> = setCurrentUserOverride;
 
   // Application Data States
-  const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [allUsers, setAllUsers] = React.useState<User[]>([]);
   const [dashboardData, setDashboardData] = React.useState<any>(null);
   const [poles, setPoles] = React.useState<Pole[]>([]);
@@ -73,16 +103,14 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
         setPoles(cachedPoles);
       }
 
-      // Fire every request in parallel right away — nobody waits on anybody
-      // else's response to *start*. But an anonymous visitor only ever sees
-      // the public landing page, which uses none of this data, so we only
-      // block the UI on the cheap "who am I" check: as soon as it comes
-      // back "not logged in", we bounce to the landing page immediately
-      // instead of sitting through the other requests too. Those requests
-      // were already sent (no point cancelling them — the server itself
-      // also fast-rejects the heavy ones without a session, see
-      // /api/dashboard), we simply stop waiting on them.
-      const userPromise = fetch('/api/auth/current', { cache: 'no-store' });
+      // Fire every request in parallel — nobody waits on anybody else's
+      // response to *start*. The caller only invokes fetchData() once
+      // Convex confirms there's an authenticated user (see the effect
+      // below), so there's no "who am I" gate here anymore. These still
+      // hit the old Postgres-backed routes (feature pages aren't migrated
+      // yet), which will 401 for a Convex-only session until the data
+      // migration phase lands — each response is checked with `.ok` below
+      // so that degrades to empty state instead of crashing.
       const dashPromise = fetch('/api/dashboard');
       const eventsPromise = fetch(`/api/events?month=${currentMonthKey}`);
       const polesPromise = cachedPoles ? Promise.resolve(null) : fetch('/api/poles');
@@ -92,30 +120,6 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
       // awaiting these (e.g. anonymous visitor).
       [dashPromise, eventsPromise, polesPromise, notifPromise, usersPromise].forEach((p) => p.catch(() => {}));
 
-      const userRes = await userPromise.catch(() => null);
-      if (!userRes || !userRes.ok) {
-        if (isInitial) {
-          setLoadingProgress(100);
-          setLoading(false);
-        }
-        return;
-      }
-
-      const userData = await userRes.json();
-      setCurrentUser(userData.user);
-
-      if (!userData.user) {
-        // Authoritative "not logged in" response (e.g. expired session) —
-        // drop any cached profile/dashboard so a future visit doesn't
-        // instant-paint from stale, no-longer-valid data.
-        invalidateCache();
-        if (isInitial) {
-          setLoadingProgress(100);
-          setLoading(false);
-        }
-        return;
-      }
-
       const [dashRes, eventsRes, polesRes, notifRes, usersRes] = await Promise.allSettled([
         dashPromise,
         eventsPromise,
@@ -123,10 +127,6 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
         notifPromise,
         usersPromise
       ]);
-
-      // Cache the profile so the next visit (this tab/session) can paint
-      // instantly from it instead of waiting on the network.
-      setCachedItem(CacheKeys.CURRENT_USER, userData.user, CacheTTL.LONG);
 
       if (isInitial) {
         setLoadingProgress(85);
@@ -136,7 +136,6 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
       if (dashRes.status === 'fulfilled' && dashRes.value && dashRes.value.ok) {
         const freshDashboard = await dashRes.value.json();
         setDashboardData(freshDashboard);
-        setCachedItem(CacheKeys.DASHBOARD, freshDashboard, CacheTTL.LONG);
       }
 
       if (eventsRes.status === 'fulfilled' && eventsRes.value && eventsRes.value.ok) {
@@ -181,92 +180,44 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     }
   };
 
-  // Initial load. If we already have a cached profile + dashboard from
-  // earlier in this browser session, paint the app with that instantly
-  // (skipping the loading screen entirely) and silently refresh everything
-  // in the background. Otherwise fall back to the normal loading sequence.
+  // Initial load: fetchData() runs once Convex confirms who's logged in.
+  // Neither the current user nor the dashboard are cached in sessionStorage
+  // anymore — Convex's `useQuery(api.users.viewer)` above is already the
+  // reactive, per-session source of truth for the user, and a sessionStorage
+  // dashboard cache isn't scoped per user (a stale dashboard from a
+  // previous session on the same browser could otherwise flash before the
+  // real fetch resolves).
+  const fetchedForUserId = React.useRef<string | null>(null);
   React.useEffect(() => {
-    const cachedUser = getCachedItem<User>(CacheKeys.CURRENT_USER);
-    const cachedDashboard = getCachedItem<any>(CacheKeys.DASHBOARD);
-
-    if (cachedUser && cachedDashboard) {
-      setCurrentUser(cachedUser);
-      setDashboardData(cachedDashboard);
+    if (authLoading) return;
+    if (!isAuthenticated || !viewer) {
       setLoading(false);
-      fetchData(false);
-    } else {
-      fetchData(true);
+      return;
     }
+    if (fetchedForUserId.current === viewer._id) return;
+    fetchedForUserId.current = viewer._id;
+    fetchData(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, isAuthenticated, viewer]);
 
   // Once we know for sure there's no session, bounce to the public landing
   // page — this is the client-side equivalent of the old inline
   // `if (!currentUser) return <LandingPage />` render branch.
   React.useEffect(() => {
-    if (!loading && !currentUser) {
+    if (!authLoading && !isAuthenticated) {
       router.replace('/landing');
     }
-  }, [loading, currentUser, router]);
+  }, [authLoading, isAuthenticated, router]);
 
-  // Real-time Live Stream (Server-Sent Events) + Heartbeat sync
-  React.useEffect(() => {
-    if (!currentUser) return;
-
-    let eventSource: EventSource | null = null;
-    let reconnectTimeout: NodeJS.Timeout;
-
-    const connectSSE = () => {
-      try {
-        eventSource = new EventSource('/api/realtime');
-
-        eventSource.onmessage = (event) => {
-          try {
-            const payload = JSON.parse(event.data);
-
-            if (payload.type === 'NOTIFICATION') {
-              if (payload.notification?.userId === currentUser.id) {
-                setNotifications((prev) => [payload.notification, ...prev]);
-                setUnreadNotificationsCount((prev) => prev + 1);
-              }
-            } else if (payload.type !== 'PING' && payload.type !== 'CONNECTED') {
-              // Every mutation broadcasts its own specific type (EVENT_CREATED,
-              // ASSIGNMENT_CREATED, POLE_UPDATED, ...) — treat any of them as
-              // "something changed, refresh" so every connected user sees
-              // updates made by others without waiting for the 15s poll or a
-              // manual reload.
-              fetchData();
-            }
-          } catch (e) {
-            console.error('SSE parse error:', e);
-          }
-        };
-
-        eventSource.onerror = () => {
-          if (eventSource) {
-            eventSource.close();
-          }
-          reconnectTimeout = setTimeout(connectSSE, 5000);
-        };
-      } catch (e) {
-        console.error('SSE initialization error:', e);
-        reconnectTimeout = setTimeout(connectSSE, 5000);
-      }
-    };
-
-    connectSSE();
-
-    const interval = setInterval(() => {
-      fetchData();
-    }, 15000);
-
-    return () => {
-      if (eventSource) eventSource.close();
-      clearTimeout(reconnectTimeout);
-      clearInterval(interval);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
+  // There used to be a Server-Sent Events listener + a 15s polling
+  // interval here, both working around the same problem: fetch()-based
+  // reads have no way to know when the data they returned goes stale.
+  // Once feature pages are migrated to Convex's useQuery, each page's own
+  // subscription stays live on its own — no shell-level broadcast or
+  // polling loop is needed anymore. Feature pages still on the old REST
+  // routes in this transitional phase simply won't get push updates until
+  // they're migrated (same as before this pass, minus the polling papering
+  // over it).
 
   // Request actions (Admin)
   const handleApproveRequest = async (requestId: string) => {
@@ -301,7 +252,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 
   // Logout handler
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await signOut();
     invalidateCache();
     setCurrentUser(null);
     window.location.href = '/login';

@@ -2,6 +2,7 @@ import { convexAuth, createAccount, retrieveAccount } from "@convex-dev/auth/ser
 import { ConvexCredentials } from "@convex-dev/auth/providers/ConvexCredentials";
 import bcrypt from "bcryptjs";
 import { normalizePhone } from "./phone";
+import { internal } from "./_generated/api";
 
 const PROVIDER_ID = "phone-password";
 
@@ -33,9 +34,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           if (!firstName || !lastName) {
             throw new Error("Prénom et nom requis.");
           }
-          if (password.length < 8) {
-            throw new Error("Le mot de passe doit contenir au moins 8 caractères.");
+          if (password.length < 4) {
+            throw new Error("Le mot de passe doit comporter au moins 4 caractères.");
           }
+
+          const birthDateRaw = params.birthDate ? String(params.birthDate) : "";
+          const departmentId = await ctx.runQuery(internal.registration.getDefaultDepartmentId, {});
 
           const { user } = await createAccount(ctx, {
             provider: PROVIDER_ID,
@@ -47,8 +51,22 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
               gender: params.gender ? String(params.gender) : "HOMME",
               role: "MEMBER",
               status: "ACTIVE",
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(firstName + lastName)}`,
+              // Spread in rather than set to `undefined`: Convex documents
+              // don't have a concept of a field explicitly set to
+              // undefined, only present-or-absent.
+              ...(birthDateRaw ? { birthDate: new Date(birthDateRaw).getTime() } : {}),
+              ...(departmentId ? { departmentId } : {}),
             },
           });
+
+          const poleIds = Array.isArray(params.poleIds) ? (params.poleIds as string[]) : [];
+          await ctx.runMutation(internal.registration.completeSignUp, {
+            userId: user._id,
+            poleIds,
+            motivation: params.motivation ? String(params.motivation) : undefined,
+          });
+
           return { userId: user._id };
         }
 

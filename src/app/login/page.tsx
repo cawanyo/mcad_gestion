@@ -2,11 +2,15 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useConvexAuth } from 'convex/react';
+import { useAuthActions } from '@convex-dev/auth/react';
 import { Sparkles, LogIn, Lock, ArrowLeft, AlertCircle } from 'lucide-react';
 import { PhoneInputWithCountry } from '@/components/ui';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn } = useAuthActions();
+  const { isAuthenticated } = useConvexAuth();
   const [phone, setPhone] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState('');
@@ -14,15 +18,10 @@ export default function LoginPage() {
 
   // Background check: if already authenticated, redirect to home
   React.useEffect(() => {
-    fetch('/api/auth/current')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.user) {
-          router.replace('/dashboard');
-        }
-      })
-      .catch(() => {});
-  }, [router]);
+    if (isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,25 +29,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Identifiants invalides');
-      } else {
-        // Client-side transition straight into the app shell — a hard
-        // reload isn't needed for the session cookie to take effect (it's
-        // already active server-side as soon as the login response sets
-        // it), it would just add a full page reload for nothing.
-        router.push('/dashboard');
-      }
+      await signIn('phone-password', { phone, password, flow: 'signIn' });
+      // Client-side transition straight into the app shell — a hard
+      // reload isn't needed for the session to take effect (it's already
+      // active as soon as signIn resolves), it would just add a full page
+      // reload for nothing.
+      router.push('/dashboard');
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Identifiants invalides');
     } finally {
       setLoading(false);
     }

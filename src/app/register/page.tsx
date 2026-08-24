@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useConvexAuth } from 'convex/react';
+import { useAuthActions } from '@convex-dev/auth/react';
 import { Sparkles, UserPlus, User, Lock, Calendar, ArrowLeft, Check, AlertCircle } from 'lucide-react';
 import { PhoneInputWithCountry } from '@/components/ui';
 import { Pole } from '@/types';
@@ -9,6 +11,8 @@ import { CacheKeys, getCachedItem, setCachedItem } from '@/lib/cache';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { signIn } = useAuthActions();
+  const { isAuthenticated } = useConvexAuth();
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
   const [gender, setGender] = React.useState<'HOMME' | 'FEMME'>('HOMME');
@@ -26,15 +30,10 @@ export default function RegisterPage() {
 
   // Background check: if already authenticated, redirect to home
   React.useEffect(() => {
-    fetch('/api/auth/current')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.user) {
-          router.replace('/dashboard');
-        }
-      })
-      .catch(() => {});
-  }, [router]);
+    if (isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   // Fetch available poles
   React.useEffect(() => {
@@ -72,30 +71,20 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          gender,
-          phone,
-          birthDate: birthDate || null,
-          password,
-          poleIds: selectedPoles,
-          motivation
-        })
+      await signIn('phone-password', {
+        firstName,
+        lastName,
+        gender,
+        phone,
+        birthDate,
+        password,
+        poleIds: selectedPoles,
+        motivation,
+        flow: 'signUp',
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Erreur lors de la création du compte');
-      } else {
-        router.push('/dashboard');
-      }
+      router.push('/dashboard');
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Erreur lors de la création du compte');
     } finally {
       setLoading(false);
     }
