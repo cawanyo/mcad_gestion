@@ -253,6 +253,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // creating/editing/deleting services, members self-assigning, etc.) and
   // refresh the currently-viewed month automatically, for every connected
   // user — not just whoever made the change.
+  //
+  // refreshCurrentMonth is kept in a ref so this effect can open the SSE
+  // connection once (on mount) and always call the *latest* version of it,
+  // instead of tearing down and reopening the connection every time the
+  // user changes month (refreshCurrentMonth's identity changes with
+  // currentDate) — reconnecting on every navigation risked a real, if
+  // narrow, window where a broadcast fires while no connection is open.
+  const refreshCurrentMonthRef = React.useRef(refreshCurrentMonth);
+  React.useEffect(() => {
+    refreshCurrentMonthRef.current = refreshCurrentMonth;
+  }, [refreshCurrentMonth]);
+
   React.useEffect(() => {
     const calendarRelevantTypes = new Set([
       'EVENT_CREATED',
@@ -269,7 +281,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         try {
           const payload = JSON.parse(msg.data);
           if (calendarRelevantTypes.has(payload.type)) {
-            refreshCurrentMonth();
+            refreshCurrentMonthRef.current();
           }
         } catch (e) {
           console.error('Calendar SSE parse error:', e);
@@ -282,7 +294,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return () => {
       if (eventSource) eventSource.close();
     };
-  }, [refreshCurrentMonth]);
+  }, []);
 
   // Filtered Events
   const eventsPool = loadedEvents.length > 0 ? loadedEvents : events;
@@ -787,7 +799,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   <span>Préc.</span>
                 </button>
 
-                <div className="text-center">
+                <div className="text-center flex items-center gap-1.5">
                   <span className="text-xs font-black text-slate-900">
                     {mobileWeekDays[0] && mobileWeekDays[6] && (
                       <>
@@ -795,6 +807,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       </>
                     )}
                   </span>
+                  {loadingMonth && <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />}
                 </div>
 
                 <button
@@ -807,7 +820,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
 
               {/* 7-Day Horizontal Strip */}
-              <div className="grid grid-cols-7 gap-1">
+              <div className={`grid grid-cols-7 gap-1 transition-opacity duration-200 ${loadingMonth ? 'opacity-40' : 'opacity-100'}`}>
                 {mobileWeekDays.map((day, idx) => {
                   const isSelected = day.isSelected;
                   const hasEvents = day.events.length > 0;
@@ -855,7 +868,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
 
             {/* Selected Date Events List */}
-            <div className="space-y-3">
+            <div className={`space-y-3 transition-opacity duration-200 ${loadingMonth ? 'opacity-40' : 'opacity-100'}`}>
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                   <CalendarIcon className="w-4 h-4 text-indigo-600" />
