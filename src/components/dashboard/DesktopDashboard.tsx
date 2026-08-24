@@ -6,7 +6,6 @@ import {
   Users,
   Layers,
   CalendarDays,
-  Clock,
   Check,
   X,
   Gift,
@@ -114,8 +113,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         </div>
       </div>
 
-      {/* 4 KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      {/* 3 KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {/* Card 1: Membres actifs */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between">
           <div>
@@ -181,27 +180,6 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
           </button>
         </div>
 
-        {/* Card 4: Heures de service */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                <Clock className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-medium text-slate-500">Heures de service</span>
-            </div>
-            <div className="mt-3">
-              <span className="text-2xl sm:text-3xl font-bold text-slate-900">{kpis.serviceHours}</span>
-              <span className="text-xs text-slate-400 ml-2">Ce mois</span>
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigateTab('validations')}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-          >
-            Validations
-          </button>
-        </div>
       </div>
 
       {/* Row 2: Aperçu des services (Graph) + Prochains événements */}

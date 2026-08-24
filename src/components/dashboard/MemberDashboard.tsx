@@ -4,7 +4,6 @@ import React from 'react';
 import {
   LayoutDashboard,
   Calendar,
-  CheckCircle2,
   Clock,
   Layers,
   Sparkles,
@@ -49,7 +48,6 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
   const memberData = data?.memberData;
   const memberKpis = memberData?.memberKpis || {
     upcomingServicesCount: 0,
-    completedServicesCount: 0,
     activePolesCount: 0,
     pendingRequestsCount: 0
   };
@@ -185,7 +183,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
       )}
 
       {/* Row 1: KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {/* KPI 1 */}
         <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm flex items-center justify-between">
           <div>
@@ -204,27 +202,6 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
             className="text-xs font-bold text-indigo-600 hover:text-indigo-700 hidden sm:block"
           >
             Planning
-          </button>
-        </div>
-
-        {/* KPI 2 */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-medium text-slate-500">Services validés</span>
-            </div>
-            <div className="mt-2.5">
-              <span className="text-2xl sm:text-3xl font-bold text-slate-900">{memberKpis.completedServicesCount}</span>
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigateTab('validations')}
-            className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hidden sm:block"
-          >
-            Historique
           </button>
         </div>
 
@@ -350,13 +327,6 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                         <span>Démarrer checklist</span>
                       </button>
                       <button
-                        onClick={() => onNavigateTab('validations')}
-                        className="py-2 px-3.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Valider service</span>
-                      </button>
-                      <button
                         onClick={() => (onNavigateToEvent ? onNavigateToEvent(nextService) : onNavigateTab('calendar'))}
                         className="py-2 px-3 bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold transition-all"
                       >
@@ -367,22 +337,13 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                 ) : (
                   <div className="p-3.5 bg-white/90 rounded-2xl border border-dashed border-indigo-200 flex flex-col sm:flex-row items-center justify-between gap-2.5">
                     <p className="text-xs text-slate-600 font-medium">📋 Culte planifié avec succès.</p>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => onNavigateTab('validations')}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 transition-all shadow-xs"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Valider mon service</span>
-                      </button>
-                      <button
-                        onClick={() => (onNavigateToEvent ? onNavigateToEvent(nextService) : onNavigateTab('calendar'))}
-                        className="text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Détails</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => (onNavigateToEvent ? onNavigateToEvent(nextService) : onNavigateTab('calendar'))}
+                      className="text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Détails</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
                   </div>
                 )}
               </div>

@@ -141,7 +141,7 @@ export async function GET(req: Request) {
     // Member Specific Data
     let memberData = null;
     if (currentUser) {
-      const [rawAssignments, myPendingRequests, myValidations, myUnavailabilities] = await Promise.all([
+      const [rawAssignments, myPendingRequests, myUnavailabilities] = await Promise.all([
         prisma.assignment.findMany({
           where: { userId: currentUser.id },
           include: {
@@ -166,11 +166,6 @@ export async function GET(req: Request) {
           include: { pole: true },
           orderBy: { createdAt: 'desc' }
         }),
-        prisma.serviceValidation.findMany({
-          where: { userId: currentUser.id },
-          include: { event: true, pole: true },
-          orderBy: { createdAt: 'desc' }
-        }),
         prisma.unavailability.findMany({
           where: { userId: currentUser.id },
           orderBy: { startsAt: 'asc' }
@@ -191,14 +186,14 @@ export async function GET(req: Request) {
         };
       });
 
-      // Next service for this member: prioritize upcoming, or fallback to first assigned
+      // Next service for this member: only ever a genuinely upcoming one —
+      // never fall back to a past assignment just to have something to show.
       const upcomingAssignments = myAssignments.filter(a => new Date(a.event.endsAt) >= now);
-      const nextAssignment = upcomingAssignments.length > 0 ? upcomingAssignments[0] : (myAssignments.length > 0 ? myAssignments[0] : null);
+      const nextAssignment = upcomingAssignments.length > 0 ? upcomingAssignments[0] : null;
 
       memberData = {
-        myAssignments,
+        myAssignments: upcomingAssignments,
         myPendingRequests,
-        myValidations,
         myUnavailabilities,
         myPoles: currentUser.poleMemberships.map(pm => pm.pole),
         nextService: nextAssignment ? nextAssignment.event : null,
@@ -206,8 +201,7 @@ export async function GET(req: Request) {
         nextAssignmentPole: nextAssignment?.pole || null,
         nextAssignmentChecklist: nextAssignment?.assignedChecklist || null,
         memberKpis: {
-          upcomingServicesCount: myAssignments.length,
-          completedServicesCount: myValidations.filter(v => v.status === 'VALIDATED').length,
+          upcomingServicesCount: upcomingAssignments.length,
           activePolesCount: currentUser.poleMemberships.length,
           pendingRequestsCount: myPendingRequests.length
         }

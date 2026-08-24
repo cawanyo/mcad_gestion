@@ -3,10 +3,9 @@
 import React from 'react';
 import { 
   Users, 
-  ClipboardCheck, 
-  CalendarOff, 
-  CheckCircle2, 
-  ArrowRight, 
+  ClipboardCheck,
+  CalendarOff,
+  ArrowRight,
   HandHeart,
   Sparkles 
 } from 'lucide-react';
@@ -53,16 +52,6 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
       color: 'from-amber-600 to-orange-600',
       iconBg: 'bg-amber-50 text-amber-600 border border-amber-100',
       badgeStyle: 'text-amber-700 bg-amber-50 border-amber-200',
-    },
-    {
-      id: 'service_validation',
-      title: 'Valider mon Service',
-      description: "Confirmez votre présence effective et enregistrez vos heures de service accomplies pour le Seigneur.",
-      icon: CheckCircle2,
-      badge: 'Fidélité & Engagement',
-      color: 'from-blue-600 to-cyan-600',
-      iconBg: 'bg-blue-50 text-blue-600 border border-blue-100',
-      badgeStyle: 'text-blue-700 bg-blue-50 border-blue-200',
     },
   ];
 

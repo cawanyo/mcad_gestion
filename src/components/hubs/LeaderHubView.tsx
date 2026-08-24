@@ -3,10 +3,9 @@
 import React from 'react';
 import { 
   LayoutDashboard,
-  Users, 
-  UserPlus, 
-  FileCheck2, 
-  ArrowRight, 
+  Users,
+  UserPlus,
+  ArrowRight,
   ShieldCheck, 
   Sparkles 
 } from 'lucide-react';
@@ -54,15 +53,6 @@ export const LeaderHubView: React.FC<LeaderHubViewProps> = ({
       badgeStyle: pendingRequestsCount > 0 
         ? 'text-rose-700 bg-rose-50 border-rose-200 animate-pulse' 
         : 'text-emerald-700 bg-emerald-50 border-emerald-200',
-    },
-    {
-      id: 'service_tracking',
-      title: 'Suivi de validation',
-      description: "Suivez en temps réel les validations de service des membres, les heures effectuées et l'assiduité.",
-      icon: FileCheck2,
-      badge: 'Supervision',
-      iconBg: 'bg-purple-50 text-purple-600 border border-purple-100',
-      badgeStyle: 'text-purple-700 bg-purple-50 border-purple-200',
     },
   ];
 
