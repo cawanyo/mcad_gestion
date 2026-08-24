@@ -43,14 +43,8 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
   const [positioningId, setPositioningId] = React.useState<string | null>(null);
 
   const memberData = data?.memberData;
-  const memberKpis = memberData?.memberKpis || {
-    upcomingServicesCount: 0,
-    activePolesCount: 0,
-    pendingRequestsCount: 0
-  };
 
   const myAssignments = memberData?.myAssignments || [];
-  const myPendingRequests = memberData?.myPendingRequests || [];
   const myPoles = memberData?.myPoles || [];
   const birthdays = data?.birthdays || [];
   const upcomingEvents = data?.upcomingEvents || [];
@@ -174,72 +168,6 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
           </button>
         </div>
       )}
-
-      {/* Row 1: KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-        {/* KPI 1 */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                <Calendar className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-medium text-slate-500">Prochains cultes</span>
-            </div>
-            <div className="mt-2.5">
-              <span className="text-2xl sm:text-3xl font-bold text-slate-900">{memberKpis.upcomingServicesCount}</span>
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigateTab('calendar')}
-            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 hidden sm:block"
-          >
-            Planning
-          </button>
-        </div>
-
-        {/* KPI 3 */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Layers className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-medium text-slate-500">Mes Pôles actifs</span>
-            </div>
-            <div className="mt-2.5">
-              <span className="text-2xl sm:text-3xl font-bold text-slate-900">{memberKpis.activePolesCount}</span>
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigateTab('poles')}
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 hidden sm:block"
-          >
-            Voir
-          </button>
-        </div>
-
-        {/* KPI 4 */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Clock className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-medium text-slate-500">Demandes en cours</span>
-            </div>
-            <div className="mt-2.5">
-              <span className="text-2xl sm:text-3xl font-bold text-slate-900">{memberKpis.pendingRequestsCount}</span>
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigateTab('poles')}
-            className="text-xs font-bold text-amber-600 hover:text-amber-700 hidden sm:block"
-          >
-            Adhésions
-          </button>
-        </div>
-      </div>
 
       {/* Row 2: Prochain Culte & Checklist / Mes Affectations */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

@@ -141,7 +141,7 @@ export async function GET(req: Request) {
     // Member Specific Data
     let memberData = null;
     if (currentUser) {
-      const [rawAssignments, myPendingRequests, myUnavailabilities] = await Promise.all([
+      const [rawAssignments, myUnavailabilities] = await Promise.all([
         prisma.assignment.findMany({
           where: { userId: currentUser.id },
           include: {
@@ -160,11 +160,6 @@ export async function GET(req: Request) {
             pole: true
           },
           orderBy: { event: { startsAt: 'asc' } }
-        }),
-        prisma.membershipRequest.findMany({
-          where: { userId: currentUser.id, status: 'PENDING' },
-          include: { pole: true },
-          orderBy: { createdAt: 'desc' }
         }),
         prisma.unavailability.findMany({
           where: { userId: currentUser.id },
@@ -193,18 +188,12 @@ export async function GET(req: Request) {
 
       memberData = {
         myAssignments: upcomingAssignments,
-        myPendingRequests,
         myUnavailabilities,
         myPoles: currentUser.poleMemberships.map(pm => pm.pole),
         nextService: nextAssignment ? nextAssignment.event : null,
         nextAssignmentRole: nextAssignment?.roleTag || 'Membre de service',
         nextAssignmentPole: nextAssignment?.pole || null,
-        nextAssignmentChecklist: nextAssignment?.assignedChecklist || null,
-        memberKpis: {
-          upcomingServicesCount: upcomingAssignments.length,
-          activePolesCount: currentUser.poleMemberships.length,
-          pendingRequestsCount: myPendingRequests.length
-        }
+        nextAssignmentChecklist: nextAssignment?.assignedChecklist || null
       };
     }
 
