@@ -27,6 +27,7 @@ export interface AppShellContextValue {
   navigateTab: (tabId: string) => void;
   navigateToEvent: (event: Event) => void;
   navigateToPole: (poleId: string) => void;
+  clearSelectedPoleForNav: () => void;
   openEventModal: () => void;
   openAssignmentsDrawer: (event: Event) => void;
   openUnavailabilityModal: () => void;

@@ -53,10 +53,15 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     // PENDING status on poleMemberships, that lives on membershipRequests),
     // so pole pages that check for a "pending" state rely on their own
     // local post-submit state instead, not this array.
+    // Every other poleMemberships[].pole in the app (members.list,
+    // unavailabilities.list, ...) carries the full nested pole object —
+    // match that contract here too, otherwise anything reading pm.pole
+    // (e.g. EventDetailPage/CalendarView's "poles I can self-assign to")
+    // silently gets an empty list.
     const myPoleMemberships = (polesRaw || []).flatMap((p: any) =>
       (p.memberships || [])
         .filter((m: any) => m.userId === viewer._id)
-        .map((m: any) => ({ poleId: p._id, status: m.status }))
+        .map((m: any) => ({ poleId: p._id, status: m.status, pole: adaptPole(p) }))
     );
     const myPoleLeaderships = (polesRaw || []).flatMap((p: any) =>
       (p.leaders || [])
@@ -140,6 +145,10 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     setSelectedPoleForNav(poleId);
     router.push('/poles');
   }, [router]);
+
+  const clearSelectedPoleForNav = React.useCallback(() => {
+    setSelectedPoleForNav(null);
+  }, []);
 
   // allUsers and notifications above are reactive Convex queries too — no
   // fetch/refresh call needed, same as dashboard/poles/events. `fetchData`
@@ -316,6 +325,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     navigateTab,
     navigateToEvent,
     navigateToPole,
+    clearSelectedPoleForNav,
     openEventModal: () => setShowEventModal(true),
     openAssignmentsDrawer: (event: Event) => {
       setSelectedEventIdForAssignments(event.id as Id<'events'>);
