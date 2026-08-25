@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join, extname } from 'path';
 import { existsSync } from 'fs';
-import { requireAuth } from '@/lib/auth-server';
+import { isAuthenticatedNextjs } from '@convex-dev/auth/nextjs/server';
 import { uploadToCloudinary, isCloudinaryConfigured } from '@/lib/cloudinary';
 
 export const dynamic = 'force-dynamic';
@@ -19,10 +19,10 @@ const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
 
 export async function POST(req: Request) {
   try {
-    // 1. Require Authentication
-    const auth = await requireAuth();
-    if ('errorResponse' in auth) {
-      return auth.errorResponse;
+    // 1. Require Authentication (Convex Auth — see /api/upload/signature
+    // for why this used to be the old cookie-based requireAuth())
+    if (!(await isAuthenticatedNextjs())) {
+      return NextResponse.json({ error: 'Non authentifié. Veuillez vous connecter.' }, { status: 401 });
     }
 
     const formData = await req.formData();

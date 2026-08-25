@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-server';
+import { isAuthenticatedNextjs } from '@convex-dev/auth/nextjs/server';
 import { v2 as cloudinary } from 'cloudinary';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const auth = await requireAuth();
-    if ('errorResponse' in auth) {
-      return auth.errorResponse;
+    // Auth now runs entirely on Convex Auth — the old cookie-based
+    // requireAuth() never sees a session anymore since login stopped
+    // setting that cookie, which made every upload fail with "Non
+    // authentifié" even for a logged-in user.
+    if (!(await isAuthenticatedNextjs())) {
+      return NextResponse.json({ error: 'Non authentifié. Veuillez vous connecter.' }, { status: 401 });
     }
 
     const body = await req.json().catch(() => ({}));
