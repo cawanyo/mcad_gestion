@@ -1,24 +1,42 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
-import { UserPlus, ChevronRight } from 'lucide-react-native';
+import { LayoutDashboard, UserPlus, Users, ChevronRight } from 'lucide-react-native';
 import { theme } from '../theme';
+import { User } from '../types';
 
 // Landing page for the role-gated "Responsable" bottom-tab hub — mirrors
-// LEADER_GROUP_PATHS in src/lib/navigation.ts. Only "Requests" is built
-// natively so far; leader-dashboard and Members management aren't in scope
-// for this pass (no native screen exists for them yet).
-export const LeaderHubScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+// LEADER_GROUP_PATHS in src/lib/navigation.ts and the web Sidebar's leader
+// nav ordering (Tableau de bord first, then Demandes, then Membres).
+export const LeaderHubScreen: React.FC<{ navigation: any; currentUser: User }> = ({ navigation }) => {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Responsable</Text>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('LeaderDashboard')}>
+          <View style={styles.iconWrap}><LayoutDashboard color={theme.colors.primary} size={20} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>Tableau de bord</Text>
+            <Text style={styles.cardSubtitle}>Vue d'ensemble du département</Text>
+          </View>
+          <ChevronRight color={theme.colors.textMuted} size={18} />
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Requests')}>
           <View style={styles.iconWrap}><UserPlus color={theme.colors.primary} size={20} /></View>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>Demandes d'adhésion</Text>
             <Text style={styles.cardSubtitle}>Approuver ou refuser les nouvelles STARS</Text>
+          </View>
+          <ChevronRight color={theme.colors.textMuted} size={18} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Members')}>
+          <View style={styles.iconWrap}><Users color={theme.colors.primary} size={20} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>Membres</Text>
+            <Text style={styles.cardSubtitle}>Rôles, pôles et gestion des comptes</Text>
           </View>
           <ChevronRight color={theme.colors.textMuted} size={18} />
         </TouchableOpacity>

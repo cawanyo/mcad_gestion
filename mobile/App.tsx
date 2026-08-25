@@ -25,6 +25,8 @@ import { UnavailabilitiesScreen } from './src/screens/UnavailabilitiesScreen';
 import { BirthdaysScreen } from './src/screens/BirthdaysScreen';
 import { StatisticsScreen } from './src/screens/StatisticsScreen';
 import { RequestsScreen } from './src/screens/RequestsScreen';
+import { MembersScreen } from './src/screens/MembersScreen';
+import { LeaderDashboardScreen } from './src/screens/LeaderDashboardScreen';
 import { ServiceHubScreen } from './src/screens/ServiceHubScreen';
 import { LifeHubScreen } from './src/screens/LifeHubScreen';
 import { LeaderHubScreen } from './src/screens/LeaderHubScreen';
@@ -122,17 +124,23 @@ function LifeStackScreen({ currentUser }: { currentUser: User }) {
   );
 }
 
-// Role-gated "Responsable" tab, matching LEADER_GROUP_PATHS. Only Requests
-// is wired natively so far — leader-dashboard and Members management have
-// no native screen yet (out of scope for this pass).
-function LeaderStackScreen() {
+// Role-gated "Responsable" tab, matching LEADER_GROUP_PATHS: Tableau de
+// bord (first, mirrors leader_dashboard's position at the top of the web
+// Sidebar's leader nav list), Demandes, Membres.
+function LeaderStackScreen({ currentUser }: { currentUser: User }) {
   return (
     <LeaderStack.Navigator screenOptions={{ headerShown: false }}>
       <LeaderStack.Screen name="LeaderHub">
-        {({ navigation }) => <LeaderHubScreen navigation={navigation} />}
+        {({ navigation }) => <LeaderHubScreen navigation={navigation} currentUser={currentUser} />}
+      </LeaderStack.Screen>
+      <LeaderStack.Screen name="LeaderDashboard" options={backOnlyHeader}>
+        {({ navigation }) => <LeaderDashboardScreen onOpenRequests={() => navigation.navigate('Requests')} />}
       </LeaderStack.Screen>
       <LeaderStack.Screen name="Requests" options={backOnlyHeader}>
         {() => <RequestsScreen />}
+      </LeaderStack.Screen>
+      <LeaderStack.Screen name="Members" options={backOnlyHeader}>
+        {() => <MembersScreen currentUser={currentUser} />}
       </LeaderStack.Screen>
     </LeaderStack.Navigator>
   );
@@ -221,7 +229,7 @@ function MainTabs({ currentUser }: { currentUser: User }) {
           name="Responsable"
           options={{ tabBarIcon: ({ color, size }) => <ShieldCheck color={color} size={size} /> }}
         >
-          {() => <LeaderStackScreen />}
+          {() => <LeaderStackScreen currentUser={currentUser} />}
         </Tab.Screen>
       )}
 
