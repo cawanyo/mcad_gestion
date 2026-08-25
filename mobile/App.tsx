@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Calendar, Layers, CheckSquare, GraduationCap, User as UserIcon } from 'lucide-react-native';
 import { useConvexAuth, useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
@@ -10,15 +11,49 @@ import { ConvexClientProvider } from './src/convex/ConvexClientProvider';
 import { api } from '../convex/_generated/api';
 import { theme } from './src/theme';
 import { User } from './src/types';
+import { derivePoleMemberships } from './src/lib/convexAdapters';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { CalendarScreen } from './src/screens/CalendarScreen';
+import { EventDetailScreen } from './src/screens/EventDetailScreen';
+import { AssignmentsScreen } from './src/screens/AssignmentsScreen';
 import { PolesScreen } from './src/screens/PolesScreen';
 import { ChecklistsScreen } from './src/screens/ChecklistsScreen';
 import { TrainingScreen } from './src/screens/TrainingScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
+const CalendarStack = createNativeStackNavigator();
+
+function CalendarStackScreen({ currentUser }: { currentUser: User }) {
+  return (
+    <CalendarStack.Navigator screenOptions={{ headerShown: false }}>
+      <CalendarStack.Screen name="CalendarList">
+        {({ navigation }) => (
+          <CalendarScreen
+            currentUser={currentUser}
+            onOpenEvent={(eventId) => navigation.navigate('EventDetail', { eventId })}
+          />
+        )}
+      </CalendarStack.Screen>
+      <CalendarStack.Screen name="EventDetail">
+        {({ navigation, route }: any) => (
+          <EventDetailScreen
+            currentUser={currentUser}
+            eventId={route.params.eventId}
+            onBack={() => navigation.goBack()}
+            onManageAssignments={(eventId) => navigation.navigate('Assignments', { eventId })}
+          />
+        )}
+      </CalendarStack.Screen>
+      <CalendarStack.Screen name="Assignments" options={{ presentation: 'modal' }}>
+        {({ navigation, route }: any) => (
+          <AssignmentsScreen eventId={route.params.eventId} onClose={() => navigation.goBack()} />
+        )}
+      </CalendarStack.Screen>
+    </CalendarStack.Navigator>
+  );
+}
 
 // TODO(next pass): the web app groups Poles/Checklists/Unavailabilities under
 // a "Service" hub and has separate "Vie MCAD" / "Responsable" (leader-only)
@@ -71,7 +106,7 @@ function MainTabs({ currentUser }: { currentUser: User }) {
         name="Calendrier"
         options={{ tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} /> }}
       >
-        {() => <CalendarScreen currentUser={currentUser} />}
+        {() => <CalendarStackScreen currentUser={currentUser} />}
       </Tab.Screen>
 
       <Tab.Screen
@@ -119,6 +154,11 @@ function RootNavigator() {
   // login screen, and swap to the app the moment isAuthenticated flips true.
   const { isAuthenticated } = useConvexAuth();
   const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
+  // poles.list already carries each pole's membership list — the current
+  // user's own pole memberships (needed by self-assign eligibility on the
+  // Calendar/EventDetail screens) are derived from it, same as the web
+  // app's (app)/layout.tsx does, rather than a separate query.
+  const polesRaw = useQuery(api.poles.list, isAuthenticated ? {} : 'skip');
 
   if (!isAuthenticated) {
     return <LoginScreen />;
@@ -140,7 +180,8 @@ function RootNavigator() {
     role: viewer.role as User['role'],
     status: (viewer.status as User['status']) ?? 'ACTIVE',
     sex: viewer.gender as User['sex'],
-    avatar: viewer.avatar
+    avatar: viewer.avatar,
+    poleMemberships: derivePoleMemberships(polesRaw, viewer._id)
   };
 
   return <MainTabs currentUser={currentUser} />;

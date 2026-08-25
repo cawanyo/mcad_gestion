@@ -60,6 +60,7 @@ export interface Event {
     userId: string;
     user?: User;
     poleId: string;
+    pole?: Pole;
     roleTag?: string;
     status: string;
   }[];
