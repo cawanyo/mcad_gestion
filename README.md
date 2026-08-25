@@ -32,7 +32,7 @@ Plateforme moderne, responsive et mobile pour la centralisation et la coordinati
 ## 🛠️ Stack Technique
 
 - **Full-stack Web & API** : Next.js 14 (App Router, React 18, TypeScript)
-- **Base de données & ORM** : Prisma ORM (SQLite en local / compatible PostgreSQL en production)
+- **Base de données & Backend** : Convex (base de données réactive + fonctions serverless + authentification)
 - **Styles & UI** : Tailwind CSS, Lucide Icons, Recharts, Canvas Confetti
 - **Application Mobile Native** : React Native avec Expo (`/mobile`)
 
