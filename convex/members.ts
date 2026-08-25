@@ -1,5 +1,5 @@
 import { query, mutation, action } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { requireAuth, requireDepartmentLeaderOrAdmin } from "./lib/auth";
 import { retrieveAccount, modifyAccountCredentials } from "@convex-dev/auth/server";
 import { normalizePhone } from "./phone";
@@ -69,7 +69,7 @@ export const updateRole = mutation({
 
     const patch: Record<string, unknown> = {};
     if (role) {
-      if (!VALID_ROLES.includes(role)) throw new Error("Rôle invalide");
+      if (!VALID_ROLES.includes(role)) throw new ConvexError("Rôle invalide");
       patch.role = role;
     }
     if (status) patch.status = status;
@@ -116,11 +116,11 @@ export const remove = mutation({
     const admin = await requireDepartmentLeaderOrAdmin(ctx);
 
     if (admin._id === userId) {
-      throw new Error("Vous ne pouvez pas supprimer votre propre compte depuis cette vue.");
+      throw new ConvexError("Vous ne pouvez pas supprimer votre propre compte depuis cette vue.");
     }
 
     const user = await ctx.db.get(userId);
-    if (!user) throw new Error("Membre introuvable");
+    if (!user) throw new ConvexError("Membre introuvable");
 
     // Postgres cascaded every one of these off User via `onDelete: Cascade`
     // (or SetNull for assignedBy/reviewedBy); Convex requires doing it by hand.
@@ -225,7 +225,7 @@ export const updateProfile = mutation({
       const normalized = normalizePhone(args.phone);
       const existing = await ctx.db.query("users").withIndex("phone", (q) => q.eq("phone", normalized)).first();
       if (existing && existing._id !== user._id) {
-        throw new Error("Ce numéro de téléphone est déjà utilisé par un autre compte");
+        throw new ConvexError("Ce numéro de téléphone est déjà utilisé par un autre compte");
       }
     }
 
@@ -274,11 +274,11 @@ export const changePassword = action({
   },
   handler: async (ctx, { currentPassword, newPassword }) => {
     const user = await ctx.runQuery(api.users.viewer, {});
-    if (!user) throw new Error("Non autorisé");
-    if (!user.phone) throw new Error("Utilisateur introuvable");
+    if (!user) throw new ConvexError("Non autorisé");
+    if (!user.phone) throw new ConvexError("Utilisateur introuvable");
 
     if (newPassword.trim().length < 8) {
-      throw new Error("Le mot de passe doit contenir au moins 8 caractères.");
+      throw new ConvexError("Le mot de passe doit contenir au moins 8 caractères.");
     }
 
     if (currentPassword) {
@@ -288,7 +288,7 @@ export const changePassword = action({
           account: { id: user.phone, secret: currentPassword },
         });
       } catch {
-        throw new Error("Le mot de passe actuel est incorrect");
+        throw new ConvexError("Le mot de passe actuel est incorrect");
       }
     }
 

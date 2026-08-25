@@ -14,8 +14,13 @@ import {
   UserX,
   Send
 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
 import { User, Pole, UserRole } from '@/types';
 import { Modal, ConfirmModal, Avatar, Badge, Toast, ToastState } from '@/components/ui';
+import { adaptMemberListItem } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
 interface MembersManagementProps {
   poles: Pole[];
@@ -67,12 +72,13 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
   const isDeptLeaderOrAdmin =
     currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'DEPARTMENT_LEADER';
 
+  const updateRole = useMutation(api.members.updateRole);
+  const removeMember = useMutation(api.members.remove);
+
   const [search, setSearch] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [selectedPole, setSelectedPole] = React.useState('all');
   const [selectedRoleFilter, setSelectedRoleFilter] = React.useState('all');
-  const [members, setMembers] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(false);
 
   // Role Edit Modal State
   const [editingMember, setEditingMember] = React.useState<any | null>(null);
@@ -91,53 +97,17 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
     return () => clearTimeout(t);
   }, [search]);
 
-  const fetchMembers = async () => {
-    setLoading(true);
-    try {
-      let url = '/api/members';
-      const params = new URLSearchParams();
-      if (debouncedSearch.trim()) params.append('search', debouncedSearch.trim());
-      if (selectedPole !== 'all') params.append('poleId', selectedPole);
-      if (params.toString()) url += `?${params.toString()}`;
+  const membersRaw = useQuery(api.members.list, {
+    search: debouncedSearch.trim() || undefined,
+    poleId: selectedPole !== 'all' ? (selectedPole as Id<'poles'>) : undefined
+  });
+  const loading = membersRaw === undefined;
+  const members = React.useMemo(() => (membersRaw || []).map(adaptMemberListItem), [membersRaw]);
 
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setMembers(data);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+  const fetchMembers = () => {
+    // members is a reactive Convex query — nothing to trigger manually, this
+    // stays only so the "Actualiser" button still gives visible feedback.
   };
-
-  React.useEffect(() => {
-    fetchMembers();
-  }, [debouncedSearch, selectedPole]);
-
-  // Real-time SSE listener
-  React.useEffect(() => {
-    const eventSource = new EventSource('/api/realtime');
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (
-          data.type === 'USER_UPDATED' ||
-          data.type === 'USER_DELETED' ||
-          data.type === 'INIT'
-        ) {
-          fetchMembers();
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, []);
 
   // Handle Save Role
   const handleSaveRole = async (e: React.FormEvent) => {
@@ -146,25 +116,12 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
 
     setSavingRole(true);
     try {
-      const res = await fetch('/api/members', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: editingMember.id,
-          role: selectedNewRole,
-          updatedById: currentUser?.id
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setToast({ message: data.message || 'Rôle mis à jour avec succès', type: 'success' });
-        setEditingMember(null);
-        fetchMembers();
-        if (onRefresh) onRefresh();
-      }
+      const result = await updateRole({ userId: editingMember.id as Id<'users'>, role: selectedNewRole });
+      setToast({ message: result.message || 'Rôle mis à jour avec succès', type: 'success' });
+      setEditingMember(null);
+      if (onRefresh) onRefresh();
     } catch (e) {
-      console.error(e);
+      setToast({ message: convexErrorMessage(e, 'Erreur lors de la mise à jour du rôle'), type: 'error' });
     } finally {
       setSavingRole(false);
     }
@@ -176,23 +133,12 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/members?userId=${deletingMember.id}&deletedById=${currentUser?.id || ''}`, {
-        method: 'DELETE'
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setToast({ message: data.message || 'Membre définitivement supprimé', type: 'success' });
-        setDeletingMember(null);
-        fetchMembers();
-        if (onRefresh) onRefresh();
-      } else {
-        const err = await res.json();
-        setToast({ message: err.error || 'Erreur lors de la suppression', type: 'error' });
-      }
-    } catch (err) {
-      console.error(err);
-      setToast({ message: 'Erreur de communication avec le serveur.', type: 'error' });
+      const result = await removeMember({ userId: deletingMember.id as Id<'users'> });
+      setToast({ message: result.message || 'Membre définitivement supprimé', type: 'success' });
+      setDeletingMember(null);
+      if (onRefresh) onRefresh();
+    } catch (e) {
+      setToast({ message: convexErrorMessage(e, 'Erreur lors de la suppression'), type: 'error' });
     } finally {
       setIsDeleting(false);
     }

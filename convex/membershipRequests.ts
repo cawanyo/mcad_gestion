@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { requireAuth, requireLeaderOrAdmin, requirePoleLeaderOrAdmin } from "./lib/auth";
 import { Doc } from "./_generated/dataModel";
 
@@ -79,7 +79,7 @@ export const create = mutation({
       .first();
 
     if (existing) {
-      throw new Error("Une demande est déjà en cours pour ce pôle");
+      throw new ConvexError("Une demande est déjà en cours pour ce pôle");
     }
 
     const requestId = await ctx.db.insert("membershipRequests", {
@@ -101,7 +101,7 @@ export const review = mutation({
   },
   handler: async (ctx, { requestId, status }) => {
     const request = await ctx.db.get(requestId);
-    if (!request) throw new Error("Demande introuvable");
+    if (!request) throw new ConvexError("Demande introuvable");
 
     const reviewer = await requirePoleLeaderOrAdmin(ctx, request.poleId);
     const pole = await ctx.db.get(request.poleId);

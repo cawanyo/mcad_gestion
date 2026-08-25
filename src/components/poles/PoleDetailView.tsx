@@ -33,11 +33,16 @@ import {
   Loader2,
   MessageSquare
 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
 import { Pole, User } from '@/types';
 import { ChecklistRunnerModal } from '@/components/checklists/ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from '@/components/checklists/ChecklistFeedbackModal';
 import { ConfirmModal, MediaViewer } from '@/components/ui';
 import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
+import { adaptPoleDetail, adaptMemberListItem } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
 interface PoleDetailViewProps {
   poleId: string;
@@ -52,8 +57,26 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   onBack,
   onRefreshAll
 }) => {
-  const [pole, setPole] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const poleRaw = useQuery(api.poles.get, { poleId: poleId as Id<'poles'> });
+  const pole = React.useMemo(() => adaptPoleDetail(poleRaw), [poleRaw]);
+  const loading = poleRaw === undefined;
+
+  const availableUsersRaw = useQuery(api.members.list, {});
+
+  const reviewRequest = useMutation(api.membershipRequests.review);
+  const removeMemberMutation = useMutation(api.poles.removeMember);
+  const toggleLeaderMutation = useMutation(api.poles.toggleLeader);
+  const addMemberMutation = useMutation(api.poles.addMember);
+  const updatePoleMutation = useMutation(api.poles.update);
+  const requestToJoin = useMutation(api.membershipRequests.create);
+  // Checklist CRUD is technically a separate feature area, but since
+  // pole.checklists is now sourced from Convex (via poles.get), writing
+  // checklist changes to the old Postgres routes would silently stop
+  // showing up here — these two have to move together with the pole view.
+  const createChecklistMutation = useMutation(api.checklists.create);
+  const updateChecklistMutation = useMutation(api.checklists.update);
+  const removeChecklistMutation = useMutation(api.checklists.remove);
+
   const [showAllChecklists, setShowAllChecklists] = React.useState(false);
   const [memberSearch, setMemberSearch] = React.useState('');
 
@@ -74,8 +97,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   const [confirmLeaderAction, setConfirmLeaderAction] = React.useState<{ id: string; name: string; isLeader: boolean } | null>(null);
 
   // Available users to add directly
-  const [availableUsers, setAvailableUsers] = React.useState<any[]>([]);
-  const [loadingAvailableUsers, setLoadingAvailableUsers] = React.useState(false);
   const [userSearchQuery, setUserSearchQuery] = React.useState('');
 
   // Form states: New or Edit Checklist
@@ -117,49 +138,38 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     }
   }, [actionSuccess]);
 
-  const fetchPoleDetails = async () => {
-    try {
-      const res = await fetch(`/api/poles/${poleId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPole(data);
-        setEditName(data.name);
-        setEditDescription(data.description || '');
-        setEditColor(data.color || '#4f46e5');
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   React.useEffect(() => {
-    fetchPoleDetails();
-  }, [poleId]);
-
-  const fetchAvailableUsers = async () => {
-    try {
-      setLoadingAvailableUsers(true);
-      const res = await fetch('/api/members');
-      if (res.ok) {
-        const allMembers = await res.json();
-        // Filter out users already in this pole
-        const existingIds = new Set((pole?.memberships || []).map((m: any) => m.userId || m.user?.id));
-        setAvailableUsers(allMembers.filter((u: any) => !existingIds.has(u.id)));
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingAvailableUsers(false);
+    if (actionError) {
+      const t = setTimeout(() => setActionError(null), 4500);
+      return () => clearTimeout(t);
     }
-  };
+  }, [actionError]);
+
+  // pole is a reactive Convex query — sync the edit form's local fields
+  // whenever the underlying pole data changes (including right after the
+  // query first resolves).
+  React.useEffect(() => {
+    if (!pole) return;
+    setEditName(pole.name);
+    setEditDescription(pole.description || '');
+    setEditColor(pole.color || '#4f46e5');
+  }, [pole]);
+
+  const loadingAvailableUsers = availableUsersRaw === undefined;
+  const filteredAvailableUsers = React.useMemo(() => {
+    if (!availableUsersRaw || !pole) return [];
+    const existingIds = new Set((pole.memberships || []).map((m: any) => m.userId));
+    return availableUsersRaw
+      .filter((u: any) => !existingIds.has(u._id))
+      .map(adaptMemberListItem)
+      .filter((u: any) => {
+        const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+        const phone = (u.phone || '').toLowerCase();
+        return fullName.includes(userSearchQuery.toLowerCase()) || phone.includes(userSearchQuery.toLowerCase());
+      });
+  }, [availableUsersRaw, pole, userSearchQuery]);
 
   const handleOpenAddMemberModal = () => {
-    // Clear the previous list right away — otherwise the modal briefly
-    // shows last time's (now stale) members before the fresh fetch lands.
-    setAvailableUsers([]);
-    fetchAvailableUsers();
     setShowAddMemberModal(true);
   };
 
@@ -271,13 +281,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     return fullName.includes(memberSearch.toLowerCase()) || phone.includes(memberSearch.toLowerCase());
   });
 
-  // Filtered available users to add
-  const filteredAvailableUsers = availableUsers.filter((u: any) => {
-    const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
-    const phone = (u.phone || '').toLowerCase();
-    return fullName.includes(userSearchQuery.toLowerCase()) || phone.includes(userSearchQuery.toLowerCase());
-  });
-
   // Checklist list to display (3 max unless showAllChecklists is true)
   const allChecklists = pole.checklists || [];
   const visibleChecklists = showAllChecklists ? allChecklists : allChecklists.slice(0, 3);
@@ -285,126 +288,89 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   // Handlers
   const handleApproveRequest = async (requestId: string) => {
     try {
-      await fetch(`/api/membership-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'APPROVED' })
-      });
+      await reviewRequest({ requestId: requestId as Id<'membershipRequests'>, status: 'APPROVED' });
       setActionSuccess('Demande acceptée avec succès.');
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, "Erreur lors du traitement de la demande"));
     }
   };
 
   const handleRejectRequest = async (requestId: string) => {
     try {
-      await fetch(`/api/membership-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'REJECTED' })
-      });
+      await reviewRequest({ requestId: requestId as Id<'membershipRequests'>, status: 'REJECTED' });
       setActionSuccess('Demande refusée.');
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, "Erreur lors du traitement de la demande"));
     }
   };
 
   const handleConfirmRemoveMember = async () => {
     if (!confirmRemoveMember) return;
     try {
-      await fetch(`/api/poles/${poleId}/members?userId=${confirmRemoveMember.id}`, {
-        method: 'DELETE'
-      });
+      await removeMemberMutation({ poleId: poleId as Id<'poles'>, userId: confirmRemoveMember.id as Id<'users'> });
       setActionSuccess(`${confirmRemoveMember.name} a été retiré(e) du pôle.`);
       setConfirmRemoveMember(null);
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, 'Erreur lors du retrait du membre'));
     }
   };
 
   const handleConfirmLeaderAction = async () => {
     if (!confirmLeaderAction) return;
     try {
-      await fetch(`/api/poles/${poleId}/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: confirmLeaderAction.id, action: 'TOGGLE_LEADER' })
-      });
+      await toggleLeaderMutation({ poleId: poleId as Id<'poles'>, userId: confirmLeaderAction.id as Id<'users'> });
       setActionSuccess(
         confirmLeaderAction.isLeader
           ? `${confirmLeaderAction.name} a été retiré(e) des responsables.`
           : `${confirmLeaderAction.name} a été nommé(e) responsable du pôle !`
       );
       setConfirmLeaderAction(null);
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, 'Erreur lors de la gestion du responsable'));
     }
   };
 
   const handleAddMemberDirectly = async (userId: string, userName: string) => {
-    // Optimistic: remove from the "available" list immediately instead of
-    // waiting on a round-trip (fetchAvailableUsers() re-derives its filter
-    // from `pole.memberships`, which hasn't been refreshed yet at this
-    // point — waiting on it would show the member as still available for
-    // a beat after they were actually added).
-    setAvailableUsers((prev) => prev.filter((u) => u.id !== userId));
     setActionSuccess(`${userName} ajouté(e) !`);
-
     try {
-      const res = await fetch(`/api/poles/${poleId}/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action: 'ADD_MEMBER' })
-      });
-      if (res.ok) {
-        fetchPoleDetails();
-        onRefreshAll();
-      } else {
-        // Roll back the optimistic removal on failure
-        setActionSuccess(null);
-        fetchAvailableUsers();
-      }
+      await addMemberMutation({ poleId: poleId as Id<'poles'>, userId: userId as Id<'users'> });
+      onRefreshAll();
     } catch (e) {
-      console.error(e);
       setActionSuccess(null);
-      fetchAvailableUsers();
+      setActionError(convexErrorMessage(e, "Erreur lors de l'ajout du membre"));
     }
   };
 
   const handleSaveChecklist = async (e: React.FormEvent) => {
     e.preventDefault();
+    const steps = checklistSteps
+      .filter((s) => s.title.trim().length > 0)
+      .map((s) => ({
+        title: s.title,
+        description: s.description,
+        mediaType: s.mediaType,
+        mediaUrl: s.mediaUrl || undefined
+      }));
+
     try {
       if (editingChecklist) {
-        // Update existing checklist
-        await fetch(`/api/checklists/${editingChecklist.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: checklistTitle,
-            description: checklistDescription,
-            steps: checklistSteps.filter((s) => s.title.trim().length > 0)
-          })
+        await updateChecklistMutation({
+          checklistId: editingChecklist.id as Id<'checklists'>,
+          title: checklistTitle,
+          description: checklistDescription,
+          steps
         });
         setActionSuccess('Checklist modifiée avec succès.');
       } else {
-        // Create new checklist
-        await fetch('/api/checklists', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            poleId,
-            title: checklistTitle,
-            description: checklistDescription,
-            steps: checklistSteps.filter((s) => s.title.trim().length > 0)
-          })
+        await createChecklistMutation({
+          poleId: poleId as Id<'poles'>,
+          title: checklistTitle,
+          description: checklistDescription,
+          steps
         });
         setActionSuccess('Checklist créée avec succès.');
       }
@@ -414,10 +380,9 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
       setChecklistTitle('');
       setChecklistDescription('');
       setChecklistSteps([{ title: '', description: '', mediaType: 'NONE', mediaUrl: '' }]);
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, 'Erreur lors de l\'enregistrement de la checklist'));
     }
   };
 
@@ -429,14 +394,12 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     if (!deletingChecklist) return;
     try {
       setDeletingLoading(true);
-      await fetch(`/api/checklists/${deletingChecklist.id}`, { method: 'DELETE' });
+      await removeChecklistMutation({ checklistId: deletingChecklist.id as Id<'checklists'> });
       setActionSuccess('Checklist supprimée avec succès.');
       setDeletingChecklist(null);
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
-      setActionError('Erreur lors de la suppression.');
+      setActionError(convexErrorMessage(e, 'Erreur lors de la suppression.'));
     } finally {
       setDeletingLoading(false);
     }
@@ -445,21 +408,17 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   const handleUpdatePole = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetch(`/api/poles/${poleId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editName,
-          description: editDescription,
-          color: editColor
-        })
+      await updatePoleMutation({
+        poleId: poleId as Id<'poles'>,
+        name: editName,
+        description: editDescription,
+        color: editColor
       });
       setShowEditPoleModal(false);
       setActionSuccess('Informations du pôle mises à jour.');
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, 'Erreur lors de la mise à jour du pôle'));
     }
   };
 
@@ -467,24 +426,16 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     e.preventDefault();
     if (!currentUser) return;
     try {
-      const res = await fetch('/api/membership-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          poleId,
-          motivation: joinMotivation.trim() || 'Demande d\'adhésion'
-        })
+      await requestToJoin({
+        poleId: poleId as Id<'poles'>,
+        motivation: joinMotivation.trim() || 'Demande d\'adhésion'
       });
-      if (res.ok) {
-        setShowJoinModal(false);
-        setJoinMotivation('');
-        setActionSuccess('Votre demande d\'adhésion a été transmise.');
-        fetchPoleDetails();
-        onRefreshAll();
-      }
+      setShowJoinModal(false);
+      setJoinMotivation('');
+      setActionSuccess('Votre demande d\'adhésion a été transmise.');
+      onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, "Erreur lors de l'envoi de la demande"));
     }
   };
 
@@ -529,6 +480,15 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
           <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
           <span className="font-semibold flex-1">{actionSuccess}</span>
           <button onClick={() => setActionSuccess(null)} className="text-emerald-100 hover:text-white flex-shrink-0">
+            ✕
+          </button>
+        </div>
+      )}
+      {actionError && (
+        <div className="fixed bottom-6 right-6 z-[70] max-w-sm p-4 rounded-2xl bg-rose-600 text-white text-xs flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span className="font-semibold flex-1">{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-rose-100 hover:text-white flex-shrink-0">
             ✕
           </button>
         </div>
@@ -1584,7 +1544,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
           currentUser={currentUser}
           onClose={() => setRunningChecklist(null)}
           onCompleted={() => {
-            fetchPoleDetails();
             onRefreshAll();
           }}
         />

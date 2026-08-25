@@ -1,4 +1,5 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { ConvexError } from "convex/values";
 import { QueryCtx, MutationCtx } from "../_generated/server";
 import { Doc, Id } from "../_generated/dataModel";
 
@@ -17,7 +18,7 @@ export async function getCurrentUser(ctx: Ctx): Promise<Doc<"users"> | null> {
 export async function requireAuth(ctx: Ctx): Promise<Doc<"users">> {
   const user = await getCurrentUser(ctx);
   if (!user) {
-    throw new Error("Non authentifié. Veuillez vous connecter.");
+    throw new ConvexError("Non authentifié. Veuillez vous connecter.");
   }
   return user;
 }
@@ -29,7 +30,7 @@ export function isLeaderOrAdmin(user: Doc<"users">): boolean {
 export async function requireLeaderOrAdmin(ctx: Ctx): Promise<Doc<"users">> {
   const user = await requireAuth(ctx);
   if (!LEADER_ROLES.includes(user.role)) {
-    throw new Error("Accès interdit. Privilèges de responsable requis.");
+    throw new ConvexError("Accès interdit. Privilèges de responsable requis.");
   }
   return user;
 }
@@ -37,7 +38,7 @@ export async function requireLeaderOrAdmin(ctx: Ctx): Promise<Doc<"users">> {
 export async function requireDepartmentLeaderOrAdmin(ctx: Ctx): Promise<Doc<"users">> {
   const user = await requireAuth(ctx);
   if (user.role !== "SUPER_ADMIN" && user.role !== "DEPARTMENT_LEADER") {
-    throw new Error("Accès interdit. Réservé aux responsables de département et administrateurs.");
+    throw new ConvexError("Accès interdit. Réservé aux responsables de département et administrateurs.");
   }
   return user;
 }
@@ -53,7 +54,7 @@ export async function requirePoleLeaderOrAdmin(ctx: Ctx, poleId: Id<"poles">): P
     .first();
 
   if (!leadership) {
-    throw new Error("Accès interdit. Vous devez être responsable de ce pôle.");
+    throw new ConvexError("Accès interdit. Vous devez être responsable de ce pôle.");
   }
   return user;
 }

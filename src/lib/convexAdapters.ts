@@ -141,6 +141,68 @@ function adaptMembershipRequestLite(r: any) {
   };
 }
 
+// Adapts convex/poles.ts's `get` (single-pole detail) query result — same
+// _id-to-id treatment as the rest of this file, applied to every nested
+// level PoleDetailView reads (leaders/memberships/membershipRequests/
+// eventRequirements/checklists). Foreign-key fields (userId/poleId/eventId/
+// checklistId) are already valid Convex id strings and compare directly
+// against `currentUser.id`, so only `_id` needs renaming, not those.
+export function adaptPoleDetail(raw: any) {
+  if (!raw) return raw;
+  const adaptCard = (u: any) => (u ? { ...u, id: u._id } : u);
+
+  return {
+    ...raw,
+    id: raw._id,
+    leaders: (raw.leaders || []).map((l: any) => ({ ...l, id: l._id, user: adaptCard(l.user) })),
+    memberships: (raw.memberships || []).map((m: any) => ({ ...m, id: m._id, user: adaptCard(m.user) })),
+    membershipRequests: (raw.membershipRequests || []).map((r: any) => ({ ...r, id: r._id, user: adaptCard(r.user) })),
+    checklists: (raw.checklists || []).map((c: any) => ({
+      ...c,
+      id: c._id,
+      steps: (c.steps || []).map((s: any) => ({ ...s, id: s._id })),
+      eventChecklists: (c.eventChecklists || []).map((ec: any) => ({ ...ec, id: ec._id })),
+    })),
+    eventRequirements: (raw.eventRequirements || []).map((r: any) => ({
+      ...r,
+      id: r._id,
+      event: r.event
+        ? {
+            ...r.event,
+            id: r.event._id,
+            assignments: (r.event.assignments || []).map((a: any) => ({ ...a, id: a._id, user: adaptCard(a.user) })),
+          }
+        : r.event,
+    })),
+  };
+}
+
+// Adapts convex/members.ts's `list` query result. Nested pole objects
+// (poleMemberships[].pole, poleLeaderships[].pole) only ever have their
+// name/color/icon read by MembersManagement, never `.id`, so they're left
+// as raw Convex docs — only the top-level user needs `_id` renamed.
+export function adaptMemberListItem(m: any) {
+  if (!m) return m;
+  return { ...m, id: m._id };
+}
+
+// Adapts convex/membershipRequests.ts's `list` query result.
+export function adaptMembershipRequestListItem(r: any) {
+  if (!r) return r;
+  return {
+    ...r,
+    id: r._id,
+    createdAt: r._creationTime,
+    user: r.user
+      ? {
+          ...r.user,
+          id: r.user._id,
+          poleMemberships: (r.user.poleMemberships || []).map((pm: any) => ({ ...pm, id: pm._id })),
+        }
+      : r.user,
+  };
+}
+
 // Shapes convex/dashboard.ts's `get` query result into the same structure
 // DesktopDashboard/MemberDashboard were already written against (the old
 // /api/dashboard response) — everything nested (events, poles, users) goes

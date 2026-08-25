@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import {
   requireAuth,
@@ -67,7 +67,7 @@ export const get = query({
     await requireAuth(ctx);
 
     const pole = await ctx.db.get(poleId);
-    if (!pole) throw new Error("Pôle introuvable");
+    if (!pole) throw new ConvexError("Pôle introuvable");
 
     const [leaders, memberships, checklists, pendingRequests, requirements] = await Promise.all([
       ctx.db.query("poleLeaders").withIndex("poleId", (q) => q.eq("poleId", poleId)).collect(),
@@ -159,12 +159,12 @@ export const create = mutation({
     await requireDepartmentLeaderOrAdmin(ctx);
 
     const name = args.name.trim();
-    if (!name) throw new Error("Nom du pôle obligatoire");
+    if (!name) throw new ConvexError("Nom du pôle obligatoire");
 
     let departmentId = args.departmentId;
     if (!departmentId) {
       const firstDept = await ctx.db.query("departments").first();
-      if (!firstDept) throw new Error("Aucun département configuré");
+      if (!firstDept) throw new ConvexError("Aucun département configuré");
       departmentId = firstDept._id;
     }
 

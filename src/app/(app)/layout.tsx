@@ -31,6 +31,14 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   const { signOut } = useAuthActions();
   const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
 
+  // Dashboard, poles and the current month's events are all reactive Convex
+  // queries now — no fetch/cache/polling needed, every mutation anywhere in
+  // the app updates these automatically.
+  const dashboardDataRaw = useQuery(api.dashboard.get, isAuthenticated ? {} : 'skip');
+  const dashboardData = React.useMemo(() => adaptDashboard(dashboardDataRaw), [dashboardDataRaw]);
+  const polesRaw = useQuery(api.poles.list, isAuthenticated ? {} : 'skip');
+  const poles = React.useMemo(() => (polesRaw || []).map(adaptPole), [polesRaw]);
+
   // The current user is now sourced from Convex (reactive, no polling
   // needed). `currentUserOverride` exists only so the settings page's
   // optimistic `setCurrentUser(u)` call after a profile edit keeps working
@@ -39,6 +47,22 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   const currentUser = React.useMemo<User | null>(() => {
     if (currentUserOverride) return currentUserOverride;
     if (!viewer) return null;
+    // poles.list already carries each pole's full membership/leadership
+    // lists — derive the viewer's own from those instead of a separate
+    // query. Only ACTIVE memberships exist in this table (there's no
+    // PENDING status on poleMemberships, that lives on membershipRequests),
+    // so pole pages that check for a "pending" state rely on their own
+    // local post-submit state instead, not this array.
+    const myPoleMemberships = (polesRaw || []).flatMap((p: any) =>
+      (p.memberships || [])
+        .filter((m: any) => m.userId === viewer._id)
+        .map((m: any) => ({ poleId: p._id, status: m.status }))
+    );
+    const myPoleLeaderships = (polesRaw || []).flatMap((p: any) =>
+      (p.leaders || [])
+        .filter((l: any) => l.userId === viewer._id)
+        .map((l: any) => ({ poleId: p._id, roleTitle: l.roleTitle }))
+    );
     return {
       id: viewer._id,
       firstName: viewer.firstName,
@@ -50,10 +74,10 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
       role: viewer.role as User['role'],
       status: viewer.status,
       departmentId: viewer.departmentId ?? null,
-      poleMemberships: [],
-      poleLeaderships: [],
+      poleMemberships: myPoleMemberships,
+      poleLeaderships: myPoleLeaderships,
     };
-  }, [viewer, currentUserOverride]);
+  }, [viewer, currentUserOverride, polesRaw]);
   const setCurrentUser: React.Dispatch<React.SetStateAction<User | null>> = setCurrentUserOverride;
 
   // Application Data States
@@ -63,13 +87,10 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   const [loadingProgress, setLoadingProgress] = React.useState(15);
   const [loadingStatus, setLoadingStatus] = React.useState('Vérification de votre session...');
 
-  // Dashboard, poles and the current month's events are all reactive Convex
-  // queries now — no fetch/cache/polling needed, every mutation anywhere in
+  // The current month's events are reactive too (dashboard/poles are
+  // declared above, before currentUser, since currentUser derives from
+  // polesRaw) — no fetch/cache/polling needed, every mutation anywhere in
   // the app updates these automatically.
-  const dashboardDataRaw = useQuery(api.dashboard.get, isAuthenticated ? {} : 'skip');
-  const dashboardData = React.useMemo(() => adaptDashboard(dashboardDataRaw), [dashboardDataRaw]);
-  const polesRaw = useQuery(api.poles.list, isAuthenticated ? {} : 'skip');
-  const poles = React.useMemo(() => (polesRaw || []).map(adaptPole), [polesRaw]);
   const currentMonthKey = React.useMemo(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

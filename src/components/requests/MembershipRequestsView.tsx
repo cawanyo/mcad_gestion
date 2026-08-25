@@ -12,15 +12,19 @@ import {
   Send,
   Search,
   Filter,
-  RefreshCw,
   Sparkles,
   MessageSquare,
   ShieldCheck,
   Calendar,
   Check
 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
 import { Pole, User } from '@/types';
 import { Avatar, Badge, EmptyState, Toast, Modal, ConfirmModal } from '@/components/ui';
+import { adaptMembershipRequestListItem } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
 interface MembershipRequestsViewProps {
   currentUser?: User | null;
@@ -33,8 +37,6 @@ export const MembershipRequestsView: React.FC<MembershipRequestsViewProps> = ({
   poles = [],
   onRefreshAll
 }) => {
-  const [requests, setRequests] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
   const [statusFilter, setStatusFilter] = React.useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'>('PENDING');
   const [selectedPoleId, setSelectedPoleId] = React.useState<string>('ALL');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
@@ -42,76 +44,26 @@ export const MembershipRequestsView: React.FC<MembershipRequestsViewProps> = ({
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [rejectingRequest, setRejectingRequest] = React.useState<any | null>(null);
 
-  const fetchRequests = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (statusFilter !== 'ALL') params.set('status', statusFilter);
-      if (selectedPoleId !== 'ALL') params.set('poleId', selectedPoleId);
-
-      const res = await fetch(`/api/membership-requests?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setRequests(data);
-      }
-    } catch (e) {
-      console.error('Error fetching membership requests:', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter, selectedPoleId]);
-
-  React.useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
-
-  // Listen to SSE real-time events
-  React.useEffect(() => {
-    const eventSource = new EventSource('/api/realtime');
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (
-          payload.type === 'MEMBERSHIP_REQUEST_CREATED' ||
-          payload.type === 'MEMBERSHIP_REQUEST_UPDATED' ||
-          payload.type === 'REFRESH_ALL'
-        ) {
-          fetchRequests();
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    return () => eventSource.close();
-  }, [fetchRequests]);
+  const reviewRequest = useMutation(api.membershipRequests.review);
+  const requestsRaw = useQuery(api.membershipRequests.list, {
+    status: statusFilter !== 'ALL' ? statusFilter : undefined,
+    poleId: selectedPoleId !== 'ALL' ? (selectedPoleId as Id<'poles'>) : undefined
+  });
+  const loading = requestsRaw === undefined;
+  const requests = React.useMemo(() => (requestsRaw || []).map(adaptMembershipRequestListItem), [requestsRaw]);
 
   const handleUpdateStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
     try {
       setProcessingId(requestId);
-      const res = await fetch(`/api/membership-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status,
-          reviewedById: currentUser?.id
-        })
+      await reviewRequest({ requestId: requestId as Id<'membershipRequests'>, status });
+      setToast({
+        message: status === 'APPROVED' ? 'Demande approuvée avec succès !' : 'Demande refusée.',
+        type: status === 'APPROVED' ? 'success' : 'info'
       });
-
-      if (res.ok) {
-        setToast({
-          message: status === 'APPROVED' ? 'Demande approuvée avec succès !' : 'Demande refusée.',
-          type: status === 'APPROVED' ? 'success' : 'info'
-        });
-        setRejectingRequest(null);
-        fetchRequests();
-        if (onRefreshAll) onRefreshAll();
-      } else {
-        const data = await res.json();
-        setToast({ message: data.error || 'Erreur lors du traitement', type: 'error' });
-      }
+      setRejectingRequest(null);
+      if (onRefreshAll) onRefreshAll();
     } catch (e) {
-      console.error(e);
-      setToast({ message: 'Erreur réseau', type: 'error' });
+      setToast({ message: convexErrorMessage(e, 'Erreur lors du traitement'), type: 'error' });
     } finally {
       setProcessingId(null);
     }
@@ -160,14 +112,6 @@ export const MembershipRequestsView: React.FC<MembershipRequestsViewProps> = ({
             Validez ou refusez les demandes des STARS souhaitant rejoindre les pôles de service.
           </p>
         </div>
-
-        <button
-          onClick={fetchRequests}
-          className="self-start sm:self-auto flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold shadow-xs transition-colors"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Actualiser</span>
-        </button>
       </div>
 
       {/* Filters Bar: Responsive Tabs, Dropdown & Search */}
