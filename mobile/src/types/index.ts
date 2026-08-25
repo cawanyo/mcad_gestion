@@ -21,10 +21,9 @@ export interface User {
   birthday?: string;
   bio?: string;
   poles?: { pole: Pole; roleTag?: string; joinedAt: string }[];
-  // TODO(next pass): these mirror the web app's currentUser.poleMemberships /
-  // poleLeaderships shape (see src/contexts/AppShellContext.tsx on the web
-  // side) — loosely typed here until the mobile screens are rewired to
-  // Convex and this whole file gets aligned with @/types.
+  // Mirrors the web app's currentUser.poleMemberships shape (see
+  // (app)/layout.tsx on the web side) — populated by
+  // derivePoleMemberships() in src/lib/convexAdapters.ts.
   poleMemberships?: { id: string; poleId: string; pole?: Pole; status?: string }[];
   poleLeaderships?: { id: string; poleId: string; pole?: Pole; roleTitle?: string }[];
   membershipRequests?: { id: string; poleId: string; status: string }[];

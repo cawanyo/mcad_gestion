@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, Calendar, Layers, CheckSquare, GraduationCap, User as UserIcon } from 'lucide-react-native';
+import { Home, Calendar, GraduationCap, HandHeart, Sparkles, ShieldCheck, User as UserIcon } from 'lucide-react-native';
 import { useConvexAuth, useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { ConvexClientProvider } from './src/convex/ConvexClientProvider';
@@ -21,9 +21,35 @@ import { PolesScreen } from './src/screens/PolesScreen';
 import { ChecklistsScreen } from './src/screens/ChecklistsScreen';
 import { TrainingScreen } from './src/screens/TrainingScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { UnavailabilitiesScreen } from './src/screens/UnavailabilitiesScreen';
+import { BirthdaysScreen } from './src/screens/BirthdaysScreen';
+import { StatisticsScreen } from './src/screens/StatisticsScreen';
+import { RequestsScreen } from './src/screens/RequestsScreen';
+import { ServiceHubScreen } from './src/screens/ServiceHubScreen';
+import { LifeHubScreen } from './src/screens/LifeHubScreen';
+import { LeaderHubScreen } from './src/screens/LeaderHubScreen';
 
 const Tab = createBottomTabNavigator();
 const CalendarStack = createNativeStackNavigator();
+const ServiceStack = createNativeStackNavigator();
+const LifeStack = createNativeStackNavigator();
+const LeaderStack = createNativeStackNavigator();
+
+const isLeaderOrAdmin = (u: User) =>
+  u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER' || u.role === 'POLE_LEADER' || u.role === 'CALENDAR_MANAGER';
+
+// A bare back button, no title — lets Poles/Checklists/Unavailabilities/etc.
+// keep rendering their own in-content header (built as standalone tab
+// screens originally) while still getting a working native back affordance
+// on Android once nested under a hub stack, without having to edit those
+// screens themselves.
+const backOnlyHeader = {
+  headerShown: true,
+  headerTitle: '',
+  headerTintColor: theme.colors.primary,
+  headerStyle: { backgroundColor: theme.colors.card },
+  headerShadowVisible: false
+} as const;
 
 function CalendarStackScreen({ currentUser }: { currentUser: User }) {
   return (
@@ -55,16 +81,67 @@ function CalendarStackScreen({ currentUser }: { currentUser: User }) {
   );
 }
 
-// TODO(next pass): the web app groups Poles/Checklists/Unavailabilities under
-// a "Service" hub and has separate "Vie MCAD" / "Responsable" (leader-only)
-// hubs — see src/components/layout/BottomTabBar.tsx. This flat 6-tab layout
-// mirrors what screens actually exist in this app today; regrouping into
-// hubs (and adding the missing screens: requests, unavailabilities,
-// birthdays, stats, settings, leader/service/life hubs, notifications,
-// assignments drawer) is the next pass's job, not this foundation pass.
+// Groups Poles/Checklists/Unavailabilities under one bottom tab, matching
+// SERVICE_GROUP_PATHS in src/lib/navigation.ts on the web side.
+function ServiceStackScreen({ currentUser }: { currentUser: User }) {
+  return (
+    <ServiceStack.Navigator screenOptions={{ headerShown: false }}>
+      <ServiceStack.Screen name="ServiceHub">
+        {({ navigation }) => <ServiceHubScreen navigation={navigation} />}
+      </ServiceStack.Screen>
+      <ServiceStack.Screen name="Poles" options={backOnlyHeader}>
+        {() => <PolesScreen currentUser={currentUser} />}
+      </ServiceStack.Screen>
+      <ServiceStack.Screen name="Checklists" options={backOnlyHeader}>
+        {() => <ChecklistsScreen currentUser={currentUser} />}
+      </ServiceStack.Screen>
+      <ServiceStack.Screen name="Unavailabilities" options={backOnlyHeader}>
+        {() => <UnavailabilitiesScreen currentUser={currentUser} />}
+      </ServiceStack.Screen>
+    </ServiceStack.Navigator>
+  );
+}
+
+// Groups Birthdays/Statistics under the "Vie MCAD" tab, matching
+// LIFE_GROUP_PATHS on the web side (web puts Statistics under "life", not
+// under the leader hub, even for leaders — a personal-vs-department stats
+// toggle lives inside the screen itself).
+function LifeStackScreen({ currentUser }: { currentUser: User }) {
+  return (
+    <LifeStack.Navigator screenOptions={{ headerShown: false }}>
+      <LifeStack.Screen name="LifeHub">
+        {({ navigation }) => <LifeHubScreen navigation={navigation} />}
+      </LifeStack.Screen>
+      <LifeStack.Screen name="Birthdays" options={backOnlyHeader}>
+        {() => <BirthdaysScreen />}
+      </LifeStack.Screen>
+      <LifeStack.Screen name="Statistics" options={backOnlyHeader}>
+        {() => <StatisticsScreen currentUser={currentUser} />}
+      </LifeStack.Screen>
+    </LifeStack.Navigator>
+  );
+}
+
+// Role-gated "Responsable" tab, matching LEADER_GROUP_PATHS. Only Requests
+// is wired natively so far — leader-dashboard and Members management have
+// no native screen yet (out of scope for this pass).
+function LeaderStackScreen() {
+  return (
+    <LeaderStack.Navigator screenOptions={{ headerShown: false }}>
+      <LeaderStack.Screen name="LeaderHub">
+        {({ navigation }) => <LeaderHubScreen navigation={navigation} />}
+      </LeaderStack.Screen>
+      <LeaderStack.Screen name="Requests" options={backOnlyHeader}>
+        {() => <RequestsScreen />}
+      </LeaderStack.Screen>
+    </LeaderStack.Navigator>
+  );
+}
+
 function MainTabs({ currentUser }: { currentUser: User }) {
   const { signOut } = useAuthActions();
   const [trainingToOpen, setTrainingToOpen] = React.useState<any>(null);
+  const leader = isLeaderOrAdmin(currentUser);
 
   return (
     <Tab.Navigator
@@ -83,11 +160,14 @@ function MainTabs({ currentUser }: { currentUser: User }) {
           <HomeScreen
             currentUser={currentUser}
             onNavigateTab={(tab) => {
+              // Poles/Checklists/Unavailabilities now live nested inside the
+              // "Service" tab's own stack, not as top-level tab routes —
+              // navigate into the nested screen rather than a flat tab name.
+              if (tab === 'poles') return navigation.navigate('Service', { screen: 'Poles' });
+              if (tab === 'checklists') return navigation.navigate('Service', { screen: 'Checklists' });
               const routeByTab: Record<string, string> = {
                 accueil: 'Accueil',
                 calendrier: 'Calendrier',
-                poles: 'Pôles',
-                checklists: 'Checklists',
                 formations: 'Formations',
                 profil: 'Profil'
               };
@@ -97,7 +177,7 @@ function MainTabs({ currentUser }: { currentUser: User }) {
               setTrainingToOpen(module);
               navigation.navigate('Formations');
             }}
-            onOpenUnavailability={() => navigation.navigate('Profil')}
+            onOpenUnavailability={() => navigation.navigate('Service', { screen: 'Unavailabilities' })}
           />
         )}
       </Tab.Screen>
@@ -107,20 +187,6 @@ function MainTabs({ currentUser }: { currentUser: User }) {
         options={{ tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} /> }}
       >
         {() => <CalendarStackScreen currentUser={currentUser} />}
-      </Tab.Screen>
-
-      <Tab.Screen
-        name="Pôles"
-        options={{ tabBarIcon: ({ color, size }) => <Layers color={color} size={size} /> }}
-      >
-        {() => <PolesScreen currentUser={currentUser} />}
-      </Tab.Screen>
-
-      <Tab.Screen
-        name="Checklists"
-        options={{ tabBarIcon: ({ color, size }) => <CheckSquare color={color} size={size} /> }}
-      >
-        {() => <ChecklistsScreen currentUser={currentUser} />}
       </Tab.Screen>
 
       <Tab.Screen
@@ -135,6 +201,29 @@ function MainTabs({ currentUser }: { currentUser: User }) {
           />
         )}
       </Tab.Screen>
+
+      <Tab.Screen
+        name="Service"
+        options={{ tabBarIcon: ({ color, size }) => <HandHeart color={color} size={size} /> }}
+      >
+        {() => <ServiceStackScreen currentUser={currentUser} />}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="Vie MCAD"
+        options={{ tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} /> }}
+      >
+        {() => <LifeStackScreen currentUser={currentUser} />}
+      </Tab.Screen>
+
+      {leader && (
+        <Tab.Screen
+          name="Responsable"
+          options={{ tabBarIcon: ({ color, size }) => <ShieldCheck color={color} size={size} /> }}
+        >
+          {() => <LeaderStackScreen />}
+        </Tab.Screen>
+      )}
 
       <Tab.Screen
         name="Profil"
