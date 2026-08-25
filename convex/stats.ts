@@ -1,5 +1,5 @@
 import { query } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
 
 const MONTH_NAMES = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
@@ -20,7 +20,7 @@ export const get = query({
 
     if (userId) {
       const user = await ctx.db.get(userId);
-      if (!user) throw new Error("Membre non trouvé");
+      if (!user) throw new ConvexError("Membre non trouvé");
 
       const memberships = await ctx.db.query("poleMemberships").withIndex("userId", (q) => q.eq("userId", userId)).collect();
 

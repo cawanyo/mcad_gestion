@@ -11,9 +11,9 @@ import { Header } from '@/components/layout/Header';
 import { BottomTabBar } from '@/components/layout/BottomTabBar';
 import { User, Pole, Event, NotificationItem } from '@/types';
 import { Sparkles } from 'lucide-react';
-import { getCachedItem, setCachedItem, invalidateCache, CacheKeys, CacheTTL } from '@/lib/cache';
+import { invalidateCache } from '@/lib/cache';
 import { tabToPath } from '@/lib/navigation';
-import { adaptDashboard, adaptEvent, adaptPole } from '@/lib/convexAdapters';
+import { adaptDashboard, adaptEvent, adaptPole, adaptNotification, adaptMemberListItem } from '@/lib/convexAdapters';
 import { AppShellContext, AppShellContextValue } from '@/contexts/AppShellContext';
 import { Id } from '../../../convex/_generated/dataModel';
 
@@ -81,9 +81,14 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   const setCurrentUser: React.Dispatch<React.SetStateAction<User | null>> = setCurrentUserOverride;
 
   // Application Data States
-  const [allUsers, setAllUsers] = React.useState<User[]>([]);
-  const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = React.useState(0);
+  const allUsersRaw = useQuery(api.members.list, isAuthenticated ? {} : 'skip');
+  const allUsers = React.useMemo(() => (allUsersRaw || []).map(adaptMemberListItem) as User[], [allUsersRaw]);
+  const notificationsRaw = useQuery(api.notifications.list, isAuthenticated ? {} : 'skip');
+  const notifications = React.useMemo(
+    () => (notificationsRaw?.notifications || []).map(adaptNotification) as NotificationItem[],
+    [notificationsRaw]
+  );
+  const unreadNotificationsCount = notificationsRaw?.unreadCount ?? 0;
   const [loadingProgress, setLoadingProgress] = React.useState(15);
   const [loadingStatus, setLoadingStatus] = React.useState('Vérification de votre session...');
 
@@ -130,40 +135,12 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     router.push('/calendar');
   }, [router]);
 
-  // Notifications and allUsers are the only remaining shell-level data still
-  // backed by the old Postgres routes (their pages/consumers haven't been
-  // migrated to Convex yet) — dashboard, poles and events above are now
-  // reactive Convex queries and need no fetch/refresh call at all.
-  const fetchData = async () => {
-    try {
-      const [notifRes, usersRes] = await Promise.allSettled([
-        fetch('/api/notifications'),
-        fetch('/api/auth/current?includeAllUsers=true')
-      ]);
-
-      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
-        const notifData = await notifRes.value.json();
-        setNotifications(notifData.notifications || []);
-        setUnreadNotificationsCount(notifData.unreadCount ?? 0);
-      }
-
-      if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
-        const usersData = await usersRes.value.json();
-        setAllUsers(usersData.allUsers || []);
-      }
-    } catch (e) {
-      console.error('Data fetch error:', e);
-    }
-  };
-
-  const fetchedForUserId = React.useRef<string | null>(null);
-  React.useEffect(() => {
-    if (authLoading || !isAuthenticated || !viewer) return;
-    if (fetchedForUserId.current === viewer._id) return;
-    fetchedForUserId.current = viewer._id;
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, isAuthenticated, viewer]);
+  // allUsers and notifications above are reactive Convex queries too — no
+  // fetch/refresh call needed, same as dashboard/poles/events. `fetchData`
+  // itself is now a no-op kept only because several pages still call
+  // `onRefresh`/`fetchData` from context after a mutation out of habit from
+  // the old fetch()-based world — harmless once every query is reactive.
+  const fetchData = async () => {};
 
   // Once we know for sure there's no session, bounce to the public landing
   // page — this is the client-side equivalent of the old inline
@@ -212,27 +189,16 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     window.location.href = '/login';
   };
 
-  // Notification handlers
+  // Notification handlers — notifications is a reactive Convex query, so no
+  // optimistic local state patch is needed, the mutation's own effect
+  // re-renders it automatically.
+  const markNotificationRead = useMutation(api.notifications.markRead);
   const handleMarkNotificationRead = async (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
-    setUnreadNotificationsCount((prev) => Math.max(0, prev - 1));
-    await fetch('/api/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
+    await markNotificationRead({ notificationId: id as Id<'notifications'> });
   };
 
   const handleMarkAllNotificationsRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setUnreadNotificationsCount(0);
-    await fetch('/api/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markAllRead: true, userId: currentUser?.id })
-    });
+    await markNotificationRead({ markAllRead: true });
   };
 
   // Loading state with dynamic progress & completion stages

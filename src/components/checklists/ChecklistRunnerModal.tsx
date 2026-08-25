@@ -17,6 +17,9 @@ import {
   Check,
   RotateCcw
 } from 'lucide-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import { Checklist, User } from '@/types';
 import { MediaViewer } from '@/components/ui';
 
@@ -48,6 +51,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
   const [submitting, setSubmitting] = React.useState(false);
 
   const currentStep = steps[currentStepIndex];
+  const createExecution = useMutation(api.checklists.createExecution);
 
   // Calculate percentage
   const progressPercent = totalSteps > 0
@@ -97,24 +101,17 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/checklists/execution', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          checklistId: checklist.id,
-          userId: currentUser.id,
-          poleId: checklist.poleId || checklist.pole?.id,
-          eventId: eventId || null,
-          completedStepIds: Array.from(completedSteps),
-          comment: comment.trim(),
-          status: 'COMPLETED'
-        })
+      await createExecution({
+        checklistId: checklist.id as Id<'checklists'>,
+        userId: currentUser.id as Id<'users'>,
+        poleId: (checklist.poleId || checklist.pole?.id) as Id<'poles'> | undefined,
+        eventId: eventId ? (eventId as Id<'events'>) : undefined,
+        completedStepIds: Array.from(completedSteps) as Id<'checklistSteps'>[],
+        comment: comment.trim(),
+        status: 'COMPLETED'
       });
-
-      if (res.ok) {
-        setCurrentScreen('SUCCESS');
-        if (onCompleted) onCompleted();
-      }
+      setCurrentScreen('SUCCESS');
+      if (onCompleted) onCompleted();
     } catch (e) {
       console.error('Error submitting checklist:', e);
     } finally {

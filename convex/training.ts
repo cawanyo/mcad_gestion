@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireAuth, requireLeaderOrAdmin } from "./lib/auth";
 
@@ -91,7 +91,7 @@ export const get = query({
   handler: async (ctx, { moduleId }) => {
     const user = await requireAuth(ctx);
     const moduleDoc = await ctx.db.get(moduleId);
-    if (!moduleDoc) throw new Error("Module de formation introuvable");
+    if (!moduleDoc) throw new ConvexError("Module de formation introuvable");
     return await formatModule(ctx, moduleDoc, user._id);
   },
 });
@@ -110,7 +110,7 @@ export const create = mutation({
     await requireLeaderOrAdmin(ctx);
 
     const title = args.title.trim();
-    if (!args.poleId || !title) throw new Error("Le pôle et le titre sont requis.");
+    if (!args.poleId || !title) throw new ConvexError("Le pôle et le titre sont requis.");
 
     const moduleId = await ctx.db.insert("trainingModules", {
       poleId: args.poleId,
@@ -212,7 +212,7 @@ export const remove = mutation({
     await requireLeaderOrAdmin(ctx);
 
     const moduleDoc = await ctx.db.get(moduleId);
-    if (!moduleDoc) throw new Error("Module introuvable");
+    if (!moduleDoc) throw new ConvexError("Module introuvable");
 
     const progress = await ctx.db.query("trainingModuleProgress").withIndex("moduleId", (q) => q.eq("moduleId", moduleId)).collect();
     for (const p of progress) await ctx.db.delete(p._id);
@@ -239,7 +239,7 @@ export const updateProgress = mutation({
     const currentUser = await requireAuth(ctx);
 
     const moduleDoc = await ctx.db.get(moduleId);
-    if (!moduleDoc) throw new Error("Module introuvable.");
+    if (!moduleDoc) throw new ConvexError("Module introuvable.");
 
     const lessons = await ctx.db.query("trainingLessons").withIndex("moduleId", (q) => q.eq("moduleId", moduleId)).collect();
     const totalLessons = lessons.length;
@@ -289,7 +289,7 @@ export const updateProgress = mutation({
     }
 
     if (action === "TOGGLE_LESSON" || action === "COMPLETE_LESSON") {
-      if (!lessonId) throw new Error("ID de la leçon requis.");
+      if (!lessonId) throw new ConvexError("ID de la leçon requis.");
 
       const existingCompletion = await ctx.db
         .query("trainingLessonCompletions")
@@ -343,6 +343,6 @@ export const updateProgress = mutation({
       };
     }
 
-    throw new Error("Action non reconnue.");
+    throw new ConvexError("Action non reconnue.");
   },
 });

@@ -23,6 +23,10 @@ import {
   XCircle,
   AlertTriangle
 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { adaptUnavailability } from '@/lib/convexAdapters';
 import { User, Pole, Unavailability } from '@/types';
 import { UnavailabilityModal } from './UnavailabilityModal';
 import { ConfirmModal } from '@/components/ui';
@@ -38,8 +42,13 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
   poles = [],
   members = []
 }) => {
-  const [unavailabilities, setUnavailabilities] = React.useState<Unavailability[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(true);
+  const unavailabilitiesRaw = useQuery(api.unavailabilities.list, {});
+  const loading = unavailabilitiesRaw === undefined;
+  const unavailabilities = React.useMemo(
+    () => (unavailabilitiesRaw || []).map(adaptUnavailability) as Unavailability[],
+    [unavailabilitiesRaw]
+  );
+  const removeUnavailability = useMutation(api.unavailabilities.remove);
   const [searchQuery, setSearchQuery] = React.useState<string>('');
   const [selectedPoleFilter, setSelectedPoleFilter] = React.useState<string>('all');
   const [selectedScope, setSelectedScope] = React.useState<'all' | 'active' | 'upcoming' | 'past'>('all');
@@ -62,43 +71,6 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
     currentUser?.role === 'POLE_LEADER' ||
     currentUser?.role === 'CALENDAR_MANAGER';
 
-  // Fetch unavailabilities
-  const fetchUnavailabilities = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/unavailabilities');
-      if (res.ok) {
-        const data = await res.json();
-        setUnavailabilities(data);
-      }
-    } catch (e) {
-      console.error('Error fetching unavailabilities:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Real-time updates listener
-  React.useEffect(() => {
-    fetchUnavailabilities();
-
-    const eventSource = new EventSource('/api/realtime');
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === 'UNAVAILABILITY_CREATED' || payload.type === 'UNAVAILABILITY_DELETED' || payload.type === 'UNAVAILABILITY_UPDATED' || payload.type === 'INIT') {
-          fetchUnavailabilities();
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, []);
-
   // Delete trigger
   const handleDelete = (id: string) => {
     setDeleteConfirmId(id);
@@ -106,23 +78,12 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
 
   const executeDelete = async () => {
     if (!deleteConfirmId) return;
-
     const targetId = deleteConfirmId;
     setDeleteConfirmId(null);
-
-    // Optimistic update
-    setUnavailabilities((prev) => prev.filter((u) => u.id !== targetId));
-
     try {
-      const res = await fetch(`/api/unavailabilities/${targetId}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) {
-        fetchUnavailabilities();
-      }
+      await removeUnavailability({ unavailabilityId: targetId as Id<'unavailabilities'> });
     } catch (e) {
       console.error('Error deleting unavailability:', e);
-      fetchUnavailabilities();
     }
   };
 
@@ -855,9 +816,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
           editingUnavailability={editingUnavailability}
           members={members}
           initialStartDate={initialStartDate}
-          onSuccess={() => {
-            fetchUnavailabilities();
-          }}
+          onSuccess={() => {}}
         />
       )}
 

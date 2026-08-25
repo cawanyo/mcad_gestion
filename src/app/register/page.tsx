@@ -2,12 +2,13 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useConvexAuth } from 'convex/react';
+import { useConvexAuth, useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
+import { api } from '../../../convex/_generated/api';
+import { adaptPole } from '@/lib/convexAdapters';
 import { Sparkles, UserPlus, User, Lock, Calendar, ArrowLeft, Check, AlertCircle } from 'lucide-react';
 import { PhoneInputWithCountry } from '@/components/ui';
 import { Pole } from '@/types';
-import { CacheKeys, getCachedItem, setCachedItem } from '@/lib/cache';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,9 +21,8 @@ export default function RegisterPage() {
   const [birthDate, setBirthDate] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
-  const [poles, setPoles] = React.useState<Pole[]>(() => {
-    return getCachedItem<Pole[]>(CacheKeys.POLES) || [];
-  });
+  const polesRaw = useQuery(api.poles.list, {});
+  const poles = React.useMemo(() => (polesRaw || []).map(adaptPole) as Pole[], [polesRaw]);
   const [selectedPoles, setSelectedPoles] = React.useState<string[]>([]);
   const [motivation, setMotivation] = React.useState('');
   const [error, setError] = React.useState('');
@@ -34,19 +34,6 @@ export default function RegisterPage() {
       router.replace('/dashboard');
     }
   }, [isAuthenticated, router]);
-
-  // Fetch available poles
-  React.useEffect(() => {
-    fetch('/api/poles')
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setPoles(data);
-          setCachedItem(CacheKeys.POLES, data);
-        }
-      })
-      .catch((e) => console.error(e));
-  }, []);
 
   const togglePole = (poleId: string) => {
     setSelectedPoles((prev) =>

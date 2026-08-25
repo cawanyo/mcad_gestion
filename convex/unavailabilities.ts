@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { requireAuth, isLeaderOrAdmin } from "./lib/auth";
 import { Doc } from "./_generated/dataModel";
 
@@ -87,14 +87,14 @@ export const create = mutation({
     const targetUserId = args.userId || currentUser._id;
 
     if (targetUserId !== currentUser._id && !isLeaderOrAdmin(currentUser)) {
-      throw new Error("Action non autorisée pour un autre membre.");
+      throw new ConvexError("Action non autorisée pour un autre membre.");
     }
 
     if (!args.startsAt || !args.endsAt) {
-      throw new Error("Veuillez renseigner la date de début et la date de fin.");
+      throw new ConvexError("Veuillez renseigner la date de début et la date de fin.");
     }
     if (args.endsAt < args.startsAt) {
-      throw new Error("La date de fin ne peut pas être antérieure à la date de début.");
+      throw new ConvexError("La date de fin ne peut pas être antérieure à la date de début.");
     }
 
     const unavailabilityId = await ctx.db.insert("unavailabilities", {
@@ -134,16 +134,16 @@ export const update = mutation({
     const currentUser = await requireAuth(ctx);
 
     const existing = await ctx.db.get(unavailabilityId);
-    if (!existing) throw new Error("Indisponibilité introuvable.");
+    if (!existing) throw new ConvexError("Indisponibilité introuvable.");
 
     if (existing.userId !== currentUser._id && !isLeaderOrAdmin(currentUser)) {
-      throw new Error("Action non autorisée sur cette indisponibilité.");
+      throw new ConvexError("Action non autorisée sur cette indisponibilité.");
     }
 
     const nextStart = startsAt ?? existing.startsAt;
     const nextEnd = endsAt ?? existing.endsAt;
     if (nextEnd < nextStart) {
-      throw new Error("La date de fin ne peut pas être antérieure à la date de début.");
+      throw new ConvexError("La date de fin ne peut pas être antérieure à la date de début.");
     }
 
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
@@ -163,10 +163,10 @@ export const remove = mutation({
     const currentUser = await requireAuth(ctx);
 
     const existing = await ctx.db.get(unavailabilityId);
-    if (!existing) throw new Error("Indisponibilité introuvable.");
+    if (!existing) throw new ConvexError("Indisponibilité introuvable.");
 
     if (existing.userId !== currentUser._id && !isLeaderOrAdmin(currentUser)) {
-      throw new Error("Action non autorisée sur cette indisponibilité.");
+      throw new ConvexError("Action non autorisée sur cette indisponibilité.");
     }
 
     await ctx.db.delete(unavailabilityId);

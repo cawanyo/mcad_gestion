@@ -2,12 +2,12 @@
 
 import React from 'react';
 import { X, Calendar, AlertCircle, CheckSquare, Repeat, Info } from 'lucide-react';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
-import { adaptEvent } from '@/lib/convexAdapters';
+import { adaptEvent, adaptChecklist } from '@/lib/convexAdapters';
 import { convexErrorMessage } from '@/lib/convexErrors';
-import { Pole, Event, Checklist } from '@/types';
+import { Pole, Event } from '@/types';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -46,8 +46,9 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [description, setDescription] = React.useState('Culte de célébration et louange.');
   const [poleRequirements, setPoleRequirements] = React.useState<Record<string, number>>({});
   const [poleChecklists, setPoleChecklists] = React.useState<Record<string, string>>({});
-  const [allChecklists, setAllChecklists] = React.useState<Checklist[]>([]);
-  
+  const allChecklistsRaw = useQuery(api.checklists.list, isOpen ? {} : 'skip');
+  const allChecklists = React.useMemo(() => (allChecklistsRaw || []).map(adaptChecklist), [allChecklistsRaw]);
+
   // Recurrence state
   const [recurrenceRule, setRecurrenceRule] = React.useState<'NONE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'>('NONE');
   const [recurrenceCount, setRecurrenceCount] = React.useState<number>(4);
@@ -59,23 +60,8 @@ export const EventModal: React.FC<EventModalProps> = ({
 
   const wasOpenRef = React.useRef(false);
 
-  // Fetch all checklists
   React.useEffect(() => {
-    const fetchChecklists = async () => {
-      try {
-        const res = await fetch('/api/checklists');
-        if (res.ok) {
-          const data = await res.json();
-          setAllChecklists(data);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    if (isOpen) {
-      fetchChecklists();
-      setErrorMessage(null);
-    }
+    if (isOpen) setErrorMessage(null);
   }, [isOpen]);
 
   // Initialize form state ONLY when modal first opens or editingEvent changes

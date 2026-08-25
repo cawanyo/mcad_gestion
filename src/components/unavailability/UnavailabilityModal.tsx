@@ -2,6 +2,10 @@
 
 import React from 'react';
 import { X, Clock, Calendar, AlertCircle, AlertTriangle, CheckCircle2, User as UserIcon, Sparkles } from 'lucide-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { convexErrorMessage } from '@/lib/convexErrors';
 import { User, Unavailability } from '@/types';
 
 interface UnavailabilityModalProps {
@@ -63,6 +67,9 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
   const [loading, setLoading] = React.useState<boolean>(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [conflictWarning, setConflictWarning] = React.useState<any[] | null>(null);
+
+  const createUnavailability = useMutation(api.unavailabilities.create);
+  const updateUnavailability = useMutation(api.unavailabilities.update);
 
   // Use wasOpenRef to only initialize values when the modal opens, preventing state reset on parent re-renders
   const wasOpenRef = React.useRef(false);
@@ -130,59 +137,37 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
     setLoading(true);
     try {
       if (editingUnavailability) {
-        // PATCH
-        const res = await fetch(`/api/unavailabilities/${editingUnavailability.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            startsAt: new Date(startDate),
-            endsAt: new Date(endDate),
-            reason,
-            recurrence
-          })
+        await updateUnavailability({
+          unavailabilityId: editingUnavailability.id as Id<'unavailabilities'>,
+          startsAt: new Date(startDate).getTime(),
+          endsAt: new Date(endDate).getTime(),
+          reason,
+          recurrence
         });
-
-        if (res.ok) {
-          onSuccess();
-          onClose();
-        } else {
-          const err = await res.json();
-          setErrorMsg(err.error || 'Erreur lors de la modification.');
-        }
+        onSuccess();
+        onClose();
       } else {
-        // POST
-        const res = await fetch('/api/unavailabilities', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: effectiveUserId,
-            startsAt: new Date(startDate),
-            endsAt: new Date(endDate),
-            reason,
-            recurrence
-          })
+        const data = await createUnavailability({
+          userId: effectiveUserId as Id<'users'>,
+          startsAt: new Date(startDate).getTime(),
+          endsAt: new Date(endDate).getTime(),
+          reason,
+          recurrence
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.hasConflicts && data.conflicts?.length > 0) {
-            setConflictWarning(data.conflicts);
-            setTimeout(() => {
-              onSuccess();
-              onClose();
-            }, 1800);
-          } else {
+        if (data.hasConflicts && data.conflicts?.length > 0) {
+          setConflictWarning(data.conflicts);
+          setTimeout(() => {
             onSuccess();
             onClose();
-          }
+          }, 1800);
         } else {
-          const err = await res.json();
-          setErrorMsg(err.error || 'Erreur lors de l’enregistrement.');
+          onSuccess();
+          onClose();
         }
       }
     } catch (err) {
-      console.error(err);
-      setErrorMsg('Erreur de connexion avec le serveur.');
+      setErrorMsg(convexErrorMessage(err, 'Erreur lors de l’enregistrement.'));
     } finally {
       setLoading(false);
     }

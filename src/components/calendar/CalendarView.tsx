@@ -37,8 +37,8 @@ import {
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
-import { adaptEvent } from '@/lib/convexAdapters';
-import { Event, Pole, User, Checklist } from '@/types';
+import { adaptEvent, adaptChecklist } from '@/lib/convexAdapters';
+import { Event, Pole, User } from '@/types';
 import { EventModal } from './EventModal';
 import { EventDetailPage } from './EventDetailPage';
 import { ChecklistRunnerModal } from '../checklists/ChecklistRunnerModal';
@@ -78,9 +78,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Ref for auto-scroll on desktop
   const detailsPanelRef = React.useRef<HTMLDivElement>(null);
-
-  // All checklists for association
-  const [allChecklists, setAllChecklists] = React.useState<Checklist[]>([]);
 
   // Modals & Confirmations
   const [showEventModal, setShowEventModal] = React.useState(false);
@@ -148,15 +145,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // Only needed once an event's full page is opened (checklist run/preview
   // there) — fetching every active checklist with its steps/pole/events for
   // the whole department on every calendar visit was needless DB load for
-  // the vast majority of visits that never open that page. Checklists
-  // aren't migrated to Convex yet, so this still hits the old route.
-  React.useEffect(() => {
-    if (!mobileEventDetailId || allChecklists.length > 0) return;
-    fetch('/api/checklists')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => data && setAllChecklists(data))
-      .catch((e) => console.error(e));
-  }, [mobileEventDetailId, allChecklists.length]);
+  // the vast majority of visits that never open that page. "skip" keeps the
+  // query from running at all until that page is actually opened.
+  const allChecklistsRaw = useQuery(api.checklists.list, mobileEventDetailId ? {} : 'skip');
+  const allChecklists = React.useMemo(() => (allChecklistsRaw || []).map(adaptChecklist), [allChecklistsRaw]);
 
   const getMonthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   const monthKey = getMonthKey(currentDate);

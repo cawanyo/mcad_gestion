@@ -18,6 +18,10 @@ import {
   Hand,
   GraduationCap
 } from 'lucide-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { convexErrorMessage } from '@/lib/convexErrors';
 import { User, Pole, Event } from '@/types';
 import { ChecklistRunnerModal } from '../checklists/ChecklistRunnerModal';
 import { optimizedImageUrl } from '@/lib/image-url';
@@ -60,33 +64,22 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
   });
 
   const [dashboardFeedback, setDashboardFeedback] = React.useState<string | null>(null);
+  const createAssignment = useMutation(api.assignments.create);
 
   const handleDashboardSelfAssign = async (eventId: string, poleId: string) => {
     if (!currentUser) return;
     setDashboardFeedback(null);
     setPositioningId(eventId);
     try {
-      const res = await fetch('/api/assignments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId,
-          poleId,
-          userId: currentUser.id,
-          assignedById: currentUser.id,
-          roleTag: 'Volontaire'
-        })
+      await createAssignment({
+        eventId: eventId as Id<'events'>,
+        poleId: poleId as Id<'poles'>,
+        userId: currentUser.id as Id<'users'>,
+        roleTag: 'Volontaire'
       });
-
-      if (res.ok) {
-        onNavigateTab('calendar');
-      } else {
-        const err = await res.json();
-        setDashboardFeedback(err.error || 'Erreur lors du positionnement');
-      }
+      onNavigateTab('calendar');
     } catch (e) {
-      console.error(e);
-      setDashboardFeedback('Erreur réseau lors de la communication avec le serveur.');
+      setDashboardFeedback(convexErrorMessage(e, 'Erreur lors du positionnement'));
     } finally {
       setPositioningId(null);
     }

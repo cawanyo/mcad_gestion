@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Doc } from "./_generated/dataModel";
 import { requireAuth, requireLeaderOrAdmin } from "./lib/auth";
 
@@ -67,7 +67,7 @@ export const get = query({
   handler: async (ctx, { checklistId }) => {
     await requireAuth(ctx);
     const checklist = await ctx.db.get(checklistId);
-    if (!checklist) throw new Error("Checklist not found");
+    if (!checklist) throw new ConvexError("Checklist not found");
     return await enrichChecklist(ctx, checklist);
   },
 });
@@ -83,7 +83,7 @@ export const create = mutation({
     await requireLeaderOrAdmin(ctx);
 
     const trimmedTitle = title.trim();
-    if (!poleId || !trimmedTitle) throw new Error("Pôle et titre requis");
+    if (!poleId || !trimmedTitle) throw new ConvexError("Pôle et titre requis");
 
     const checklistId = await ctx.db.insert("checklists", {
       poleId,
@@ -184,7 +184,7 @@ export const remove = mutation({
     await requireLeaderOrAdmin(ctx);
 
     const checklist = await ctx.db.get(checklistId);
-    if (!checklist) throw new Error("Checklist introuvable");
+    if (!checklist) throw new ConvexError("Checklist introuvable");
 
     const [eventChecklists, steps, executions] = await Promise.all([
       ctx.db.query("eventChecklists").withIndex("checklistId", (q) => q.eq("checklistId", checklistId)).collect(),
@@ -245,7 +245,7 @@ export const listExecutions = query({
         );
         return {
           ...e,
-          user: user && { _id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, avatar: user.avatar },
+          user: user && { _id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, phone: user.phone, avatar: user.avatar },
           checklist: checklist && { _id: checklist._id, title: checklist.title, poleId: checklist.poleId },
           event: event && { _id: event._id, title: event.title, startsAt: event.startsAt },
           stepsCompleted: stepsCompletedWithStep,

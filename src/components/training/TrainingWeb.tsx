@@ -22,6 +22,11 @@ import {
   ArrowRight,
   X
 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { adaptTrainingModule } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
 import { Pole, TrainingModule, User } from '@/types';
 import { StatCard, Badge, ConfirmModal, Toast, ToastState } from '@/components/ui';
 import { TrainingCoursePage } from './TrainingCoursePage';
@@ -38,12 +43,22 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
   poles = [],
   onRefresh
 }) => {
-  const [modules, setModules] = React.useState<TrainingModule[]>([]);
-  const [loading, setLoading] = React.useState(true);
   const [selectedPoleFilter, setSelectedPoleFilter] = React.useState<string>('all');
   const [selectedLevelFilter, setSelectedLevelFilter] = React.useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = React.useState<string>('all');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
+  // Search is submit-triggered (not live-as-you-type), matching the old UX —
+  // only this value feeds the query.
+  const [submittedSearch, setSubmittedSearch] = React.useState<string>('');
+
+  const modulesRaw = useQuery(api.training.list, {
+    poleId: selectedPoleFilter !== 'all' ? (selectedPoleFilter as Id<'poles'>) : undefined,
+    level: selectedLevelFilter !== 'all' ? selectedLevelFilter : undefined,
+    search: submittedSearch.trim() || undefined,
+  });
+  const loading = modulesRaw === undefined;
+  const modules = React.useMemo(() => (modulesRaw || []).map(adaptTrainingModule) as TrainingModule[], [modulesRaw]);
+  const removeModule = useMutation(api.training.remove);
 
   // Pagination State
   const [currentPage, setCurrentPage] = React.useState<number>(1);
@@ -65,36 +80,13 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
     currentUser?.role === 'POLE_LEADER' ||
     currentUser?.role === 'CALENDAR_MANAGER';
 
-  const fetchModules = async () => {
-    try {
-      setLoading(true);
-      let url = '/api/training/modules';
-      const params = new URLSearchParams();
-      if (selectedPoleFilter !== 'all') params.append('poleId', selectedPoleFilter);
-      if (selectedLevelFilter !== 'all') params.append('level', selectedLevelFilter);
-      if (searchQuery.trim()) params.append('search', searchQuery.trim());
-      if (params.toString()) url += `?${params.toString()}`;
-
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setModules(data);
-      }
-    } catch (e) {
-      console.error('Error fetching training modules:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   React.useEffect(() => {
-    fetchModules();
     setCurrentPage(1);
   }, [selectedPoleFilter, selectedLevelFilter, selectedStatusFilter]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchModules();
+    setSubmittedSearch(searchQuery);
     setCurrentPage(1);
   };
 
@@ -102,21 +94,12 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
     if (!deletingModule) return;
     try {
       setDeletingLoading(true);
-      const res = await fetch(`/api/training/modules/${deletingModule.id}`, {
-        method: 'DELETE'
-      });
-
-      if (res.ok) {
-        setToast({ message: 'Module de formation supprimé avec succès.', type: 'success' });
-        setDeletingModule(null);
-        fetchModules();
-        if (onRefresh) onRefresh();
-      } else {
-        setToast({ message: 'Échec de la suppression du module.', type: 'error' });
-      }
+      await removeModule({ moduleId: deletingModule.id as Id<'trainingModules'> });
+      setToast({ message: 'Module de formation supprimé avec succès.', type: 'success' });
+      setDeletingModule(null);
+      if (onRefresh) onRefresh();
     } catch (e) {
-      console.error(e);
-      setToast({ message: 'Erreur réseau.', type: 'error' });
+      setToast({ message: convexErrorMessage(e, 'Échec de la suppression du module.'), type: 'error' });
     } finally {
       setDeletingLoading(false);
     }
@@ -134,11 +117,8 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
       <TrainingCoursePage
         module={activeCourseModule}
         currentUser={currentUser}
-        onBack={() => {
-          setActiveCourseModuleId(null);
-          fetchModules();
-        }}
-        onProgressUpdated={fetchModules}
+        onBack={() => setActiveCourseModuleId(null)}
+        onProgressUpdated={() => {}}
       />
     );
   }
@@ -162,7 +142,6 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
               : 'Nouveau module de formation créé et publié avec succès !',
             type: 'success'
           });
-          fetchModules();
           if (onRefresh) onRefresh();
         }}
       />

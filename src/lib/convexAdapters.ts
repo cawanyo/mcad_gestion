@@ -186,6 +186,44 @@ export function adaptMemberListItem(m: any) {
   return { ...m, id: m._id };
 }
 
+// Adapts convex/training.ts's `list`/`get`/`create`/`update` results.
+export function adaptTrainingModule(m: any) {
+  if (!m) return m;
+  return {
+    ...m,
+    id: m._id,
+    pole: m.pole ? { ...m.pole, id: m.pole._id } : m.pole,
+    lessons: (m.lessons || []).map((l: any) => ({ ...l, id: l._id })),
+  };
+}
+
+// Adapts convex/unavailabilities.ts's `list`/`create`/`update` results.
+export function adaptUnavailability(u: any) {
+  if (!u) return u;
+  return {
+    ...u,
+    id: u._id,
+    startsAt: iso(u.startsAt),
+    endsAt: iso(u.endsAt),
+    user: u.user
+      ? {
+          ...u.user,
+          id: u.user._id,
+          poleMemberships: (u.user.poleMemberships || []).map((m: any) => ({
+            ...m,
+            id: m._id,
+            pole: m.pole ? { ...m.pole, id: m.pole._id } : m.pole,
+          })),
+        }
+      : u.user,
+  };
+}
+
+export function adaptNotification(n: any) {
+  if (!n) return n;
+  return { ...n, id: n._id, createdAt: iso(n._creationTime) };
+}
+
 // Adapts convex/membershipRequests.ts's `list` query result.
 export function adaptMembershipRequestListItem(r: any) {
   if (!r) return r;

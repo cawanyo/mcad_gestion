@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
 import { Doc } from "./_generated/dataModel";
 
@@ -50,10 +50,10 @@ export const create = mutation({
     const actor = await requireAuth(ctx);
 
     const event = await ctx.db.get(eventId);
-    if (!event) throw new Error("Événement non trouvé");
+    if (!event) throw new ConvexError("Événement non trouvé");
 
     const targetUser = await ctx.db.get(userId);
-    if (!targetUser) throw new Error("Utilisateur non trouvé");
+    if (!targetUser) throw new ConvexError("Utilisateur non trouvé");
 
     const isPrivileged = targetUser.role === "SUPER_ADMIN" || targetUser.role === "DEPARTMENT_LEADER";
     const membership = await ctx.db
@@ -62,7 +62,7 @@ export const create = mutation({
       .first();
 
     if (!isPrivileged && !membership) {
-      throw new Error("Vous ne pouvez vous positionner que dans un pôle auquel vous appartenez.");
+      throw new ConvexError("Vous ne pouvez vous positionner que dans un pôle auquel vous appartenez.");
     }
 
     const existingOnEvent = await ctx.db
@@ -72,7 +72,7 @@ export const create = mutation({
 
     if (existingOnEvent) {
       const existingPole = await ctx.db.get(existingOnEvent.poleId);
-      throw new Error(
+      throw new ConvexError(
         `Ce membre est déjà affecté à cet événement sur le pôle "${existingPole?.name}". Une double affectation est interdite.`
       );
     }
@@ -82,7 +82,7 @@ export const create = mutation({
       (u) => u.startsAt <= event.endsAt && u.endsAt >= event.startsAt
     );
     if (overlappingUnavailability && !force) {
-      throw new Error(
+      throw new ConvexError(
         `Le membre a déclaré une indisponibilité sur ce créneau (${overlappingUnavailability.reason || "Non spécifié"}).`
       );
     }
@@ -93,7 +93,7 @@ export const create = mutation({
       const otherEvent = await ctx.db.get(a.eventId);
       if (otherEvent && otherEvent.startsAt <= event.endsAt && otherEvent.endsAt >= event.startsAt) {
         if (!force) {
-          throw new Error(`Le membre est déjà affecté à "${otherEvent.title}" sur le même créneau horaire.`);
+          throw new ConvexError(`Le membre est déjà affecté à "${otherEvent.title}" sur le même créneau horaire.`);
         }
         break;
       }
@@ -145,7 +145,7 @@ export const remove = mutation({
     await requireAuth(ctx);
 
     const assignment = await ctx.db.get(assignmentId);
-    if (!assignment) throw new Error("Assignment not found");
+    if (!assignment) throw new ConvexError("Assignment not found");
 
     await ctx.db.delete(assignmentId);
 

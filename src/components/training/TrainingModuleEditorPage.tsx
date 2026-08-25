@@ -23,6 +23,10 @@ import {
   ChevronDown,
   Play
 } from 'lucide-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { convexErrorMessage } from '@/lib/convexErrors';
 import { Pole, TrainingModule } from '@/types';
 import { MediaViewer } from '@/components/ui';
 import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
@@ -88,6 +92,9 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  const createModule = useMutation(api.training.create);
+  const updateModule = useMutation(api.training.update);
 
   // Sync if editing module changes
   React.useEffect(() => {
@@ -351,42 +358,31 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
     try {
       setLoading(true);
       const payload = {
-        poleId,
+        poleId: poleId as Id<'poles'>,
         title: title.trim(),
-        description: description.trim(),
-        coverImage: coverImage.trim() || null,
+        description: description.trim() || undefined,
+        coverImage: coverImage.trim() || undefined,
         level,
         estimatedDuration: estimatedDuration.trim() || '30 min',
         lessons: lessons.map((l) => ({
           title: l.title.trim(),
-          description: l.description.trim() || null,
-          content: l.content.trim() || null,
+          description: l.description.trim() || undefined,
+          content: l.content.trim() || undefined,
           mediaType: l.mediaType,
-          mediaUrl: l.mediaUrl.trim() || null,
+          mediaUrl: l.mediaUrl.trim() || undefined,
           durationMinutes: Number(l.durationMinutes) || 10
         }))
       };
 
-      const url = editingModule
-        ? `/api/training/modules/${editingModule.id}`
-        : '/api/training/modules';
-      const method = editingModule ? 'PATCH' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde du module.');
+      if (editingModule) {
+        await updateModule({ moduleId: editingModule.id as Id<'trainingModules'>, ...payload });
+      } else {
+        await createModule(payload);
       }
 
       onSaved();
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Erreur réseau.');
+    } catch (err) {
+      setError(convexErrorMessage(err, 'Erreur lors de la sauvegarde du module.'));
     } finally {
       setLoading(false);
     }

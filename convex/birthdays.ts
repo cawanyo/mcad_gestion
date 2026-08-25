@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { requireAuth, getCurrentUser } from "./lib/auth";
 
 const MONTH_NAMES = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
@@ -153,7 +153,7 @@ export const sendWish = mutation({
   args: { targetUserId: v.id("users"), message: v.string() },
   handler: async (ctx, { targetUserId, message }) => {
     const sender = await getCurrentUser(ctx);
-    if (!targetUserId || !message) throw new Error("Membre et message requis.");
+    if (!targetUserId || !message) throw new ConvexError("Membre et message requis.");
 
     const senderName = sender ? `${sender.firstName} ${sender.lastName}` : "L'équipe MCAD";
 
@@ -174,7 +174,7 @@ export const updateBirthdate = mutation({
   args: { targetUserId: v.id("users"), birthDate: v.number() },
   handler: async (ctx, { targetUserId, birthDate }) => {
     await requireAuth(ctx);
-    if (!targetUserId || !birthDate) throw new Error("Membre et date de naissance requis.");
+    if (!targetUserId || !birthDate) throw new ConvexError("Membre et date de naissance requis.");
 
     await ctx.db.patch(targetUserId, { birthDate });
     return { success: true, user: await ctx.db.get(targetUserId) };

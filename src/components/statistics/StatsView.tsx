@@ -12,6 +12,9 @@ import {
   RefreshCw,
   Star
 } from 'lucide-react';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import { User, Pole } from '@/types';
 import { StatCard, Badge, Avatar, EmptyState } from '@/components/ui';
 
@@ -37,33 +40,12 @@ export const StatsView: React.FC<StatsViewProps> = ({
     isLeaderOrAdmin ? 'department' : 'personal'
   );
 
-  const [statsData, setStatsData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState<boolean>(true);
-
-  const fetchStats = async () => {
-    try {
-      setLoading(true);
-      let url = `/api/stats?year=${selectedYear}`;
-      if (selectedPoleId !== 'all') url += `&poleId=${selectedPoleId}`;
-      if (viewMode === 'personal' && currentUser) {
-        url += `&userId=${currentUser.id}`;
-      }
-
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setStatsData(data);
-      }
-    } catch (e) {
-      console.error('Error fetching statistics:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchStats();
-  }, [selectedYear, selectedPoleId, viewMode, currentUser?.id]);
+  const statsData = useQuery(api.stats.get, {
+    year: selectedYear,
+    poleId: selectedPoleId !== 'all' ? (selectedPoleId as Id<'poles'>) : undefined,
+    userId: viewMode === 'personal' && currentUser ? (currentUser.id as Id<'users'>) : undefined,
+  });
+  const loading = statsData === undefined;
 
   const getMonthlyMax = (arr: any[] = [], key: string = 'count') => {
     return Math.max(...arr.map((item) => item[key] || 0), 1);
@@ -142,14 +124,6 @@ export const StatsView: React.FC<StatsViewProps> = ({
               </option>
             ))}
           </select>
-
-          <button
-            onClick={fetchStats}
-            className="p-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-600 shadow-xs transition-colors"
-            title="Actualiser"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
 
@@ -465,7 +439,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {statsData.topVolunteers?.map((v: any, idx: number) => (
                   <div
-                    key={v.id}
+                    key={v._id}
                     className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-2.5 text-xs shadow-xs"
                   >
                     <div className="relative">

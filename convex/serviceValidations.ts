@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Doc } from "./_generated/dataModel";
 import { requireAuth } from "./lib/auth";
 
@@ -98,10 +98,10 @@ export const submit = mutation({
     await requireAuth(ctx);
 
     if (!eventId || !poleId || !userId) {
-      throw new Error("Culte, pôle et membre sont obligatoires pour la validation.");
+      throw new ConvexError("Culte, pôle et membre sont obligatoires pour la validation.");
     }
     if (!comment || comment.trim().length === 0) {
-      throw new Error("Le commentaire / retour d'expérience est obligatoire pour valider votre service.");
+      throw new ConvexError("Le commentaire / retour d'expérience est obligatoire pour valider votre service.");
     }
 
     const existing = await ctx.db
@@ -174,7 +174,7 @@ export const validateOnBehalf = mutation({
     await requireAuth(ctx);
 
     const val = await ctx.db.get(validationId);
-    if (!val) throw new Error("Validation not found");
+    if (!val) throw new ConvexError("Validation not found");
 
     await ctx.db.patch(validationId, {
       status: "VALIDATED",
@@ -195,7 +195,7 @@ export const sendReminder = mutation({
     await requireAuth(ctx);
 
     const val = await ctx.db.get(validationId);
-    if (!val) throw new Error("Validation not found");
+    if (!val) throw new ConvexError("Validation not found");
 
     await ctx.db.patch(validationId, {
       reminderSentAt: Date.now(),

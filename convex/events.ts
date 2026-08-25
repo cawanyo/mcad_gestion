@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { requireAuth, requireLeaderOrAdmin } from "./lib/auth";
 
@@ -121,7 +121,7 @@ export const get = query({
     await requireAuth(ctx);
 
     const event = await ctx.db.get(eventId);
-    if (!event) throw new Error("Événement introuvable");
+    if (!event) throw new ConvexError("Événement introuvable");
 
     const enriched = await enrichEvent(ctx, event);
 
@@ -175,11 +175,11 @@ export const create = mutation({
     const title = args.title.trim();
     const location = args.location.trim();
     if (!title || !args.startsAt || !args.endsAt || !location) {
-      throw new Error("Titre, date début, date fin et lieu requis");
+      throw new ConvexError("Titre, date début, date fin et lieu requis");
     }
 
     const dept = await ctx.db.query("departments").first();
-    if (!dept) throw new Error("Department not found");
+    if (!dept) throw new ConvexError("Department not found");
 
     const recurrenceRule = args.recurrenceRule || "NONE";
     const count = Math.max(1, Math.min(52, Math.floor(args.recurrenceCount || 1)));
