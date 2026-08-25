@@ -1,567 +1,277 @@
-import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  ActivityIndicator,
-  Alert
-} from 'react-native';
-import { User, Pole, MembershipRequest } from '../types';
-import { theme, getPoleTheme } from '../theme';
+import React from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert } from 'react-native';
+import { ChevronRight, ArrowLeft, X, Check, Crown, Trash2 } from 'lucide-react-native';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { theme } from '../theme';
+import { User } from '../types';
 
 interface PolesScreenProps {
   currentUser: User;
 }
 
+const isLeaderOrAdmin = (u: User) =>
+  u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER' || u.role === 'POLE_LEADER' || u.role === 'CALENDAR_MANAGER';
+
+// Mirrors src/components/poles/PolesManagement.tsx: pole detail is a local
+// view swap, not a separate route, same as the web version.
 export const PolesScreen: React.FC<PolesScreenProps> = ({ currentUser }) => {
-  const [poles, setPoles] = useState<Pole[]>([]);
-  const [requests, setRequests] = useState<MembershipRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'MY_POLES' | 'ALL_POLES' | 'REQUESTS'>('MY_POLES');
+  const polesRaw = useQuery(api.poles.list, {});
+  const loading = polesRaw === undefined;
+  const [selectedPoleId, setSelectedPoleId] = React.useState<Id<'poles'> | null>(null);
+  const [showJoinModal, setShowJoinModal] = React.useState<any>(null);
+  const [motivation, setMotivation] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-  // Request Modal
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [selectedPoleId, setSelectedPoleId] = useState<string>('');
-  const [motivation, setMotivation] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const createRequest = useMutation(api.membershipRequests.create);
 
-  // TODO(next pass): wire to Convex useQuery(api.poles.list) / dashboard.get
-  const loadPolesData = async () => {
-    setLoading(true);
-    setPoles([]);
-    setRequests([]);
-    setLoading(false);
-  };
+  if (selectedPoleId) {
+    return <PoleDetailView poleId={selectedPoleId} currentUser={currentUser} onBack={() => setSelectedPoleId(null)} />;
+  }
 
-  useEffect(() => {
-    loadPolesData();
-  }, []);
+  const poles = polesRaw || [];
+  const isDeptLeaderOrAdmin = currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'DEPARTMENT_LEADER';
 
   const handleSendRequest = async () => {
-    if (!selectedPoleId) {
-      Alert.alert('Pôle requis', 'Veuillez sélectionner un pôle.');
-      return;
-    }
-
+    if (!showJoinModal) return;
+    setSubmitting(true);
+    setError(null);
     try {
-      setSubmitting(true);
-      // TODO(next pass): wire to Convex useMutation(api.membershipRequests.create)
-      Alert.alert('Demande envoyée !', 'Votre demande a été transmise aux responsables du pôle.');
-      setShowRequestModal(false);
-      setSelectedPoleId('');
+      await createRequest({ poleId: showJoinModal._id as Id<'poles'>, motivation: motivation.trim() || undefined });
+      setShowJoinModal(null);
       setMotivation('');
-      loadPolesData();
+      Alert.alert('Demande envoyée', 'Votre demande a été transmise aux responsables du pôle.');
     } catch (e: any) {
-      Alert.alert('Erreur', e.message || 'Impossible d\'envoyer la demande.');
+      setError(e?.message || 'Erreur lors de l\'envoi de la demande.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const myPoles = poles.filter(
-    (p) =>
-      currentUser.poleMemberships?.some((pm) => pm.poleId === p.id) ||
-      currentUser.poleLeaderships?.some((pl) => pl.poleId === p.id)
-  );
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return { bg: '#dcfce7', color: '#16a34a', label: 'Acceptée' };
-      case 'REJECTED':
-        return { bg: '#fee2e2', color: '#dc2626', label: 'Refusée' };
-      default:
-        return { bg: '#fef3c7', color: '#d97706', label: 'En attente' };
-    }
-  };
-
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Pôles & Ministères</Text>
+        <Text style={styles.headerTitle}>Pôles</Text>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'MY_POLES' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('MY_POLES')}
-        >
-          <Text style={[styles.tabBtnText, activeTab === 'MY_POLES' && styles.tabBtnTextActive]}>
-            Mes pôles ({myPoles.length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'ALL_POLES' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('ALL_POLES')}
-        >
-          <Text style={[styles.tabBtnText, activeTab === 'ALL_POLES' && styles.tabBtnTextActive]}>
-            Tous les pôles ({poles.length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'REQUESTS' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('REQUESTS')}
-        >
-          <Text style={[styles.tabBtnText, activeTab === 'REQUESTS' && styles.tabBtnTextActive]}>
-            Demandes ({requests.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* List */}
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content}>
         {loading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Chargement des pôles...</Text>
-          </View>
-        ) : activeTab === 'REQUESTS' ? (
-          requests.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>📬</Text>
-              <Text style={styles.emptyTitle}>Aucune demande d'adhésion</Text>
-              <Text style={styles.emptySub}>Rejoignez un pôle pour servir au sein de MCAD.</Text>
-            </View>
-          ) : (
-            <View style={styles.cardsList}>
-              {requests.map((req) => {
-                const poleTheme = getPoleTheme(req.pole?.name);
-                const badge = getStatusBadge(req.status);
-                const dateStr = new Date(req.createdAt || Date.now()).toLocaleDateString('fr-FR', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
-                });
-
-                return (
-                  <View key={req.id} style={styles.requestCard}>
-                    <View style={[styles.poleIconBox, { backgroundColor: poleTheme.bg }]}>
-                      <Text style={styles.poleIconText}>{poleTheme.icon}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.requestPoleName}>{req.pole?.name || 'Pôle MCAD'}</Text>
-                      <Text style={styles.requestDate}>Demandé le {dateStr}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
-                      <Text style={[styles.statusBadgeText, { color: badge.color }]}>{badge.label}</Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )
+          <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 40 }} />
+        ) : poles.length === 0 ? (
+          <Text style={styles.muted}>Aucun pôle pour le moment.</Text>
         ) : (
-          (activeTab === 'MY_POLES' ? myPoles : poles).length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>👥</Text>
-              <Text style={styles.emptyTitle}>Aucun pôle trouvé</Text>
-              <Text style={styles.emptySub}>Consultez "Tous les pôles" pour faire votre demande.</Text>
-            </View>
-          ) : (
-            <View style={styles.cardsList}>
-              {(activeTab === 'MY_POLES' ? myPoles : poles).map((pole) => {
-                const poleTheme = getPoleTheme(pole.name);
-                const isLeader =
-                  currentUser.role === 'SUPER_ADMIN' ||
-                  currentUser.role === 'DEPARTMENT_LEADER' ||
-                  currentUser.poleLeaderships?.some((pl) => pl.poleId === pole.id);
-                const isMember = currentUser.poleMemberships?.some((pm) => pm.poleId === pole.id);
-
-                return (
-                  <View key={pole.id} style={styles.poleCard}>
-                    <View style={[styles.poleIconBox, { backgroundColor: poleTheme.bg }]}>
-                      <Text style={styles.poleIconText}>{poleTheme.icon}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.poleName}>{pole.name}</Text>
-                      <Text style={styles.poleMemberCount}>
-                        {isLeader ? 'Responsable' : isMember ? 'Membre' : 'Pôle MCAD'} • {pole.members?.length || 12} membres
-                      </Text>
-                    </View>
-                    {isLeader ? (
-                      <View style={[styles.roleBadge, { backgroundColor: '#ede9fe' }]}>
-                        <Text style={[styles.roleBadgeText, { color: theme.colors.primary }]}>Lead</Text>
-                      </View>
-                    ) : isMember ? (
-                      <View style={[styles.roleBadge, { backgroundColor: '#dcfce7' }]}>
-                        <Text style={[styles.roleBadgeText, { color: '#16a34a' }]}>Inscrit</Text>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.joinSmallBtn}
-                        onPress={() => {
-                          setSelectedPoleId(pole.id);
-                          setShowRequestModal(true);
-                        }}
-                      >
-                        <Text style={styles.joinSmallBtnText}>Rejoindre</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          )
+          poles.map((p: any) => {
+            const isMember = p.memberships?.some((m: any) => m.userId === currentUser.id);
+            const isLeaderHere = p.leaders?.some((l: any) => l.userId === currentUser.id);
+            return (
+              <TouchableOpacity key={p._id} style={styles.poleCard} onPress={() => setSelectedPoleId(p._id)}>
+                <View style={[styles.poleDot, { backgroundColor: p.color || theme.colors.primary }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.poleName}>{p.name}</Text>
+                  <Text style={styles.muted}>{p.membersCount} membre(s) · {p.leadersCount} responsable(s)</Text>
+                </View>
+                {isLeaderHere ? (
+                  <View style={styles.badgeLead}><Text style={styles.badgeLeadText}>Responsable</Text></View>
+                ) : isMember ? (
+                  <View style={styles.badgeMember}><Text style={styles.badgeMemberText}>Membre</Text></View>
+                ) : (
+                  <TouchableOpacity style={styles.joinBtn} onPress={() => setShowJoinModal(p)}>
+                    <Text style={styles.joinBtnText}>Rejoindre</Text>
+                  </TouchableOpacity>
+                )}
+                <ChevronRight size={16} color={theme.colors.textMuted} />
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
 
-      {/* Bottom Button */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.primaryActionBtn}
-          onPress={() => setShowRequestModal(true)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryActionBtnText}>+ Demander à rejoindre un pôle</Text>
-        </TouchableOpacity>
+      <Modal visible={!!showJoinModal} transparent animationType="slide" onRequestClose={() => setShowJoinModal(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Rejoindre {showJoinModal?.name}</Text>
+              <TouchableOpacity onPress={() => setShowJoinModal(null)}><X size={18} color={theme.colors.text} /></TouchableOpacity>
+            </View>
+            {error && <Text style={styles.errorText}>{error}</Text>}
+            <Text style={styles.inputLabel}>Motivation (optionnel)</Text>
+            <TextInput
+              style={styles.textArea}
+              value={motivation}
+              onChangeText={setMotivation}
+              placeholder="Pourquoi souhaitez-vous servir dans ce pôle ?"
+              multiline
+            />
+            <TouchableOpacity style={styles.submitBtn} disabled={submitting} onPress={handleSendRequest}>
+              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Envoyer ma demande</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+// ---------------------------------------------------------------------------
+
+const PoleDetailView: React.FC<{ poleId: Id<'poles'>; currentUser: User; onBack: () => void }> = ({ poleId, currentUser, onBack }) => {
+  const poleRaw = useQuery(api.poles.get, { poleId });
+  const loading = poleRaw === undefined;
+  const reviewRequest = useMutation(api.membershipRequests.review);
+  const removeMember = useMutation(api.poles.removeMember);
+  const toggleLeader = useMutation(api.poles.toggleLeader);
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  if (loading || !poleRaw) {
+    return <View style={styles.centerScreen}><ActivityIndicator color={theme.colors.primary} /></View>;
+  }
+
+  const canManage =
+    currentUser.role === 'SUPER_ADMIN' ||
+    currentUser.role === 'DEPARTMENT_LEADER' ||
+    (poleRaw.leaders || []).some((l: any) => l.userId === currentUser.id);
+
+  const handleReview = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+    setBusyId(requestId);
+    try {
+      await reviewRequest({ requestId: requestId as Id<'membershipRequests'>, status });
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message || 'Action impossible.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleRemoveMember = (userId: string, name: string) => {
+    Alert.alert('Retirer ce membre ?', `${name} sera retiré(e) du pôle.`, [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Retirer',
+        style: 'destructive',
+        onPress: async () => {
+          setBusyId(userId);
+          try {
+            await removeMember({ poleId, userId: userId as Id<'users'> });
+          } finally {
+            setBusyId(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  return (
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>{poleRaw.name}</Text>
       </View>
 
-      {/* Modal */}
-      {showRequestModal && (
-        <Modal
-          visible={showRequestModal}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowRequestModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Rejoindre un Pôle</Text>
-                <TouchableOpacity onPress={() => setShowRequestModal(false)}>
-                  <Text style={styles.closeText}>✕</Text>
-                </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.content}>
+        {poleRaw.description && <Text style={styles.muted}>{poleRaw.description}</Text>}
+
+        {canManage && (poleRaw.membershipRequests || []).length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Demandes en attente ({poleRaw.membershipRequests.length})</Text>
+            {poleRaw.membershipRequests.map((r: any) => (
+              <View key={r._id} style={styles.requestRow}>
+                <Text style={styles.memberName}>{r.user?.firstName} {r.user?.lastName}</Text>
+                <View style={styles.rowActions}>
+                  <TouchableOpacity disabled={busyId === r._id} onPress={() => handleReview(r._id, 'APPROVED')} style={styles.iconBtnApprove}>
+                    <Check size={14} color={theme.colors.statusSuccessText} />
+                  </TouchableOpacity>
+                  <TouchableOpacity disabled={busyId === r._id} onPress={() => handleReview(r._id, 'REJECTED')} style={styles.iconBtnReject}>
+                    <X size={14} color={theme.colors.statusDangerText} />
+                  </TouchableOpacity>
+                </View>
               </View>
-
-              <Text style={styles.inputLabel}>Sélectionnez le pôle souhaité :</Text>
-              <ScrollView style={{ maxHeight: 180, marginBottom: 14 }}>
-                {poles.map((p) => {
-                  const isSelected = selectedPoleId === p.id;
-                  const poleTheme = getPoleTheme(p.name);
-                  return (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={[styles.poleSelectOption, isSelected && styles.poleSelectOptionActive]}
-                      onPress={() => setSelectedPoleId(p.id)}
-                    >
-                      <Text style={{ fontSize: 16 }}>{poleTheme.icon}</Text>
-                      <Text style={[styles.poleSelectText, isSelected && styles.poleSelectTextActive]}>
-                        {p.name}
-                      </Text>
-                      {isSelected && <Text style={styles.checkMark}>✓</Text>}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              <Text style={styles.inputLabel}>Motivation (optionnel) :</Text>
-              <TextInput
-                style={styles.textArea}
-                value={motivation}
-                onChangeText={setMotivation}
-                placeholder="Pourquoi souhaitez-vous servir dans ce pôle ?"
-                multiline
-                numberOfLines={3}
-              />
-
-              <TouchableOpacity
-                style={styles.submitModalBtn}
-                disabled={submitting}
-                onPress={handleSendRequest}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.submitModalBtnText}>Envoyer ma demande</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            ))}
           </View>
-        </Modal>
-      )}
+        )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Membres ({poleRaw.memberships?.length || 0})</Text>
+          {(poleRaw.memberships || []).map((m: any) => {
+            const leaderHere = (poleRaw.leaders || []).some((l: any) => l.userId === m.userId);
+            return (
+              <View key={m._id} style={styles.requestRow}>
+                <Text style={styles.memberName}>{m.user?.firstName} {m.user?.lastName}</Text>
+                {leaderHere && <Crown size={13} color={theme.colors.primary} style={{ marginRight: 6 }} />}
+                {canManage && (
+                  <View style={styles.rowActions}>
+                    <TouchableOpacity
+                      disabled={busyId === m.userId}
+                      onPress={() => toggleLeader({ poleId, userId: m.userId })}
+                      style={styles.iconBtnNeutral}
+                    >
+                      <Crown size={13} color={leaderHere ? theme.colors.primary : theme.colors.textMuted} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      disabled={busyId === m.userId}
+                      onPress={() => handleRemoveMember(m.userId, `${m.user?.firstName} ${m.user?.lastName}`)}
+                      style={styles.iconBtnReject}
+                    >
+                      <Trash2 size={13} color={theme.colors.statusDangerText} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Checklists ({poleRaw.checklists?.length || 0})</Text>
+          {(poleRaw.checklists || []).length === 0 ? (
+            <Text style={styles.muted}>Aucune checklist pour ce pôle. Rendez-vous dans l'onglet Checklists pour en créer une.</Text>
+          ) : (
+            poleRaw.checklists.map((c: any) => (
+              <View key={c._id} style={styles.requestRow}>
+                <Text style={styles.memberName}>{c.title}</Text>
+                <Text style={styles.muted}>{(c.steps || []).length} étape(s)</Text>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fe'
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 10
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#0f172a'
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#f1f5f9'
-  },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 10
-  },
-  tabBtnActive: {
-    backgroundColor: '#ede9fe'
-  },
-  tabBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748b'
-  },
-  tabBtnTextActive: {
-    color: '#5b45ff',
-    fontWeight: '800'
-  },
-  scroll: {
-    flex: 1
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 110
-  },
-  cardsList: {
-    gap: 10
-  },
-  poleCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2
-  },
-  poleIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  poleIconText: {
-    fontSize: 20
-  },
-  poleName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0f172a'
-  },
-  poleMemberCount: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 2
-  },
-  roleBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8
-  },
-  roleBadgeText: {
-    fontSize: 10,
-    fontWeight: '800'
-  },
-  joinSmallBtn: {
-    backgroundColor: '#ede9fe',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8
-  },
-  joinSmallBtnText: {
-    color: '#5b45ff',
-    fontSize: 11,
-    fontWeight: '800'
-  },
-  requestCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2
-  },
-  requestPoleName: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0f172a'
-  },
-  requestDate: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 2
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '800'
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20
-  },
-  primaryActionBtn: {
-    backgroundColor: '#5b45ff',
-    paddingVertical: 14,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowColor: '#5b45ff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5
-  },
-  primaryActionBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800'
-  },
-  loadingBox: {
-    padding: 40,
-    alignItems: 'center',
-    gap: 8
-  },
-  loadingText: {
-    color: '#64748b',
-    fontSize: 12
-  },
-  emptyBox: {
-    padding: 40,
-    alignItems: 'center'
-  },
-  emptyEmoji: {
-    fontSize: 32,
-    marginBottom: 8
-  },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0f172a'
-  },
-  emptySub: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 4,
-    textAlign: 'center'
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end'
-  },
-  modalCard: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 20
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14
-  },
-  modalTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#0f172a'
-  },
-  closeText: {
-    fontSize: 16,
-    color: '#64748b',
-    fontWeight: '800'
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#64748b',
-    marginBottom: 6
-  },
-  poleSelectOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: '#e2e8f0'
-  },
-  poleSelectOptionActive: {
-    backgroundColor: '#ede9fe',
-    borderColor: '#5b45ff'
-  },
-  poleSelectText: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0f172a'
-  },
-  poleSelectTextActive: {
-    color: '#5b45ff',
-    fontWeight: '800'
-  },
-  checkMark: {
-    color: '#5b45ff',
-    fontWeight: '900'
-  },
-  textArea: {
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 12,
-    color: '#0f172a',
-    textAlignVertical: 'top',
-    height: 70,
-    marginBottom: 16
-  },
-  submitModalBtn: {
-    backgroundColor: '#5b45ff',
-    paddingVertical: 14,
-    borderRadius: 16,
-    alignItems: 'center'
-  },
-  submitModalBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800'
-  }
+  screen: { flex: 1, backgroundColor: theme.colors.background },
+  centerScreen: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 20 },
+  headerTitle: { fontSize: 18, fontWeight: '900', color: theme.colors.text, flex: 1 },
+  backBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.card, alignItems: 'center', justifyContent: 'center' },
+  content: { padding: 16, paddingTop: 0, gap: 10, paddingBottom: 40 },
+  muted: { fontSize: 12, color: theme.colors.textMuted },
+  poleCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, padding: 14, ...theme.shadow.card },
+  poleDot: { width: 10, height: 10, borderRadius: 5 },
+  poleName: { fontSize: 14, fontWeight: '800', color: theme.colors.text },
+  badgeLead: { backgroundColor: theme.colors.primaryLight, borderRadius: theme.borderRadius.round, paddingHorizontal: 8, paddingVertical: 4 },
+  badgeLeadText: { fontSize: 10, fontWeight: '800', color: theme.colors.primaryDark },
+  badgeMember: { backgroundColor: theme.colors.statusSuccessBg, borderRadius: theme.borderRadius.round, paddingHorizontal: 8, paddingVertical: 4 },
+  badgeMemberText: { fontSize: 10, fontWeight: '800', color: theme.colors.statusSuccessText },
+  joinBtn: { backgroundColor: theme.colors.primaryLight, borderRadius: theme.borderRadius.round, paddingHorizontal: 10, paddingVertical: 5 },
+  joinBtnText: { fontSize: 11, fontWeight: '800', color: theme.colors.primaryDark },
+  section: { backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, padding: 14, gap: 8, ...theme.shadow.card },
+  sectionTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.text, textTransform: 'uppercase', letterSpacing: 0.3 },
+  requestRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: theme.colors.border },
+  memberName: { flex: 1, fontSize: 13, fontWeight: '700', color: theme.colors.text },
+  rowActions: { flexDirection: 'row', gap: 6 },
+  iconBtnApprove: { width: 28, height: 28, borderRadius: 8, backgroundColor: theme.colors.statusSuccessBg, alignItems: 'center', justifyContent: 'center' },
+  iconBtnReject: { width: 28, height: 28, borderRadius: 8, backgroundColor: theme.colors.statusDangerBg, alignItems: 'center', justifyContent: 'center' },
+  iconBtnNeutral: { width: 28, height: 28, borderRadius: 8, backgroundColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: theme.colors.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  modalTitle: { fontSize: 15, fontWeight: '900', color: theme.colors.text, flex: 1 },
+  inputLabel: { fontSize: 11, fontWeight: '800', color: theme.colors.textSecondary, marginBottom: 6 },
+  textArea: { backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderDark, borderRadius: 12, padding: 12, fontSize: 12, color: theme.colors.text, height: 70, textAlignVertical: 'top', marginBottom: 16 },
+  submitBtn: { backgroundColor: theme.colors.primary, paddingVertical: 14, borderRadius: 16, alignItems: 'center' },
+  submitBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  errorText: { fontSize: 12, color: theme.colors.statusDangerText, marginBottom: 10 },
 });
