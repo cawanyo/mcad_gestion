@@ -22,7 +22,8 @@ import {
   Edit2,
   AlertTriangle,
   Lock,
-  Sparkles
+  Sparkles,
+  GripVertical
 } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -92,6 +93,11 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   const [deletingChecklist, setDeletingChecklist] = React.useState<Checklist | null>(null);
   const [deletingStepIndex, setDeletingStepIndex] = React.useState<number | null>(null);
   const [actionLoading, setActionLoading] = React.useState(false);
+
+  // Step drag-to-reorder
+  const [dragStepIndex, setDragStepIndex] = React.useState<number | null>(null);
+  const [dragOverStepIndex, setDragOverStepIndex] = React.useState<number | null>(null);
+  const [reorderingSteps, setReorderingSteps] = React.useState(false);
 
   // Toast
   const [toast, setToast] = React.useState<ToastState | null>(null);
@@ -201,6 +207,32 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
       setToast({ message: convexErrorMessage(e, "Erreur lors de l'ajout."), type: 'error' });
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  // Reorder Steps (drag & drop)
+  const handleMoveStep = async (fromIndex: number, toIndex: number) => {
+    if (!isLeaderOrAdmin || !activeEditorChecklist || fromIndex === toIndex) return;
+
+    const currentSteps = (activeEditorChecklist.steps || []).map((s) => ({
+      title: s.title,
+      description: s.description || undefined,
+      details: s.details || undefined,
+      mediaType: s.mediaType,
+      mediaUrl: s.mediaUrl || undefined,
+      mediaThumbnail: s.mediaThumbnail || undefined
+    }));
+    const reordered = [...currentSteps];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+
+    try {
+      setReorderingSteps(true);
+      await updateChecklistMutation({ checklistId: activeEditorChecklist.id as Id<'checklists'>, steps: reordered });
+    } catch (e) {
+      setToast({ message: convexErrorMessage(e, "Erreur lors du réordonnancement."), type: 'error' });
+    } finally {
+      setReorderingSteps(false);
     }
   };
 
@@ -562,10 +594,42 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                   activeEditorChecklist.steps.map((step, idx) => (
                     <div
                       key={step.id || idx}
-                      className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3"
+                      draggable={isLeaderOrAdmin}
+                      onDragStart={() => setDragStepIndex(idx)}
+                      onDragOver={(e) => {
+                        if (!isLeaderOrAdmin || dragStepIndex === null) return;
+                        e.preventDefault();
+                        if (dragOverStepIndex !== idx) setDragOverStepIndex(idx);
+                      }}
+                      onDragLeave={() => {
+                        setDragOverStepIndex((prev) => (prev === idx ? null : prev));
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragStepIndex !== null && dragStepIndex !== idx) handleMoveStep(dragStepIndex, idx);
+                        setDragStepIndex(null);
+                        setDragOverStepIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDragStepIndex(null);
+                        setDragOverStepIndex(null);
+                      }}
+                      className={`p-4 rounded-2xl border bg-slate-50/50 space-y-3 transition-all ${
+                        dragOverStepIndex === idx && dragStepIndex !== idx
+                          ? 'border-indigo-400 ring-2 ring-indigo-200'
+                          : 'border-slate-200'
+                      } ${dragStepIndex === idx ? 'opacity-40' : ''}`}
                     >
                       <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-2">
+                          {isLeaderOrAdmin && (
+                            <span
+                              className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 mt-0.5 touch-none"
+                              title="Glisser pour réordonner"
+                            >
+                              <GripVertical className="w-4 h-4" />
+                            </span>
+                          )}
                           <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                             {idx + 1}
                           </span>
