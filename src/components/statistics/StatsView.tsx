@@ -59,16 +59,9 @@ export const StatsView: React.FC<StatsViewProps> = ({
           <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
             <BarChart3 className="w-5 h-5" />
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900">
-              {viewMode === 'personal' ? 'Mes Statistiques de Service' : 'Statistiques & Pilotage'}
-            </h1>
-            <p className="text-xs text-slate-500">
-              {viewMode === 'personal'
-                ? 'Bilan annuel de vos participations, régularité et engagement.'
-                : 'Indicateurs clés du département, répartition des effectifs et assiduité.'}
-            </p>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+            {viewMode === 'personal' ? 'Mes statistiques' : 'Statistiques'}
+          </h1>
         </div>
 
         {/* Action Toolbar */}
@@ -130,7 +123,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
       {loading ? (
         <div className="py-16 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
           <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
-          <span>Calcul des statistiques en cours...</span>
+          <span>Calcul en cours...</span>
         </div>
       ) : !statsData ? (
         <EmptyState
@@ -148,34 +141,26 @@ export const StatsView: React.FC<StatsViewProps> = ({
             <StatCard
               label={`Services en ${selectedYear}`}
               value={statsData.kpis?.totalServicesYear || 0}
-              subValue="services"
-              valueColor="text-slate-900"
               icon={<TrendingUp className="w-4 h-4 text-indigo-600" />}
               iconBg="bg-indigo-50"
             />
             <StatCard
               label="Total historique"
               value={statsData.kpis?.totalServicesAllTime || 0}
-              subValue="toutes années"
-              valueColor="text-slate-900"
-              icon={<Calendar className="w-4 h-4 text-slate-600" />}
+              icon={<Calendar className="w-4 h-4 text-slate-500" />}
               iconBg="bg-slate-100"
             />
             <StatCard
               label="Taux de validation"
               value={`${statsData.kpis?.validationRate || 100}%`}
-              subValue="assiduité"
-              valueColor="text-emerald-600"
-              icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-              iconBg="bg-emerald-50"
+              icon={<CheckCircle2 className="w-4 h-4 text-indigo-600" />}
+              iconBg="bg-indigo-50"
             />
             <StatCard
-              label="Satisfaction moyenne"
+              label="Satisfaction"
               value={`${statsData.kpis?.averageRating || 5.0} / 5`}
-              subValue="étoiles"
-              valueColor="text-amber-600"
-              icon={<Star className="w-4 h-4 text-amber-500 fill-amber-400" />}
-              iconBg="bg-amber-50"
+              icon={<Star className="w-4 h-4 text-slate-500" />}
+              iconBg="bg-slate-100"
             />
           </div>
 
@@ -183,10 +168,10 @@ export const StatsView: React.FC<StatsViewProps> = ({
           <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Services par mois en {selectedYear}
+                Services par mois
               </h3>
               <Badge variant="primary" size="md">
-                Total : {statsData.kpis?.totalServicesYear || 0}
+                {statsData.kpis?.totalServicesYear || 0}
               </Badge>
             </div>
 
@@ -222,7 +207,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
             {/* Pole Breakdown */}
             <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Répartition par Pôle
+                Par pôle
               </h3>
               {statsData.poleBreakdown?.length === 0 ? (
                 <p className="text-xs text-slate-400 italic py-4">Aucun service enregistré en {selectedYear}.</p>
@@ -254,7 +239,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
             {/* Top Roles */}
             <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Postes & Rôles fréquents
+                Rôles fréquents
               </h3>
               {statsData.topRoles?.length === 0 ? (
                 <p className="text-xs text-slate-400 italic py-4">Aucun poste spécifique renseigné.</p>
@@ -286,31 +271,26 @@ export const StatsView: React.FC<StatsViewProps> = ({
             <StatCard
               label="Effectif actif"
               value={statsData.kpis?.totalMembers || 0}
-              subValue="STARS"
               icon={<Users className="w-4 h-4 text-indigo-600" />}
               iconBg="bg-indigo-50"
             />
             <StatCard
-              label="Cultes / Événements"
+              label="Cultes"
               value={statsData.kpis?.totalEvents || 0}
-              subValue={`en ${selectedYear}`}
-              icon={<Calendar className="w-4 h-4 text-purple-600" />}
-              iconBg="bg-purple-50"
+              icon={<Calendar className="w-4 h-4 text-slate-500" />}
+              iconBg="bg-slate-100"
             />
             <StatCard
-              label="Mobilisations totales"
+              label="Affectations"
               value={statsData.kpis?.totalAssignmentsCount || 0}
-              subValue="affectations"
-              icon={<Layers className="w-4 h-4 text-blue-600" />}
-              iconBg="bg-blue-50"
+              icon={<Layers className="w-4 h-4 text-indigo-600" />}
+              iconBg="bg-indigo-50"
             />
             <StatCard
               label="Moyenne / culte"
               value={statsData.kpis?.avgVolunteersPerEvent || 0}
-              subValue="STARS / culte"
-              valueColor="text-emerald-600"
-              icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-              iconBg="bg-emerald-50"
+              icon={<CheckCircle2 className="w-4 h-4 text-slate-500" />}
+              iconBg="bg-slate-100"
             />
           </div>
 
@@ -320,7 +300,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
             <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                  Répartition par Sexe
+                  Genre
                 </h3>
                 <span className="text-xs text-slate-400 font-bold">
                   {statsData.kpis?.totalMembers || 0} membres
@@ -335,7 +315,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
                     title={`Hommes: ${statsData.demographics?.gender?.menCount}`}
                   />
                   <div
-                    className="bg-pink-500 h-full transition-all duration-500"
+                    className="bg-slate-400 h-full transition-all duration-500"
                     style={{ width: `${statsData.demographics?.gender?.womenPercentage || 50}%` }}
                     title={`Femmes: ${statsData.demographics?.gender?.womenCount}`}
                   />
@@ -346,8 +326,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
                     <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
                     <span>Hommes : {statsData.demographics?.gender?.menCount || 0} ({statsData.demographics?.gender?.menPercentage || 0}%)</span>
                   </span>
-                  <span className="flex items-center gap-1.5 font-bold text-pink-600">
-                    <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                  <span className="flex items-center gap-1.5 font-bold text-slate-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
                     <span>Femmes : {statsData.demographics?.gender?.womenCount || 0} ({statsData.demographics?.gender?.womenPercentage || 0}%)</span>
                   </span>
                 </div>
@@ -357,7 +337,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
             {/* Répartition par Tranches d'Âge */}
             <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Répartition par Tranches d'Âge
+                Âge
               </h3>
 
               <div className="space-y-2">
@@ -385,7 +365,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
           <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Mobilisations mensuelles en {selectedYear}
+                Mobilisations par mois
               </h3>
               <div className="flex items-center gap-3 text-xs font-bold">
                 <span className="flex items-center gap-1 text-indigo-700">
@@ -429,8 +409,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
           {/* TOP STARS LES PLUS ENGAGÉES */}
           <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-500" />
-              <span>STARS les plus engagées en {selectedYear}</span>
+              <Award className="w-4 h-4 text-indigo-600" />
+              <span>Plus engagé(e)s</span>
             </h3>
 
             {statsData.topVolunteers?.length === 0 ? (
@@ -444,7 +424,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
                   >
                     <div className="relative">
                       <Avatar src={v.avatar} name={v.name} size="md" />
-                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-amber-950 font-black text-[9px] flex items-center justify-center shadow-xs">
+                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-indigo-600 text-white font-black text-[9px] flex items-center justify-center shadow-xs">
                         {idx + 1}
                       </span>
                     </div>

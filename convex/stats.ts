@@ -145,11 +145,13 @@ export const get = query({
       else over50++;
     });
     const knownAgeTotal = totalMembers - unknownAge;
+    // A sequential indigo scale (light -> dark) reads better for an ordinal
+    // breakdown like age brackets than four unrelated hues would.
     const ageGroups = [
-      { label: "< 25 ans", key: "under25", count: under25, percentage: knownAgeTotal > 0 ? Math.round((under25 / knownAgeTotal) * 100) : 0, color: "#ec4899" },
-      { label: "25 - 35 ans", key: "age25to35", count: age25to35, percentage: knownAgeTotal > 0 ? Math.round((age25to35 / knownAgeTotal) * 100) : 0, color: "#6366f1" },
-      { label: "36 - 50 ans", key: "age35to50", count: age35to50, percentage: knownAgeTotal > 0 ? Math.round((age35to50 / knownAgeTotal) * 100) : 0, color: "#3b82f6" },
-      { label: "> 50 ans", key: "over50", count: over50, percentage: knownAgeTotal > 0 ? Math.round((over50 / knownAgeTotal) * 100) : 0, color: "#10b981" },
+      { label: "< 25 ans", key: "under25", count: under25, percentage: knownAgeTotal > 0 ? Math.round((under25 / knownAgeTotal) * 100) : 0, color: "#c7d2fe" },
+      { label: "25 - 35 ans", key: "age25to35", count: age25to35, percentage: knownAgeTotal > 0 ? Math.round((age25to35 / knownAgeTotal) * 100) : 0, color: "#818cf8" },
+      { label: "36 - 50 ans", key: "age35to50", count: age35to50, percentage: knownAgeTotal > 0 ? Math.round((age35to50 / knownAgeTotal) * 100) : 0, color: "#4f46e5" },
+      { label: "> 50 ans", key: "over50", count: over50, percentage: knownAgeTotal > 0 ? Math.round((over50 / knownAgeTotal) * 100) : 0, color: "#3730a3" },
     ];
 
     let eventsInYear = await ctx.db
