@@ -2,26 +2,16 @@
 
 import React from 'react';
 import {
-  Clock,
   Calendar as CalendarIcon,
   Plus,
   Search,
-  Filter,
   Trash2,
   Edit3,
-  UserCheck,
-  AlertCircle,
-  CheckCircle2,
   CalendarDays,
   User as UserIcon,
-  Users,
-  Layers,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
-  RefreshCw,
-  XCircle,
-  AlertTriangle
+  RefreshCw
 } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -151,13 +141,8 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
     return true;
   });
 
-  // KPI Calculations
   const activeCount = unavailabilities.filter((u) => getStatus(u.startsAt, u.endsAt) === 'ACTIVE').length;
   const upcomingCount = unavailabilities.filter((u) => getStatus(u.startsAt, u.endsAt) === 'UPCOMING').length;
-  const myCount = currentUser ? unavailabilities.filter((u) => u.userId === currentUser.id).length : 0;
-  const uniqueMembersAway = new Set(
-    unavailabilities.filter((u) => getStatus(u.startsAt, u.endsAt) === 'ACTIVE').map((u) => u.userId)
-  ).size;
 
   // Calendar Calculation for month view
   const calYear = calendarDate.getFullYear();
@@ -247,16 +232,11 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-            <span>Gestion des Indisponibilités</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-              {filteredUnavailabilities.length} période(s)
-            </span>
-          </h1>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Indisponibilités</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             {isLeaderOrAdmin
-              ? 'Périodes d’absences et congés prises en compte par le moteur de détection des conflits.'
-              : 'Déclarez vos congés et indisponibilités pour éviter d’être positionné(e) pendant vos absences.'}
+              ? 'Absences prises en compte pour éviter les conflits de planning.'
+              : 'Déclarez vos absences pour ne pas être positionné(e) pendant vos congés.'}
           </p>
         </div>
 
@@ -266,18 +246,18 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
             <button
               onClick={() => setViewMode('list')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === 'list' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                viewMode === 'list' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Liste & Cartes
+              Liste
             </button>
             <button
               onClick={() => setViewMode('calendar')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === 'calendar' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                viewMode === 'calendar' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Vue Calendrier
+              Calendrier
             </button>
           </div>
 
@@ -287,78 +267,11 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
               setInitialStartDate(undefined);
               setShowModal(true);
             }}
-            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-600/20 transition-all hover:scale-105 w-full sm:w-auto"
+            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-all w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>Déclarer une indisponibilité</span>
+            <span>Déclarer une absence</span>
           </button>
-        </div>
-      </div>
-
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Active Today */}
-        <div className="p-4 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-1.5">
-          <div className="flex items-center justify-between text-rose-600">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-              Absences en cours
-            </span>
-            <div className="p-2 bg-rose-50 rounded-xl">
-              <Clock className="w-4 h-4 text-rose-600" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{activeCount}</span>
-            <span className="text-[11px] font-semibold text-rose-600">aujourd'hui</span>
-          </div>
-        </div>
-
-        {/* Card 2: Upcoming */}
-        <div className="p-4 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-1.5">
-          <div className="flex items-center justify-between text-amber-600">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-              Absences à venir
-            </span>
-            <div className="p-2 bg-amber-50 rounded-xl">
-              <CalendarDays className="w-4 h-4 text-amber-600" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{upcomingCount}</span>
-            <span className="text-[11px] font-semibold text-amber-600">programmées</span>
-          </div>
-        </div>
-
-        {/* Card 3: Members Away */}
-        <div className="p-4 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-1.5">
-          <div className="flex items-center justify-between text-indigo-600">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-              Membres absents
-            </span>
-            <div className="p-2 bg-indigo-50 rounded-xl">
-              <Users className="w-4 h-4 text-indigo-600" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{uniqueMembersAway}</span>
-            <span className="text-[11px] font-semibold text-indigo-600">STARS</span>
-          </div>
-        </div>
-
-        {/* Card 4: My Declarations */}
-        <div className="p-4 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-1.5">
-          <div className="flex items-center justify-between text-emerald-600">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-              Mes déclarations
-            </span>
-            <div className="p-2 bg-emerald-50 rounded-xl">
-              <UserCheck className="w-4 h-4 text-emerald-600" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{myCount}</span>
-            <span className="text-[11px] font-semibold text-emerald-600">au total</span>
-          </div>
         </div>
       </div>
 
@@ -369,7 +282,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
           <button
             onClick={() => setSelectedScope('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              selectedScope === 'all' ? 'bg-white text-amber-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              selectedScope === 'all' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Toutes ({unavailabilities.length})
@@ -385,7 +298,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
           <button
             onClick={() => setSelectedScope('upcoming')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              selectedScope === 'upcoming' ? 'bg-white text-amber-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              selectedScope === 'upcoming' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             À venir ({upcomingCount})
@@ -436,7 +349,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
               onClick={() => setOnlyMine(!onlyMine)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
                 onlyMine
-                  ? 'bg-amber-100 border-amber-300 text-amber-900'
+                  ? 'bg-indigo-100 border-indigo-300 text-indigo-900'
                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
               }`}
             >
@@ -453,12 +366,12 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
         <div className="space-y-3">
           {loading ? (
             <div className="py-16 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-amber-600" />
+              <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
               <span>Chargement des indisponibilités...</span>
             </div>
           ) : filteredUnavailabilities.length === 0 ? (
             <div className="py-16 text-center space-y-3 bg-white rounded-3xl border border-slate-200 p-8 shadow-xs">
-              <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 bg-slate-100 text-slate-500 rounded-2xl flex items-center justify-center mx-auto">
                 <CalendarIcon className="w-6 h-6" />
               </div>
               <div>
@@ -472,7 +385,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                   setEditingUnavailability(null);
                   setShowModal(true);
                 }}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs inline-flex items-center gap-1.5 transition-all"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs inline-flex items-center gap-1.5 transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Déclarer une absence</span>
@@ -495,7 +408,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                       status === 'ACTIVE'
                         ? 'border-rose-200 ring-1 ring-rose-200 bg-gradient-to-br from-rose-50/20 to-white'
                         : status === 'UPCOMING'
-                        ? 'border-amber-200'
+                        ? 'border-indigo-200'
                         : 'border-slate-200 opacity-75'
                     }`}
                   >
@@ -537,7 +450,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                           status === 'ACTIVE'
                             ? 'bg-rose-100 text-rose-800 animate-pulse'
                             : status === 'UPCOMING'
-                            ? 'bg-amber-100 text-amber-800'
+                            ? 'bg-indigo-100 text-indigo-700'
                             : 'bg-slate-100 text-slate-600'
                         }`}
                       >
@@ -545,9 +458,9 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                       </span>
                     </div>
 
-                    {/* Reason & Recurrence */}
-                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <div className="flex items-center justify-between text-xs">
+                    {/* Reason, Recurrence & Dates */}
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-800">{u.reason || 'Indisponibilité'}</span>
                         {u.recurrence && u.recurrence !== 'NONE' && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700">
@@ -559,24 +472,13 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                           </span>
                         )}
                       </div>
-                    </div>
-
-                    {/* Date Range & Duration */}
-                    <div className="space-y-1.5 text-xs text-slate-600">
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-slate-500">
-                          <CalendarDays className="w-3.5 h-3.5 text-amber-600" />
-                          <span>Période d'absence :</span>
+                      <div className="flex items-center justify-between text-slate-500">
+                        <span>
+                          Du {startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} au{' '}
+                          {endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
-                        <span className="font-bold text-slate-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
-                          {diffDays} jour(s)
-                        </span>
+                        <span className="font-bold text-slate-700">{diffDays} j.</span>
                       </div>
-
-                      <p className="font-extrabold text-slate-900 text-[11px] pt-1">
-                        Du {startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} au{' '}
-                        {endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
                     </div>
 
                     {/* Action buttons */}
@@ -635,15 +537,11 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
 
               <button
                 onClick={() => setCalendarDate(new Date())}
-                className="px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-50 rounded-xl transition-colors ml-1"
+                className="px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors ml-1"
               >
                 Aujourd'hui
               </button>
             </div>
-
-            <span className="text-xs text-slate-500 font-semibold">
-              Cliquez sur un jour pour déclarer une absence ou voir les membres indisponibles.
-            </span>
           </div>
 
           {/* Day Headers (Lun - Dim) */}
@@ -668,9 +566,9 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                     cell.isCurrentMonth ? 'bg-white' : 'bg-slate-50/50 text-slate-400 opacity-60'
                   } ${
                     cell.isToday
-                      ? 'border-amber-500 bg-amber-50/20 ring-1 ring-amber-500/20'
+                      ? 'border-indigo-500 bg-indigo-50/20 ring-1 ring-indigo-500/20'
                       : isSelected
-                      ? 'border-amber-400 bg-amber-50/20 shadow-xs ring-1 ring-amber-300/40'
+                      ? 'border-indigo-400 bg-indigo-50/20 shadow-xs ring-1 ring-indigo-300/40'
                       : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50/50'
                   }`}
                 >
@@ -678,7 +576,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                     <span
                       className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
                         cell.isToday
-                          ? 'bg-amber-600 text-white shadow-xs'
+                          ? 'bg-indigo-600 text-white shadow-xs'
                           : cell.isCurrentMonth
                           ? 'text-slate-800'
                           : 'text-slate-400'
@@ -699,10 +597,10 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                     {cell.unavailabilities.slice(0, 2).map((u) => (
                       <div
                         key={u.id}
-                        className="p-1 rounded-lg text-[10px] font-bold truncate flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-200/60"
+                        className="p-1 rounded-lg text-[10px] font-bold truncate flex items-center gap-1 bg-slate-100 text-slate-700 border border-slate-200"
                         title={`${u.user?.firstName} ${u.user?.lastName} - ${u.reason}`}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 flex-shrink-0" />
                         <span className="truncate">{u.user?.firstName} {u.user?.lastName}</span>
                       </div>
                     ))}
@@ -723,7 +621,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black text-slate-900 flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-amber-600" />
+                  <CalendarDays className="w-4 h-4 text-indigo-600" />
                   <span>
                     Indisponibilités du {new Date(selectedCalendarDateStr + 'T12:00:00').toLocaleDateString('fr-FR', {
                       weekday: 'long',
@@ -740,7 +638,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                     setInitialStartDate(selectedCalendarDateStr);
                     setShowModal(true);
                   }}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 transition-all"
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>+ Déclarer pour cette date</span>

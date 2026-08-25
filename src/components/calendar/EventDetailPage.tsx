@@ -67,7 +67,6 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
   const createAssignment = useMutation(api.assignments.create);
 
   const [selfAssignPoleId, setSelfAssignPoleId] = React.useState<string>('');
-  const [selfAssignRoleTag, setSelfAssignRoleTag] = React.useState<string>('STAR Volontaire');
   const [selfAssigning, setSelfAssigning] = React.useState<boolean>(false);
   const [feedbackSuccess, setFeedbackSuccess] = React.useState<string | null>(null);
   const [feedbackError, setFeedbackError] = React.useState<string | null>(null);
@@ -144,7 +143,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
         eventId: currentEvent.id as Id<'events'>,
         userId: currentUser.id as Id<'users'>,
         poleId: targetPoleId as Id<'poles'>,
-        roleTag: selfAssignRoleTag || 'STAR Volontaire'
+        roleTag: 'STAR'
       });
 
       // The event query above is reactive — it re-renders with the new
@@ -396,20 +395,6 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
                     );
                   })}
                 </select>
-              </div>
-
-              {/* Role tag */}
-              <div className="sm:col-span-6">
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Rôle / Titre (Optionnel)
-                </label>
-                <input
-                  type="text"
-                  value={selfAssignRoleTag}
-                  onChange={(e) => setSelfAssignRoleTag(e.target.value)}
-                  placeholder="Ex: STAR Volontaire, Cadreur, Accueil..."
-                  className="w-full p-2.5 bg-white border border-indigo-200 rounded-xl text-xs font-medium text-slate-800 outline-hidden focus:ring-2 focus:ring-indigo-500 shadow-2xs"
-                />
               </div>
 
               {/* Submit Button */}
