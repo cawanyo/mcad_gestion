@@ -124,7 +124,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
   return (
     <div className="min-h-full bg-slate-50 font-sans pb-12">
       {/* Top Sticky Navigation Bar */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3.5 shadow-2xs">
+      <div className=" z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3.5 shadow-2xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button
