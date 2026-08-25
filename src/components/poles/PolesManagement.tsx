@@ -14,19 +14,35 @@ import {
   ArrowRight,
   Trash2
 } from 'lucide-react';
+import { useMutation } from 'convex/react';
 import { Pole, User } from '@/types';
 import { PoleDetailView } from './PoleDetailView';
 import { Modal, Badge, Avatar, EmptyState, ConfirmModal } from '@/components/ui';
-import { invalidateCache, CacheKeys } from '@/lib/cache';
+import { convexErrorMessage } from '@/lib/convexErrors';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
 interface PolesManagementProps {
   poles: Pole[];
   currentUser?: any;
   onRefresh: () => void;
+  initialSelectedPoleId?: string | null;
 }
 
-export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, currentUser, onRefresh }) => {
-  const [selectedPoleId, setSelectedPoleId] = React.useState<string | null>(null);
+export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, currentUser, onRefresh, initialSelectedPoleId }) => {
+  const createPole = useMutation(api.poles.create);
+  const removePole = useMutation(api.poles.remove);
+  const requestToJoin = useMutation(api.membershipRequests.create);
+
+  const [selectedPoleId, setSelectedPoleId] = React.useState<string | null>(initialSelectedPoleId || null);
+
+  // Navigated here from elsewhere (e.g. the dashboard's "Mes Pôles" list)
+  // with a specific pole to open directly.
+  React.useEffect(() => {
+    if (initialSelectedPoleId) {
+      setSelectedPoleId(initialSelectedPoleId);
+    }
+  }, [initialSelectedPoleId]);
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [showJoinModal, setShowJoinModal] = React.useState<Pole | null>(null);
   const [name, setName] = React.useState('');
@@ -36,25 +52,14 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
   const [loading, setLoading] = React.useState(false);
   const [localPendingPoles, setLocalPendingPoles] = React.useState<string[]>([]);
   const [joinedSuccess, setJoinedSuccess] = React.useState<string | null>(null);
+  const [joinError, setJoinError] = React.useState<string | null>(null);
   const [deleteConfirmPole, setDeleteConfirmPole] = React.useState<Pole | null>(null);
   const [deleting, setDeleting] = React.useState(false);
-  // poles comes from shared context as a prop, not local state — these
-  // track poles removed/added here so they update immediately instead of
-  // waiting on the shell's refresh round-trip to catch up.
-  const [locallyDeletedIds, setLocallyDeletedIds] = React.useState<Set<string>>(new Set());
-  const [locallyAddedPoles, setLocallyAddedPoles] = React.useState<Pole[]>([]);
 
-  // Once the real poles list catches up and includes an optimistically
-  // added pole, drop our stand-in — the real one (with counts/leaders
-  // filled in) takes over.
-  React.useEffect(() => {
-    setLocallyAddedPoles((prev) => prev.filter((p) => !poles.some((real) => real.id === p.id)));
-  }, [poles]);
-
-  const visiblePoles = [
-    ...poles.filter((p) => !locallyDeletedIds.has(p.id)),
-    ...locallyAddedPoles
-  ];
+  // poles is a reactive Convex query result — create/delete just await the
+  // mutation and the list updates on its own once it lands, no optimistic
+  // local state or cache invalidation needed anymore.
+  const visiblePoles = poles;
 
   // If a pole is selected, render the dedicated PoleDetailView
   if (selectedPoleId) {
@@ -94,36 +99,12 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
 
     try {
       setLoading(true);
-      const res = await fetch('/api/poles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim(),
-          color
-        })
-      });
-
-      if (res.ok) {
-        const created = await res.json();
-        // Optimistic: show the new pole immediately instead of waiting on
-        // the full shell refresh (dashboard + events + poles + ...) below
-        // to come back — that round-trip is what made creation feel like
-        // it wasn't working. The real entry (with counts/leaders filled
-        // in) takes over automatically once the refresh lands, via the
-        // dedup effect above.
-        setLocallyAddedPoles((prev) => [...prev, { ...created, membersCount: 0, leadersCount: 0, leaders: [] }]);
-        setName('');
-        setDescription('');
-        setColor('#3b68f0');
-        setShowAddModal(false);
-        // The shared poles list is cached (10 min TTL) for instant paint
-        // elsewhere in the app — without invalidating it here, the next
-        // refresh would just serve the stale cached list back and the new
-        // pole wouldn't show up until the cache naturally expired.
-        invalidateCache(CacheKeys.POLES);
-        onRefresh();
-      }
+      await createPole({ name: name.trim(), description: description.trim(), color });
+      setName('');
+      setDescription('');
+      setColor('#3b68f0');
+      setShowAddModal(false);
+      onRefresh();
     } catch (e) {
       console.error(e);
     } finally {
@@ -134,30 +115,13 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
   const handleDeletePole = async () => {
     if (!deleteConfirmPole) return;
     const poleId = deleteConfirmPole.id;
-    // Optimistic: hide immediately, don't wait on the refresh round-trip.
-    setLocallyDeletedIds((prev) => new Set(prev).add(poleId));
     setDeleteConfirmPole(null);
     try {
       setDeleting(true);
-      const res = await fetch(`/api/poles/${poleId}`, { method: 'DELETE' });
-      if (res.ok) {
-        invalidateCache(CacheKeys.POLES);
-        onRefresh();
-      } else {
-        // Roll back — deletion failed server-side
-        setLocallyDeletedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(poleId);
-          return next;
-        });
-      }
+      await removePole({ poleId: poleId as Id<'poles'> });
+      onRefresh();
     } catch (e) {
       console.error(e);
-      setLocallyDeletedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(poleId);
-        return next;
-      });
     } finally {
       setDeleting(false);
     }
@@ -169,24 +133,15 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
 
     try {
       setLoading(true);
-      const res = await fetch('/api/membership-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          poleId: showJoinModal.id,
-          motivation: motivation.trim()
-        })
-      });
-
-      if (res.ok) {
-        setLocalPendingPoles((prev) => [...prev, showJoinModal.id]);
-        setJoinedSuccess(showJoinModal.name);
-        setShowJoinModal(null);
-        setMotivation('');
-        setTimeout(() => setJoinedSuccess(null), 4000);
-      }
+      setJoinError(null);
+      await requestToJoin({ poleId: showJoinModal.id as Id<'poles'>, motivation: motivation.trim() });
+      setLocalPendingPoles((prev) => [...prev, showJoinModal.id]);
+      setJoinedSuccess(showJoinModal.name);
+      setShowJoinModal(null);
+      setMotivation('');
+      setTimeout(() => setJoinedSuccess(null), 4000);
     } catch (e) {
-      console.error(e);
+      setJoinError(convexErrorMessage(e, "Erreur lors de l'envoi de la demande"));
     } finally {
       setLoading(false);
     }
@@ -377,6 +332,12 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
           maxWidth="md"
         >
           <form onSubmit={handleJoinPole} className="space-y-3">
+            {joinError && (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{joinError}</span>
+              </div>
+            )}
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">Votre motivation / compétences</label>
               <textarea

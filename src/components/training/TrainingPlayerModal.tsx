@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 import { TrainingModule, TrainingLesson, User } from '@/types';
 import { Badge, MediaViewer } from '@/components/ui';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
 interface TrainingPlayerModalProps {
   module: TrainingModule;
@@ -40,6 +43,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
   );
   const [loadingAction, setLoadingAction] = React.useState(false);
   const [showCelebration, setShowCelebration] = React.useState(false);
+  const updateProgress = useMutation(api.training.updateProgress);
 
   const currentLesson = lessons[currentLessonIndex] || null;
   const totalLessons = lessons.length;
@@ -50,34 +54,27 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
   const handleToggleLesson = async (lesson: TrainingLesson) => {
     try {
       setLoadingAction(true);
-      const res = await fetch('/api/training/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'TOGGLE_LESSON',
-          moduleId: module.id,
-          lessonId: lesson.id
-        })
+      const data = await updateProgress({
+        action: 'TOGGLE_LESSON',
+        moduleId: module.id as Id<'trainingModules'>,
+        lessonId: lesson.id as Id<'trainingLessons'>
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setCompletedLessonIds((prev) => {
-          const next = new Set(prev);
-          if (data.isLessonCompleted) {
-            next.add(lesson.id);
-          } else {
-            next.delete(lesson.id);
-          }
-          return next;
-        });
-
-        if (data.progressPercent === 100 && !isModuleFullyCompleted) {
-          setShowCelebration(true);
+      setCompletedLessonIds((prev) => {
+        const next = new Set(prev);
+        if (data.isLessonCompleted) {
+          next.add(lesson.id);
+        } else {
+          next.delete(lesson.id);
         }
+        return next;
+      });
 
-        onProgressUpdated();
+      if (data.progressPercent === 100 && !isModuleFullyCompleted) {
+        setShowCelebration(true);
       }
+
+      onProgressUpdated();
     } catch (e) {
       console.error('Error toggling lesson completion:', e);
     } finally {

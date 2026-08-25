@@ -17,6 +17,9 @@ import {
   Loader2,
   X
 } from 'lucide-react';
+import { useMutation, useAction } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { convexErrorMessage } from '@/lib/convexErrors';
 import { User as UserType } from '@/types';
 import { Avatar, Modal, PhoneInputWithCountry } from '@/components/ui';
 
@@ -59,6 +62,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [successMessage, setSuccessMessage] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState('');
 
+  const updateProfile = useMutation(api.members.updateProfile);
+  const changePassword = useAction(api.members.changePassword);
+
+  const toUserType = (u: any): UserType => ({
+    id: u._id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    phone: u.phone ?? null,
+    gender: u.gender ?? null,
+    birthDate: u.birthDate ? new Date(u.birthDate).toISOString() : null,
+    avatar: u.avatar ?? null,
+    role: u.role,
+    status: currentUser?.status || 'ACTIVE',
+    departmentId: currentUser?.departmentId ?? null,
+    poleMemberships: (u.poleMemberships || []).map((m: any) => ({ poleId: m.poleId, status: m.status })),
+    poleLeaderships: (u.poleLeaderships || []).map((l: any) => ({ poleId: l.poleId, roleTitle: l.roleTitle })),
+  } as UserType);
+
   // Preset Realistic Avatars
   const presetAvatars = [
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
@@ -95,27 +116,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const saveAvatarImmediately = async (newAvatarUrl: string) => {
     setAvatar(newAvatarUrl);
     try {
-      const res = await fetch('/api/users/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser?.id,
-          avatar: newAvatarUrl
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          onUserUpdated(data.user);
-        }
-        setSuccessMessage('Photo de profil mise à jour et enregistrée avec succès !');
-      } else {
-        const errData = await res.json();
-        setUploadError(errData.error || 'Erreur lors de l’enregistrement de la photo');
-      }
+      const data = await updateProfile({ avatar: newAvatarUrl });
+      onUserUpdated(toUserType(data.user));
+      setSuccessMessage('Photo de profil mise à jour et enregistrée avec succès !');
     } catch (e) {
-      console.error('Failed to auto-save avatar:', e);
+      setUploadError(convexErrorMessage(e, 'Erreur lors de l’enregistrement de la photo'));
     }
   };
 
@@ -182,35 +187,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/users/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser?.id,
-          firstName,
-          lastName,
-          gender,
-          phone,
-          birthDate: birthDate || null,
-          avatar,
-          currentPassword: currentPassword || undefined,
-          newPassword: newPassword || undefined
-        })
+      const data = await updateProfile({
+        firstName,
+        lastName,
+        gender,
+        phone,
+        birthDate: birthDate ? new Date(birthDate).getTime() : undefined,
+        avatar
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMessage(data.error || 'Erreur lors de la mise à jour');
-      } else {
-        setSuccessMessage('Vos informations et votre profil ont été enregistrés avec succès !');
-        onUserUpdated(data.user);
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
+      if (newPassword) {
+        await changePassword({ currentPassword: currentPassword || undefined, newPassword });
       }
+
+      setSuccessMessage('Vos informations et votre profil ont été enregistrés avec succès !');
+      onUserUpdated(toUserType(data.user));
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (err) {
-      setErrorMessage('Erreur de communication avec le serveur');
+      setErrorMessage(convexErrorMessage(err, 'Erreur lors de la mise à jour'));
     } finally {
       setLoading(false);
     }

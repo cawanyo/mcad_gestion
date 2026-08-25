@@ -12,6 +12,9 @@ import {
   Layers,
   FileText
 } from 'lucide-react';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
 interface ChecklistFeedbackModalProps {
   checklist: any;
@@ -22,26 +25,12 @@ export const ChecklistFeedbackModal: React.FC<ChecklistFeedbackModalProps> = ({
   checklist,
   onClose
 }) => {
-  const [executions, setExecutions] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-
-  const fetchExecutions = async () => {
-    try {
-      const res = await fetch(`/api/checklists/execution?checklistId=${checklist.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setExecutions(data);
-      }
-    } catch (e) {
-      console.error('Error fetching executions:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchExecutions();
-  }, [checklist.id]);
+  const executionsRaw = useQuery(api.checklists.listExecutions, { checklistId: checklist.id as Id<'checklists'> });
+  const loading = executionsRaw === undefined;
+  const executions = React.useMemo(
+    () => (executionsRaw || []).map((e) => ({ ...e, id: e._id, createdAt: e._creationTime })),
+    [executionsRaw]
+  );
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 font-sans animate-in fade-in duration-200">

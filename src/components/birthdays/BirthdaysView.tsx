@@ -16,9 +16,12 @@ import {
   Clock,
   Heart
 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { convexErrorMessage } from '@/lib/convexErrors';
 import { User, Pole } from '@/types';
 import { Avatar, Badge, StatCard, EmptyState, Modal } from '@/components/ui';
-import { getCachedItem, setCachedItem, CacheTTL, invalidateCache } from '@/lib/cache';
 
 interface BirthdaysViewProps {
   currentUser?: User | null;
@@ -41,8 +44,13 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
   const [selectedMonth, setSelectedMonth] = React.useState<number | 'all'>(currentMonthIdx);
   const [selectedPoleFilter, setSelectedPoleFilter] = React.useState<string>('all');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
-  const [birthdaysData, setBirthdaysData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState<boolean>(true);
+
+  const birthdaysData = useQuery(api.birthdays.list, {
+    poleId: selectedPoleFilter !== 'all' ? (selectedPoleFilter as Id<'poles'>) : undefined,
+  });
+  const loading = birthdaysData === undefined;
+  const sendWishMutation = useMutation(api.birthdays.sendWish);
+  const updateBirthdateMutation = useMutation(api.birthdays.updateBirthdate);
 
   // Wishing modal state
   const [wishingTarget, setWishingTarget] = React.useState<any | null>(null);
@@ -61,71 +69,19 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
     currentUser?.role === 'POLE_LEADER' ||
     currentUser?.role === 'CALENDAR_MANAGER';
 
-  const fetchBirthdays = async (force: boolean = false) => {
-    try {
-      let url = '/api/birthdays';
-      const params = new URLSearchParams();
-      if (selectedPoleFilter !== 'all') params.append('poleId', selectedPoleFilter);
-      if (selectedMonth !== 'all') params.append('month', String(selectedMonth));
-      if (params.toString()) url += `?${params.toString()}`;
-
-      const cacheKey = `mcad_cache_birthdays_${selectedPoleFilter}_${selectedMonth}`;
-      
-      // Check cache first for instant display
-      if (!force) {
-        const cached = getCachedItem<any>(cacheKey);
-        if (cached) {
-          setBirthdaysData(cached);
-          setLoading(false);
-        } else {
-          setLoading(true);
-        }
-      } else {
-        setLoading(true);
-      }
-
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setBirthdaysData(data);
-        setCachedItem(cacheKey, data, CacheTTL.LONG);
-      }
-    } catch (e) {
-      console.error('Error fetching birthdays:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchBirthdays();
-  }, [selectedPoleFilter, selectedMonth]);
-
   const handleSendWish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!wishingTarget || !wishMessage.trim()) return;
 
     try {
       setSendingWish(true);
-      const res = await fetch('/api/birthdays', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'SEND_WISH',
-          targetUserId: wishingTarget.id,
-          message: wishMessage.trim(),
-          senderUserId: currentUser?.id
-        })
-      });
-
-      if (res.ok) {
-        setWishSentSuccess(true);
-        setTimeout(() => {
-          setWishSentSuccess(false);
-          setWishingTarget(null);
-          setWishMessage('');
-        }, 1800);
-      }
+      await sendWishMutation({ targetUserId: wishingTarget.id as Id<'users'>, message: wishMessage.trim() });
+      setWishSentSuccess(true);
+      setTimeout(() => {
+        setWishSentSuccess(false);
+        setWishingTarget(null);
+        setWishMessage('');
+      }, 1800);
     } catch (e) {
       console.error(e);
     } finally {
@@ -139,20 +95,10 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
 
     try {
       setUpdatingDate(true);
-      const res = await fetch('/api/birthdays', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'UPDATE_BIRTHDATE',
-          targetUserId: editingTarget.id,
-          birthDate: inputBirthDate
-        })
+      await updateBirthdateMutation({
+        targetUserId: editingTarget.id as Id<'users'>,
+        birthDate: new Date(inputBirthDate).getTime(),
       });
-
-      if (res.ok) {
-        invalidateCache('mcad_cache_birthdays');
-        fetchBirthdays(true);
-      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -165,7 +111,7 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
   const upcomingBirthdays = birthdaysData?.upcomingBirthdays || [];
   const monthlyGroups = birthdaysData?.monthlyGroups || [];
   const membersWithoutBirthdate = birthdaysData?.membersWithoutBirthdate || [];
-  const kpis = birthdaysData?.kpis || {};
+  const kpis: any = birthdaysData?.kpis || {};
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 font-sans">

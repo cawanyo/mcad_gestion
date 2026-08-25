@@ -3,14 +3,19 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { useConvexAuth, useQuery, useMutation } from 'convex/react';
+import { useAuthActions } from '@convex-dev/auth/react';
+import { api } from '../../../convex/_generated/api';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { BottomTabBar } from '@/components/layout/BottomTabBar';
 import { User, Pole, Event, NotificationItem } from '@/types';
 import { Sparkles } from 'lucide-react';
-import { getCachedItem, setCachedItem, invalidateCache, CacheKeys, CacheTTL } from '@/lib/cache';
+import { invalidateCache } from '@/lib/cache';
 import { tabToPath } from '@/lib/navigation';
+import { adaptDashboard, adaptEvent, adaptPole, adaptNotification, adaptMemberListItem } from '@/lib/convexAdapters';
 import { AppShellContext, AppShellContextValue } from '@/contexts/AppShellContext';
+import { Id } from '../../../convex/_generated/dataModel';
 
 // These three overlays can be opened from several different routes (the
 // calendar page, the dashboard, the unavailabilities page...), so they live
@@ -22,26 +27,110 @@ const UnavailabilityModal = dynamic(() => import('@/components/unavailability/Un
 
 export default function AppShellLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const { signOut } = useAuthActions();
+  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
+
+  // Dashboard, poles and the current month's events are all reactive Convex
+  // queries now — no fetch/cache/polling needed, every mutation anywhere in
+  // the app updates these automatically.
+  const dashboardDataRaw = useQuery(api.dashboard.get, isAuthenticated ? {} : 'skip');
+  const dashboardData = React.useMemo(() => adaptDashboard(dashboardDataRaw), [dashboardDataRaw]);
+  const polesRaw = useQuery(api.poles.list, isAuthenticated ? {} : 'skip');
+  const poles = React.useMemo(() => (polesRaw || []).map(adaptPole), [polesRaw]);
+
+  // The current user is now sourced from Convex (reactive, no polling
+  // needed). `currentUserOverride` exists only so the settings page's
+  // optimistic `setCurrentUser(u)` call after a profile edit keeps working
+  // without rewriting that still-untouched page in this pass.
+  const [currentUserOverride, setCurrentUserOverride] = React.useState<User | null>(null);
+  const currentUser = React.useMemo<User | null>(() => {
+    if (currentUserOverride) return currentUserOverride;
+    if (!viewer) return null;
+    // poles.list already carries each pole's full membership/leadership
+    // lists — derive the viewer's own from those instead of a separate
+    // query. Only ACTIVE memberships exist in this table (there's no
+    // PENDING status on poleMemberships, that lives on membershipRequests),
+    // so pole pages that check for a "pending" state rely on their own
+    // local post-submit state instead, not this array.
+    // Every other poleMemberships[].pole in the app (members.list,
+    // unavailabilities.list, ...) carries the full nested pole object —
+    // match that contract here too, otherwise anything reading pm.pole
+    // (e.g. EventDetailPage/CalendarView's "poles I can self-assign to")
+    // silently gets an empty list.
+    const myPoleMemberships = (polesRaw || []).flatMap((p: any) =>
+      (p.memberships || [])
+        .filter((m: any) => m.userId === viewer._id)
+        .map((m: any) => ({ poleId: p._id, status: m.status, pole: adaptPole(p) }))
+    );
+    const myPoleLeaderships = (polesRaw || []).flatMap((p: any) =>
+      (p.leaders || [])
+        .filter((l: any) => l.userId === viewer._id)
+        .map((l: any) => ({ poleId: p._id, roleTitle: l.roleTitle }))
+    );
+    return {
+      id: viewer._id,
+      firstName: viewer.firstName,
+      lastName: viewer.lastName,
+      phone: viewer.phone ?? null,
+      gender: viewer.gender ?? null,
+      birthDate: viewer.birthDate ? new Date(viewer.birthDate).toISOString() : null,
+      avatar: viewer.avatar ?? null,
+      role: viewer.role as User['role'],
+      status: viewer.status,
+      departmentId: viewer.departmentId ?? null,
+      poleMemberships: myPoleMemberships,
+      poleLeaderships: myPoleLeaderships,
+    };
+  }, [viewer, currentUserOverride, polesRaw]);
+  const setCurrentUser: React.Dispatch<React.SetStateAction<User | null>> = setCurrentUserOverride;
 
   // Application Data States
-  const [currentUser, setCurrentUser] = React.useState<User | null>(null);
-  const [allUsers, setAllUsers] = React.useState<User[]>([]);
-  const [dashboardData, setDashboardData] = React.useState<any>(null);
-  const [poles, setPoles] = React.useState<Pole[]>([]);
-  const [events, setEvents] = React.useState<Event[]>([]);
-  const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = React.useState(0);
-  const [loading, setLoading] = React.useState(true);
+  const allUsersRaw = useQuery(api.members.list, isAuthenticated ? {} : 'skip');
+  const allUsers = React.useMemo(() => (allUsersRaw || []).map(adaptMemberListItem) as User[], [allUsersRaw]);
+  const notificationsRaw = useQuery(api.notifications.list, isAuthenticated ? {} : 'skip');
+  const notifications = React.useMemo(
+    () => (notificationsRaw?.notifications || []).map(adaptNotification) as NotificationItem[],
+    [notificationsRaw]
+  );
+  const unreadNotificationsCount = notificationsRaw?.unreadCount ?? 0;
   const [loadingProgress, setLoadingProgress] = React.useState(15);
   const [loadingStatus, setLoadingStatus] = React.useState('Vérification de votre session...');
+
+  // The current month's events are reactive too (dashboard/poles are
+  // declared above, before currentUser, since currentUser derives from
+  // polesRaw) — no fetch/cache/polling needed, every mutation anywhere in
+  // the app updates these automatically.
+  const currentMonthKey = React.useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+  const eventsRaw = useQuery(api.events.list, isAuthenticated ? { month: currentMonthKey } : 'skip');
+  const events = React.useMemo(() => (eventsRaw || []).map(adaptEvent), [eventsRaw]);
+
+  const loading =
+    authLoading || (isAuthenticated && (viewer === undefined || polesRaw === undefined || dashboardDataRaw === undefined));
+
+  React.useEffect(() => {
+    if (authLoading) {
+      setLoadingProgress(15);
+      setLoadingStatus('Vérification de votre session...');
+    } else if (loading) {
+      setLoadingProgress(70);
+      setLoadingStatus('Synchronisation de votre espace MCAD...');
+    } else {
+      setLoadingProgress(100);
+      setLoadingStatus('Espace MCAD prêt.');
+    }
+  }, [authLoading, loading]);
 
   // Modals & Drawers (shared across every route)
   const [showEventModal, setShowEventModal] = React.useState(false);
   const [showAssignmentsDrawer, setShowAssignmentsDrawer] = React.useState(false);
-  const [selectedEventForAssignments, setSelectedEventForAssignments] = React.useState<Event | null>(null);
+  const [selectedEventIdForAssignments, setSelectedEventIdForAssignments] = React.useState<Id<'events'> | null>(null);
   const [selectedEventForCalendar, setSelectedEventForCalendar] = React.useState<Event | null>(null);
+  const [selectedPoleForNav, setSelectedPoleForNav] = React.useState<string | null>(null);
   const [showUnavailabilityModal, setShowUnavailabilityModal] = React.useState(false);
-  const [lastEventUpdate, setLastEventUpdate] = React.useState<Event | null>(null);
 
   const navigateTab = React.useCallback((tabId: string) => {
     router.push(tabToPath(tabId));
@@ -52,233 +141,48 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     router.push('/calendar');
   }, [router]);
 
-  // Full Initial & Background Data Loader
-  const fetchData = async (isInitial: boolean = false) => {
-    try {
-      if (isInitial) {
-        setLoadingProgress(20);
-        setLoadingStatus('Chargement de votre espace MCAD...');
-      }
+  const navigateToPole = React.useCallback((poleId: string) => {
+    setSelectedPoleForNav(poleId);
+    router.push('/poles');
+  }, [router]);
 
-      // Check cached events/poles for instant availability while fresh data loads
-      const now = new Date();
-      const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const cachedMonthEvents = getCachedItem<Event[]>(`${CacheKeys.EVENTS}_${currentMonthKey}`);
-      if (cachedMonthEvents) {
-        setEvents(cachedMonthEvents);
-      }
-
-      const cachedPoles = getCachedItem<Pole[]>(CacheKeys.POLES);
-      if (cachedPoles) {
-        setPoles(cachedPoles);
-      }
-
-      // Fire every request in parallel right away — nobody waits on anybody
-      // else's response to *start*. But an anonymous visitor only ever sees
-      // the public landing page, which uses none of this data, so we only
-      // block the UI on the cheap "who am I" check: as soon as it comes
-      // back "not logged in", we bounce to the landing page immediately
-      // instead of sitting through the other requests too. Those requests
-      // were already sent (no point cancelling them — the server itself
-      // also fast-rejects the heavy ones without a session, see
-      // /api/dashboard), we simply stop waiting on them.
-      const userPromise = fetch('/api/auth/current', { cache: 'no-store' });
-      const dashPromise = fetch('/api/dashboard');
-      const eventsPromise = fetch(`/api/events?month=${currentMonthKey}`);
-      const polesPromise = cachedPoles ? Promise.resolve(null) : fetch('/api/poles');
-      const notifPromise = fetch('/api/notifications');
-      const usersPromise = fetch('/api/auth/current?includeAllUsers=true');
-      // Prevent "unhandled promise rejection" noise if we bail before
-      // awaiting these (e.g. anonymous visitor).
-      [dashPromise, eventsPromise, polesPromise, notifPromise, usersPromise].forEach((p) => p.catch(() => {}));
-
-      const userRes = await userPromise.catch(() => null);
-      if (!userRes || !userRes.ok) {
-        if (isInitial) {
-          setLoadingProgress(100);
-          setLoading(false);
-        }
-        return;
-      }
-
-      const userData = await userRes.json();
-      setCurrentUser(userData.user);
-
-      if (!userData.user) {
-        // Authoritative "not logged in" response (e.g. expired session) —
-        // drop any cached profile/dashboard so a future visit doesn't
-        // instant-paint from stale, no-longer-valid data.
-        invalidateCache();
-        if (isInitial) {
-          setLoadingProgress(100);
-          setLoading(false);
-        }
-        return;
-      }
-
-      const [dashRes, eventsRes, polesRes, notifRes, usersRes] = await Promise.allSettled([
-        dashPromise,
-        eventsPromise,
-        polesPromise,
-        notifPromise,
-        usersPromise
-      ]);
-
-      // Cache the profile so the next visit (this tab/session) can paint
-      // instantly from it instead of waiting on the network.
-      setCachedItem(CacheKeys.CURRENT_USER, userData.user, CacheTTL.LONG);
-
-      if (isInitial) {
-        setLoadingProgress(85);
-        setLoadingStatus('Finalisation de votre espace MCAD...');
-      }
-
-      if (dashRes.status === 'fulfilled' && dashRes.value && dashRes.value.ok) {
-        const freshDashboard = await dashRes.value.json();
-        setDashboardData(freshDashboard);
-        setCachedItem(CacheKeys.DASHBOARD, freshDashboard, CacheTTL.LONG);
-      }
-
-      if (eventsRes.status === 'fulfilled' && eventsRes.value && eventsRes.value.ok) {
-        const freshEvents = await eventsRes.value.json();
-        setEvents(freshEvents);
-        setCachedItem(`${CacheKeys.EVENTS}_${currentMonthKey}`, freshEvents, CacheTTL.SHORT);
-        setSelectedEventForAssignments((prev) => {
-          if (!prev) return null;
-          return freshEvents.find((e: any) => e.id === prev.id) || prev;
-        });
-      }
-
-      if (polesRes.status === 'fulfilled' && polesRes.value && polesRes.value.ok) {
-        const freshPoles = await polesRes.value.json();
-        setPoles(freshPoles);
-        setCachedItem(CacheKeys.POLES, freshPoles, CacheTTL.MEDIUM);
-      }
-
-      if (notifRes.status === 'fulfilled' && notifRes.value && notifRes.value.ok) {
-        const notifData = await notifRes.value.json();
-        setNotifications(notifData.notifications || []);
-        setUnreadNotificationsCount(notifData.unreadCount ?? 0);
-      }
-
-      if (usersRes.status === 'fulfilled' && usersRes.value && usersRes.value.ok) {
-        const usersData = await usersRes.value.json();
-        setAllUsers(usersData.allUsers || []);
-      }
-
-      if (isInitial) {
-        setLoadingProgress(100);
-        setLoadingStatus('Finalisation et ouverture de votre espace MCAD...');
-        setTimeout(() => {
-          setLoading(false);
-        }, 200);
-      }
-    } catch (e) {
-      console.error('Data fetch error:', e);
-      if (isInitial) {
-        setLoading(false);
-      }
-    }
-  };
-
-  // Initial load. If we already have a cached profile + dashboard from
-  // earlier in this browser session, paint the app with that instantly
-  // (skipping the loading screen entirely) and silently refresh everything
-  // in the background. Otherwise fall back to the normal loading sequence.
-  React.useEffect(() => {
-    const cachedUser = getCachedItem<User>(CacheKeys.CURRENT_USER);
-    const cachedDashboard = getCachedItem<any>(CacheKeys.DASHBOARD);
-
-    if (cachedUser && cachedDashboard) {
-      setCurrentUser(cachedUser);
-      setDashboardData(cachedDashboard);
-      setLoading(false);
-      fetchData(false);
-    } else {
-      fetchData(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const clearSelectedPoleForNav = React.useCallback(() => {
+    setSelectedPoleForNav(null);
   }, []);
+
+  // allUsers and notifications above are reactive Convex queries too — no
+  // fetch/refresh call needed, same as dashboard/poles/events. `fetchData`
+  // itself is now a no-op kept only because several pages still call
+  // `onRefresh`/`fetchData` from context after a mutation out of habit from
+  // the old fetch()-based world — harmless once every query is reactive.
+  const fetchData = async () => {};
 
   // Once we know for sure there's no session, bounce to the public landing
   // page — this is the client-side equivalent of the old inline
   // `if (!currentUser) return <LandingPage />` render branch.
   React.useEffect(() => {
-    if (!loading && !currentUser) {
+    if (!authLoading && !isAuthenticated) {
       router.replace('/landing');
     }
-  }, [loading, currentUser, router]);
+  }, [authLoading, isAuthenticated, router]);
 
-  // Real-time Live Stream (Server-Sent Events) + Heartbeat sync
-  React.useEffect(() => {
-    if (!currentUser) return;
+  // There used to be a Server-Sent Events listener + a 15s polling
+  // interval here, both working around the same problem: fetch()-based
+  // reads have no way to know when the data they returned goes stale.
+  // Once feature pages are migrated to Convex's useQuery, each page's own
+  // subscription stays live on its own — no shell-level broadcast or
+  // polling loop is needed anymore. Feature pages still on the old REST
+  // routes in this transitional phase simply won't get push updates until
+  // they're migrated (same as before this pass, minus the polling papering
+  // over it).
 
-    let eventSource: EventSource | null = null;
-    let reconnectTimeout: NodeJS.Timeout;
-
-    const connectSSE = () => {
-      try {
-        eventSource = new EventSource('/api/realtime');
-
-        eventSource.onmessage = (event) => {
-          try {
-            const payload = JSON.parse(event.data);
-
-            if (payload.type === 'NOTIFICATION') {
-              if (payload.notification?.userId === currentUser.id) {
-                setNotifications((prev) => [payload.notification, ...prev]);
-                setUnreadNotificationsCount((prev) => prev + 1);
-              }
-            } else if (payload.type !== 'PING' && payload.type !== 'CONNECTED') {
-              // Every mutation broadcasts its own specific type (EVENT_CREATED,
-              // ASSIGNMENT_CREATED, POLE_UPDATED, ...) — treat any of them as
-              // "something changed, refresh" so every connected user sees
-              // updates made by others without waiting for the 15s poll or a
-              // manual reload.
-              fetchData();
-            }
-          } catch (e) {
-            console.error('SSE parse error:', e);
-          }
-        };
-
-        eventSource.onerror = () => {
-          if (eventSource) {
-            eventSource.close();
-          }
-          reconnectTimeout = setTimeout(connectSSE, 5000);
-        };
-      } catch (e) {
-        console.error('SSE initialization error:', e);
-        reconnectTimeout = setTimeout(connectSSE, 5000);
-      }
-    };
-
-    connectSSE();
-
-    const interval = setInterval(() => {
-      fetchData();
-    }, 15000);
-
-    return () => {
-      if (eventSource) eventSource.close();
-      clearTimeout(reconnectTimeout);
-      clearInterval(interval);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
-
-  // Request actions (Admin)
+  // Request actions (Admin) — dashboardData.pendingRequests is a reactive
+  // Convex query, so approving/rejecting here updates the dashboard on its
+  // own; no follow-up refresh call needed.
+  const reviewMembershipRequest = useMutation(api.membershipRequests.review);
   const handleApproveRequest = async (requestId: string) => {
     try {
-      const res = await fetch(`/api/membership-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'APPROVED' })
-      });
-      if (res.ok) {
-        await fetchData();
-      }
+      await reviewMembershipRequest({ requestId: requestId as Id<'membershipRequests'>, status: 'APPROVED' });
     } catch (e) {
       console.error('Approval error:', e);
     }
@@ -286,14 +190,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 
   const handleRejectRequest = async (requestId: string) => {
     try {
-      const res = await fetch(`/api/membership-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'REJECTED' })
-      });
-      if (res.ok) {
-        await fetchData();
-      }
+      await reviewMembershipRequest({ requestId: requestId as Id<'membershipRequests'>, status: 'REJECTED' });
     } catch (e) {
       console.error('Rejection error:', e);
     }
@@ -301,33 +198,22 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 
   // Logout handler
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await signOut();
     invalidateCache();
     setCurrentUser(null);
     window.location.href = '/login';
   };
 
-  // Notification handlers
+  // Notification handlers — notifications is a reactive Convex query, so no
+  // optimistic local state patch is needed, the mutation's own effect
+  // re-renders it automatically.
+  const markNotificationRead = useMutation(api.notifications.markRead);
   const handleMarkNotificationRead = async (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
-    setUnreadNotificationsCount((prev) => Math.max(0, prev - 1));
-    await fetch('/api/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
+    await markNotificationRead({ notificationId: id as Id<'notifications'> });
   };
 
   const handleMarkAllNotificationsRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setUnreadNotificationsCount(0);
-    await fetch('/api/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markAllRead: true, userId: currentUser?.id })
-    });
+    await markNotificationRead({ markAllRead: true });
   };
 
   // Loading state with dynamic progress & completion stages
@@ -429,7 +315,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     unreadNotificationsCount,
     isLeaderOrAdmin,
     selectedEventForCalendar,
-    lastEventUpdate,
+    selectedPoleForNav,
     fetchData,
     handleLogout,
     handleApproveRequest,
@@ -438,9 +324,11 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     handleMarkAllNotificationsRead,
     navigateTab,
     navigateToEvent,
+    navigateToPole,
+    clearSelectedPoleForNav,
     openEventModal: () => setShowEventModal(true),
     openAssignmentsDrawer: (event: Event) => {
-      setSelectedEventForAssignments(event);
+      setSelectedEventIdForAssignments(event.id as Id<'events'>);
       setShowAssignmentsDrawer(true);
     },
     openUnavailabilityModal: () => setShowUnavailabilityModal(true)
@@ -489,22 +377,19 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
             isOpen={showEventModal}
             onClose={() => setShowEventModal(false)}
             poles={poles}
-            onEventCreated={fetchData}
+            onEventCreated={() => {}}
           />
         )}
 
-        {showAssignmentsDrawer && selectedEventForAssignments && (
+        {showAssignmentsDrawer && selectedEventIdForAssignments && (
           <AssignmentsDrawer
             isOpen={showAssignmentsDrawer}
             onClose={() => {
               setShowAssignmentsDrawer(false);
-              setSelectedEventForAssignments(null);
+              setSelectedEventIdForAssignments(null);
             }}
-            event={selectedEventForAssignments}
+            eventId={selectedEventIdForAssignments}
             poles={poles}
-            allUsers={allUsers}
-            onRefreshEvent={fetchData}
-            onEventUpdated={setLastEventUpdate}
           />
         )}
 

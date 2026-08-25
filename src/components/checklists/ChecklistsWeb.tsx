@@ -24,9 +24,15 @@ import {
   Lock,
   Sparkles
 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { adaptChecklist } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
 import { Checklist, Pole, Event, User } from '@/types';
 import { ChecklistRunnerModal } from './ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from './ChecklistFeedbackModal';
+import { ChecklistFormModal } from './ChecklistFormModal';
 import { ConfirmModal, Modal, Badge, Toast, ToastState, MediaViewer } from '@/components/ui';
 import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
 
@@ -45,11 +51,21 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   onRefresh
 }) => {
   const [selectedPoleId, setSelectedPoleId] = React.useState(poles[0]?.id || '');
-  const [checklists, setChecklists] = React.useState<Checklist[]>([]);
-  const [activeEditorChecklist, setActiveEditorChecklist] = React.useState<Checklist | null>(null);
+  const checklistsRaw = useQuery(api.checklists.list, selectedPoleId ? { poleId: selectedPoleId as Id<'poles'> } : 'skip');
+  const loading = checklistsRaw === undefined;
+  const checklists = React.useMemo(() => (checklistsRaw || []).map(adaptChecklist), [checklistsRaw]);
+  const [activeEditorChecklistId, setActiveEditorChecklistId] = React.useState<string | null>(null);
+  // Re-derived from the reactive `checklists` list on every render instead of
+  // held as its own snapshot, so edits (add/remove step, associate event...)
+  // show up immediately without a manual refetch.
+  const activeEditorChecklist = activeEditorChecklistId
+    ? checklists.find((c) => c.id === activeEditorChecklistId) || null
+    : null;
   const [activeEditorTab, setActiveEditorTab] = React.useState<'etapes' | 'events'>('etapes');
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
+
+  const updateChecklistMutation = useMutation(api.checklists.update);
+  const removeChecklistMutation = useMutation(api.checklists.remove);
 
   // Runner & Feedback Modals
   const [runningChecklist, setRunningChecklist] = React.useState<any | null>(null);
@@ -71,9 +87,6 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
   // Create checklist modal
   const [showCreateModal, setShowCreateModal] = React.useState(false);
-  const [createTitle, setCreateTitle] = React.useState('');
-  const [createDescription, setCreateDescription] = React.useState('');
-  const [creatingChecklist, setCreatingChecklist] = React.useState(false);
 
   // Beautiful Confirmation Modals
   const [deletingChecklist, setDeletingChecklist] = React.useState<Checklist | null>(null);
@@ -89,33 +102,11 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     currentUser?.role === 'POLE_LEADER' ||
     currentUser?.role === 'CALENDAR_MANAGER';
 
-  const fetchChecklists = async (poleId?: string) => {
-    try {
-      setLoading(true);
-      const url = poleId ? `/api/checklists?poleId=${poleId}` : '/api/checklists';
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setChecklists(data);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   React.useEffect(() => {
     if (poles.length > 0 && !selectedPoleId) {
       setSelectedPoleId(poles[0].id);
     }
   }, [poles]);
-
-  React.useEffect(() => {
-    if (selectedPoleId) {
-      fetchChecklists(selectedPoleId);
-    }
-  }, [selectedPoleId]);
 
   const [stepUploadProgress, setStepUploadProgress] = React.useState<UploadProgressInfo | null>(null);
 
@@ -146,56 +137,11 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     }
   };
 
-  // Create Checklist Handler
-  const handleCreateChecklist = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isLeaderOrAdmin) {
-      setToast({ message: 'Action réservée aux responsables.', type: 'error' });
-      return;
-    }
-
-    if (!createTitle.trim()) return;
-
-    try {
-      setCreatingChecklist(true);
-      const res = await fetch('/api/checklists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          poleId: selectedPoleId || poles[0]?.id,
-          title: createTitle.trim(),
-          description: createDescription.trim() || 'Guide opérationnel de service.',
-          steps: [
-            {
-              title: 'Prier et consacrer le temps de service',
-              description: "Temps de prière d'équipe avant le début du culte.",
-              mediaType: 'TEXT'
-            },
-            {
-              title: 'Vérifier les installations techniques',
-              description: 'Contrôle visuel des équipements et validation du matériel.',
-              mediaType: 'TEXT'
-            }
-          ]
-        })
-      });
-
-      if (res.ok) {
-        const created = await res.json();
-        setShowCreateModal(false);
-        setCreateTitle('');
-        setCreateDescription('');
-        fetchChecklists(selectedPoleId);
-        setActiveEditorChecklist(created);
-        if (onRefresh) onRefresh();
-        setToast({ message: 'Checklist créée avec succès !', type: 'success' });
-      }
-    } catch (e) {
-      console.error(e);
-      setToast({ message: 'Erreur lors de la création.', type: 'error' });
-    } finally {
-      setCreatingChecklist(false);
-    }
+  const handleChecklistCreated = (created: any) => {
+    setShowCreateModal(false);
+    setActiveEditorChecklistId(created._id);
+    if (onRefresh) onRefresh();
+    setToast({ message: 'Checklist créée avec succès !', type: 'success' });
   };
 
   // Edit Checklist Title & Description
@@ -205,26 +151,16 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
     try {
       setSavingInfo(true);
-      const res = await fetch(`/api/checklists/${activeEditorChecklist.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: editTitle.trim(),
-          description: editDescription.trim()
-        })
+      await updateChecklistMutation({
+        checklistId: activeEditorChecklist.id as Id<'checklists'>,
+        title: editTitle.trim(),
+        description: editDescription.trim()
       });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setActiveEditorChecklist(updated);
-        setShowEditInfoModal(false);
-        fetchChecklists(selectedPoleId);
-        if (onRefresh) onRefresh();
-        setToast({ message: 'Informations mises à jour.', type: 'success' });
-      }
+      setShowEditInfoModal(false);
+      if (onRefresh) onRefresh();
+      setToast({ message: 'Informations mises à jour.', type: 'success' });
     } catch (e) {
-      console.error(e);
-      setToast({ message: 'Erreur lors de la mise à jour.', type: 'error' });
+      setToast({ message: convexErrorMessage(e, 'Erreur lors de la mise à jour.'), type: 'error' });
     } finally {
       setSavingInfo(false);
     }
@@ -234,39 +170,35 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   const handleAddStep = async () => {
     if (!isLeaderOrAdmin || !activeEditorChecklist || !newStepTitle.trim()) return;
 
-    const currentSteps = activeEditorChecklist.steps || [];
+    const currentSteps = (activeEditorChecklist.steps || []).map((s) => ({
+      title: s.title,
+      description: s.description || undefined,
+      details: s.details || undefined,
+      mediaType: s.mediaType,
+      mediaUrl: s.mediaUrl || undefined,
+      mediaThumbnail: s.mediaThumbnail || undefined
+    }));
     const newStep = {
       title: newStepTitle.trim(),
-      description: newStepDesc.trim(),
+      description: newStepDesc.trim() || undefined,
       mediaType: newStepMediaType,
-      mediaUrl: newStepMediaUrl || null,
-      mediaThumbnail: newStepMediaType === 'PHOTO' ? newStepMediaUrl : null
+      mediaUrl: newStepMediaUrl || undefined,
+      mediaThumbnail: newStepMediaType === 'PHOTO' ? newStepMediaUrl || undefined : undefined
     };
 
     const updatedSteps = [...currentSteps, newStep];
 
     try {
       setActionLoading(true);
-      const res = await fetch(`/api/checklists/${activeEditorChecklist.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ steps: updatedSteps })
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setActiveEditorChecklist(updated);
-        setShowAddStepModal(false);
-        setNewStepTitle('');
-        setNewStepDesc('');
-        setNewStepMediaType('TEXT');
-        setNewStepMediaUrl('');
-        fetchChecklists(selectedPoleId);
-        setToast({ message: 'Étape ajoutée avec succès.', type: 'success' });
-      }
+      await updateChecklistMutation({ checklistId: activeEditorChecklist.id as Id<'checklists'>, steps: updatedSteps });
+      setShowAddStepModal(false);
+      setNewStepTitle('');
+      setNewStepDesc('');
+      setNewStepMediaType('TEXT');
+      setNewStepMediaUrl('');
+      setToast({ message: 'Étape ajoutée avec succès.', type: 'success' });
     } catch (e) {
-      console.error(e);
-      setToast({ message: "Erreur lors de l'ajout.", type: 'error' });
+      setToast({ message: convexErrorMessage(e, "Erreur lors de l'ajout."), type: 'error' });
     } finally {
       setActionLoading(false);
     }
@@ -276,27 +208,24 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   const handleConfirmDeleteStep = async () => {
     if (!isLeaderOrAdmin || !activeEditorChecklist || deletingStepIndex === null) return;
 
-    const currentSteps = activeEditorChecklist.steps || [];
-    const updatedSteps = currentSteps.filter((_, i) => i !== deletingStepIndex);
+    const updatedSteps = (activeEditorChecklist.steps || [])
+      .filter((_, i) => i !== deletingStepIndex)
+      .map((s) => ({
+        title: s.title,
+        description: s.description || undefined,
+        details: s.details || undefined,
+        mediaType: s.mediaType,
+        mediaUrl: s.mediaUrl || undefined,
+        mediaThumbnail: s.mediaThumbnail || undefined
+      }));
 
     try {
       setActionLoading(true);
-      const res = await fetch(`/api/checklists/${activeEditorChecklist.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ steps: updatedSteps })
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setActiveEditorChecklist(updated);
-        setDeletingStepIndex(null);
-        fetchChecklists(selectedPoleId);
-        setToast({ message: 'Étape supprimée.', type: 'success' });
-      }
+      await updateChecklistMutation({ checklistId: activeEditorChecklist.id as Id<'checklists'>, steps: updatedSteps });
+      setDeletingStepIndex(null);
+      setToast({ message: 'Étape supprimée.', type: 'success' });
     } catch (e) {
-      console.error(e);
-      setToast({ message: 'Erreur lors de la suppression.', type: 'error' });
+      setToast({ message: convexErrorMessage(e, 'Erreur lors de la suppression.'), type: 'error' });
     } finally {
       setActionLoading(false);
     }
@@ -308,19 +237,15 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
     try {
       setActionLoading(true);
-      const res = await fetch(`/api/checklists/${deletingChecklist.id}`, { method: 'DELETE' });
-      if (res.ok) {
-        if (activeEditorChecklist?.id === deletingChecklist.id) {
-          setActiveEditorChecklist(null);
-        }
-        setDeletingChecklist(null);
-        fetchChecklists(selectedPoleId);
-        if (onRefresh) onRefresh();
-        setToast({ message: 'Checklist supprimée avec succès.', type: 'success' });
+      await removeChecklistMutation({ checklistId: deletingChecklist.id as Id<'checklists'> });
+      if (activeEditorChecklist?.id === deletingChecklist.id) {
+        setActiveEditorChecklistId(null);
       }
+      setDeletingChecklist(null);
+      if (onRefresh) onRefresh();
+      setToast({ message: 'Checklist supprimée avec succès.', type: 'success' });
     } catch (e) {
-      console.error(e);
-      setToast({ message: 'Erreur lors de la suppression.', type: 'error' });
+      setToast({ message: convexErrorMessage(e, 'Erreur lors de la suppression.'), type: 'error' });
     } finally {
       setActionLoading(false);
     }
@@ -330,20 +255,10 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     if (!isLeaderOrAdmin || !activeEditorChecklist) return;
 
     try {
-      const res = await fetch(`/api/checklists/${activeEditorChecklist.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ associateEventId: eventId })
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setActiveEditorChecklist(updated);
-        fetchChecklists(selectedPoleId);
-        setToast({ message: 'Culte associé à cette checklist.', type: 'success' });
-      }
+      await updateChecklistMutation({ checklistId: activeEditorChecklist.id as Id<'checklists'>, associateEventId: eventId as Id<'events'> });
+      setToast({ message: 'Culte associé à cette checklist.', type: 'success' });
     } catch (e) {
-      console.error(e);
+      setToast({ message: convexErrorMessage(e, "Erreur lors de l'association."), type: 'error' });
     }
   };
 
@@ -351,20 +266,10 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     if (!isLeaderOrAdmin || !activeEditorChecklist) return;
 
     try {
-      const res = await fetch(`/api/checklists/${activeEditorChecklist.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dissociateEventId: eventId })
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setActiveEditorChecklist(updated);
-        fetchChecklists(selectedPoleId);
-        setToast({ message: 'Association retirée.', type: 'info' });
-      }
+      await updateChecklistMutation({ checklistId: activeEditorChecklist.id as Id<'checklists'>, dissociateEventId: eventId as Id<'events'> });
+      setToast({ message: 'Association retirée.', type: 'info' });
     } catch (e) {
-      console.error(e);
+      setToast({ message: convexErrorMessage(e, "Erreur lors du retrait de l'association."), type: 'error' });
     }
   };
 
@@ -397,11 +302,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
         {isLeaderOrAdmin && (
           <button
-            onClick={() => {
-              setCreateTitle('');
-              setCreateDescription('');
-              setShowCreateModal(true);
-            }}
+            onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
@@ -468,11 +369,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
               </p>
               {isLeaderOrAdmin && (
                 <button
-                  onClick={() => {
-                    setCreateTitle('');
-                    setCreateDescription('');
-                    setShowCreateModal(true);
-                  }}
+                  onClick={() => setShowCreateModal(true)}
                   className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-indigo-700 transition-colors"
                 >
                   + Créer une checklist
@@ -512,7 +409,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                       {isLeaderOrAdmin ? (
                         <button
                           onClick={() => {
-                            setActiveEditorChecklist(chk);
+                            setActiveEditorChecklistId(chk.id);
                             setEditTitle(chk.title);
                             setEditDescription(chk.description || '');
                           }}
@@ -564,7 +461,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
           <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setActiveEditorChecklist(null)}
+                onClick={() => setActiveEditorChecklistId(null)}
                 className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -767,59 +664,15 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
         </div>
       )}
 
-      {/* MODAL CRÉER UNE CHECKLIST */}
-      {showCreateModal && (
-        <Modal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          title="Créer une nouvelle checklist"
-          subtitle="Définissez un guide opérationnel pour ce pôle"
-          icon={<CheckSquare className="w-5 h-5 text-white" />}
-          maxWidth="md"
-        >
-          <form onSubmit={handleCreateChecklist} className="space-y-4">
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Titre de la checklist *</label>
-              <input
-                type="text"
-                required
-                value={createTitle}
-                onChange={(e) => setCreateTitle(e.target.value)}
-                placeholder="ex: Guide de préparation Sonorisation Culte"
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Description / Objectif</label>
-              <textarea
-                rows={3}
-                value={createDescription}
-                onChange={(e) => setCreateDescription(e.target.value)}
-                placeholder="Explications sur les bonnes pratiques et les objectifs..."
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={creatingChecklist || !createTitle.trim()}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50"
-              >
-                {creatingChecklist ? 'Création...' : 'Créer la checklist'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
+      {/* MODAL CRÉER UNE CHECKLIST — same form used on the pole detail page */}
+      <ChecklistFormModal
+        isOpen={showCreateModal}
+        poleId={selectedPoleId || poles[0]?.id || ''}
+        poleName={poles.find((p) => p.id === selectedPoleId)?.name}
+        editingChecklist={null}
+        onClose={() => setShowCreateModal(false)}
+        onSaved={handleChecklistCreated}
+      />
 
       {/* MODAL MODIFIER TITRE / DESCRIPTION */}
       {showEditInfoModal && (
@@ -1051,7 +904,6 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
           currentUser={currentUser || null}
           onClose={() => setRunningChecklist(null)}
           onCompleted={() => {
-            fetchChecklists(selectedPoleId);
             if (onRefresh) onRefresh();
           }}
         />

@@ -28,16 +28,19 @@ import {
   Search,
   ExternalLink,
   Play,
-  Upload,
-  X,
   Loader2,
   MessageSquare
 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
 import { Pole, User } from '@/types';
 import { ChecklistRunnerModal } from '@/components/checklists/ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from '@/components/checklists/ChecklistFeedbackModal';
-import { ConfirmModal, MediaViewer } from '@/components/ui';
-import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
+import { ChecklistFormModal } from '@/components/checklists/ChecklistFormModal';
+import { ConfirmModal } from '@/components/ui';
+import { adaptPoleDetail, adaptMemberListItem } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
 interface PoleDetailViewProps {
   poleId: string;
@@ -52,8 +55,25 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   onBack,
   onRefreshAll
 }) => {
-  const [pole, setPole] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const poleRaw = useQuery(api.poles.get, { poleId: poleId as Id<'poles'> });
+  const pole = React.useMemo(() => adaptPoleDetail(poleRaw), [poleRaw]);
+  const loading = poleRaw === undefined;
+
+  const availableUsersRaw = useQuery(api.members.list, {});
+
+  const reviewRequest = useMutation(api.membershipRequests.review);
+  const removeMemberMutation = useMutation(api.poles.removeMember);
+  const toggleLeaderMutation = useMutation(api.poles.toggleLeader);
+  const addMemberMutation = useMutation(api.poles.addMember);
+  const updatePoleMutation = useMutation(api.poles.update);
+  const requestToJoin = useMutation(api.membershipRequests.create);
+  // Checklist CRUD is technically a separate feature area, but since
+  // pole.checklists is now sourced from Convex (via poles.get), writing
+  // checklist changes to the old Postgres routes would silently stop
+  // showing up here — this has to move together with the pole view.
+  // Create/update themselves live inside the shared ChecklistFormModal.
+  const removeChecklistMutation = useMutation(api.checklists.remove);
+
   const [showAllChecklists, setShowAllChecklists] = React.useState(false);
   const [memberSearch, setMemberSearch] = React.useState('');
 
@@ -74,24 +94,7 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   const [confirmLeaderAction, setConfirmLeaderAction] = React.useState<{ id: string; name: string; isLeader: boolean } | null>(null);
 
   // Available users to add directly
-  const [availableUsers, setAvailableUsers] = React.useState<any[]>([]);
-  const [loadingAvailableUsers, setLoadingAvailableUsers] = React.useState(false);
   const [userSearchQuery, setUserSearchQuery] = React.useState('');
-
-  // Form states: New or Edit Checklist
-  const [checklistTitle, setChecklistTitle] = React.useState('');
-  const [checklistDescription, setChecklistDescription] = React.useState('');
-  const [checklistSteps, setChecklistSteps] = React.useState<Array<{
-    id?: string;
-    title: string;
-    description: string;
-    mediaType: 'NONE' | 'PHOTO' | 'VIDEO';
-    mediaUrl: string;
-    uploading?: boolean;
-    error?: string;
-  }>>([
-    { title: '', description: '', mediaType: 'NONE', mediaUrl: '' }
-  ]);
 
   // Delete checklist confirmation state
   const [deletingChecklist, setDeletingChecklist] = React.useState<any | null>(null);
@@ -117,119 +120,48 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     }
   }, [actionSuccess]);
 
-  const fetchPoleDetails = async () => {
-    try {
-      const res = await fetch(`/api/poles/${poleId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPole(data);
-        setEditName(data.name);
-        setEditDescription(data.description || '');
-        setEditColor(data.color || '#4f46e5');
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   React.useEffect(() => {
-    fetchPoleDetails();
-  }, [poleId]);
-
-  const fetchAvailableUsers = async () => {
-    try {
-      setLoadingAvailableUsers(true);
-      const res = await fetch('/api/members');
-      if (res.ok) {
-        const allMembers = await res.json();
-        // Filter out users already in this pole
-        const existingIds = new Set((pole?.memberships || []).map((m: any) => m.userId || m.user?.id));
-        setAvailableUsers(allMembers.filter((u: any) => !existingIds.has(u.id)));
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingAvailableUsers(false);
+    if (actionError) {
+      const t = setTimeout(() => setActionError(null), 4500);
+      return () => clearTimeout(t);
     }
-  };
+  }, [actionError]);
+
+  // pole is a reactive Convex query — sync the edit form's local fields
+  // whenever the underlying pole data changes (including right after the
+  // query first resolves).
+  React.useEffect(() => {
+    if (!pole) return;
+    setEditName(pole.name);
+    setEditDescription(pole.description || '');
+    setEditColor(pole.color || '#4f46e5');
+  }, [pole]);
+
+  const loadingAvailableUsers = availableUsersRaw === undefined;
+  const filteredAvailableUsers = React.useMemo(() => {
+    if (!availableUsersRaw || !pole) return [];
+    const existingIds = new Set((pole.memberships || []).map((m: any) => m.userId));
+    return availableUsersRaw
+      .filter((u: any) => !existingIds.has(u._id))
+      .map(adaptMemberListItem)
+      .filter((u: any) => {
+        const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+        const phone = (u.phone || '').toLowerCase();
+        return fullName.includes(userSearchQuery.toLowerCase()) || phone.includes(userSearchQuery.toLowerCase());
+      });
+  }, [availableUsersRaw, pole, userSearchQuery]);
 
   const handleOpenAddMemberModal = () => {
-    // Clear the previous list right away — otherwise the modal briefly
-    // shows last time's (now stale) members before the fresh fetch lands.
-    setAvailableUsers([]);
-    fetchAvailableUsers();
     setShowAddMemberModal(true);
-  };
-
-  const [stepUploadProgress, setStepUploadProgress] = React.useState<Record<number, UploadProgressInfo | null>>({});
-
-  // Direct File Upload handler for steps with High-Speed Cloudinary
-  const handleFileUpload = async (stepIndex: number, file: File) => {
-    const newSteps = [...checklistSteps];
-    newSteps[stepIndex].uploading = true;
-    newSteps[stepIndex].error = undefined;
-    setChecklistSteps(newSteps);
-    setStepUploadProgress((prev) => ({ ...prev, [stepIndex]: null }));
-
-    try {
-      const result = await uploadMediaWithProgress(file, {
-        folder: 'mcad_checklists/steps',
-        onProgress: (p) => {
-          setStepUploadProgress((prev) => ({ ...prev, [stepIndex]: p }));
-        }
-      });
-
-      const updated = [...checklistSteps];
-      updated[stepIndex].mediaUrl = result.url;
-      updated[stepIndex].mediaType = result.mediaType;
-      updated[stepIndex].uploading = false;
-      updated[stepIndex].error = undefined;
-      setChecklistSteps(updated);
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      const updated = [...checklistSteps];
-      updated[stepIndex].uploading = false;
-      updated[stepIndex].error = err.message || 'Erreur lors du téléversement';
-      setChecklistSteps(updated);
-    } finally {
-      setStepUploadProgress((prev) => ({ ...prev, [stepIndex]: null }));
-    }
-  };
-
-  const handleRemoveStepMedia = (stepIndex: number) => {
-    const updated = [...checklistSteps];
-    updated[stepIndex].mediaUrl = '';
-    updated[stepIndex].mediaType = 'NONE';
-    setChecklistSteps(updated);
   };
 
   const handleOpenCreateChecklist = () => {
     setEditingChecklist(null);
-    setChecklistTitle('');
-    setChecklistDescription('');
-    setChecklistSteps([{ title: '', description: '', mediaType: 'NONE', mediaUrl: '' }]);
     setShowAddChecklistModal(true);
   };
 
   const handleOpenEditChecklist = (chk: any) => {
     setEditingChecklist(chk);
-    setChecklistTitle(chk.title);
-    setChecklistDescription(chk.description || '');
-    if (chk.steps && chk.steps.length > 0) {
-      setChecklistSteps(
-        chk.steps.map((s: any) => ({
-          id: s.id,
-          title: s.title,
-          description: s.description || '',
-          mediaType: s.mediaType || 'NONE',
-          mediaUrl: s.mediaUrl || s.mediaThumbnail || ''
-        }))
-      );
-    } else {
-      setChecklistSteps([{ title: '', description: '', mediaType: 'NONE', mediaUrl: '' }]);
-    }
     setShowAddChecklistModal(true);
   };
 
@@ -271,13 +203,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     return fullName.includes(memberSearch.toLowerCase()) || phone.includes(memberSearch.toLowerCase());
   });
 
-  // Filtered available users to add
-  const filteredAvailableUsers = availableUsers.filter((u: any) => {
-    const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
-    const phone = (u.phone || '').toLowerCase();
-    return fullName.includes(userSearchQuery.toLowerCase()) || phone.includes(userSearchQuery.toLowerCase());
-  });
-
   // Checklist list to display (3 max unless showAllChecklists is true)
   const allChecklists = pole.checklists || [];
   const visibleChecklists = showAllChecklists ? allChecklists : allChecklists.slice(0, 3);
@@ -285,140 +210,67 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   // Handlers
   const handleApproveRequest = async (requestId: string) => {
     try {
-      await fetch(`/api/membership-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'APPROVED' })
-      });
+      await reviewRequest({ requestId: requestId as Id<'membershipRequests'>, status: 'APPROVED' });
       setActionSuccess('Demande acceptée avec succès.');
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, "Erreur lors du traitement de la demande"));
     }
   };
 
   const handleRejectRequest = async (requestId: string) => {
     try {
-      await fetch(`/api/membership-requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'REJECTED' })
-      });
+      await reviewRequest({ requestId: requestId as Id<'membershipRequests'>, status: 'REJECTED' });
       setActionSuccess('Demande refusée.');
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, "Erreur lors du traitement de la demande"));
     }
   };
 
   const handleConfirmRemoveMember = async () => {
     if (!confirmRemoveMember) return;
     try {
-      await fetch(`/api/poles/${poleId}/members?userId=${confirmRemoveMember.id}`, {
-        method: 'DELETE'
-      });
+      await removeMemberMutation({ poleId: poleId as Id<'poles'>, userId: confirmRemoveMember.id as Id<'users'> });
       setActionSuccess(`${confirmRemoveMember.name} a été retiré(e) du pôle.`);
       setConfirmRemoveMember(null);
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, 'Erreur lors du retrait du membre'));
     }
   };
 
   const handleConfirmLeaderAction = async () => {
     if (!confirmLeaderAction) return;
     try {
-      await fetch(`/api/poles/${poleId}/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: confirmLeaderAction.id, action: 'TOGGLE_LEADER' })
-      });
+      await toggleLeaderMutation({ poleId: poleId as Id<'poles'>, userId: confirmLeaderAction.id as Id<'users'> });
       setActionSuccess(
         confirmLeaderAction.isLeader
           ? `${confirmLeaderAction.name} a été retiré(e) des responsables.`
           : `${confirmLeaderAction.name} a été nommé(e) responsable du pôle !`
       );
       setConfirmLeaderAction(null);
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, 'Erreur lors de la gestion du responsable'));
     }
   };
 
   const handleAddMemberDirectly = async (userId: string, userName: string) => {
-    // Optimistic: remove from the "available" list immediately instead of
-    // waiting on a round-trip (fetchAvailableUsers() re-derives its filter
-    // from `pole.memberships`, which hasn't been refreshed yet at this
-    // point — waiting on it would show the member as still available for
-    // a beat after they were actually added).
-    setAvailableUsers((prev) => prev.filter((u) => u.id !== userId));
     setActionSuccess(`${userName} ajouté(e) !`);
-
     try {
-      const res = await fetch(`/api/poles/${poleId}/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action: 'ADD_MEMBER' })
-      });
-      if (res.ok) {
-        fetchPoleDetails();
-        onRefreshAll();
-      } else {
-        // Roll back the optimistic removal on failure
-        setActionSuccess(null);
-        fetchAvailableUsers();
-      }
+      await addMemberMutation({ poleId: poleId as Id<'poles'>, userId: userId as Id<'users'> });
+      onRefreshAll();
     } catch (e) {
-      console.error(e);
       setActionSuccess(null);
-      fetchAvailableUsers();
+      setActionError(convexErrorMessage(e, "Erreur lors de l'ajout du membre"));
     }
   };
 
-  const handleSaveChecklist = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingChecklist) {
-        // Update existing checklist
-        await fetch(`/api/checklists/${editingChecklist.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: checklistTitle,
-            description: checklistDescription,
-            steps: checklistSteps.filter((s) => s.title.trim().length > 0)
-          })
-        });
-        setActionSuccess('Checklist modifiée avec succès.');
-      } else {
-        // Create new checklist
-        await fetch('/api/checklists', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            poleId,
-            title: checklistTitle,
-            description: checklistDescription,
-            steps: checklistSteps.filter((s) => s.title.trim().length > 0)
-          })
-        });
-        setActionSuccess('Checklist créée avec succès.');
-      }
-
-      setShowAddChecklistModal(false);
-      setEditingChecklist(null);
-      setChecklistTitle('');
-      setChecklistDescription('');
-      setChecklistSteps([{ title: '', description: '', mediaType: 'NONE', mediaUrl: '' }]);
-      fetchPoleDetails();
-      onRefreshAll();
-    } catch (e) {
-      console.error(e);
-    }
+  const handleChecklistSaved = () => {
+    setActionSuccess(editingChecklist ? 'Checklist modifiée avec succès.' : 'Checklist créée avec succès.');
+    setEditingChecklist(null);
+    onRefreshAll();
   };
 
   const handleDeleteChecklist = (chk: any) => {
@@ -429,14 +281,12 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     if (!deletingChecklist) return;
     try {
       setDeletingLoading(true);
-      await fetch(`/api/checklists/${deletingChecklist.id}`, { method: 'DELETE' });
+      await removeChecklistMutation({ checklistId: deletingChecklist.id as Id<'checklists'> });
       setActionSuccess('Checklist supprimée avec succès.');
       setDeletingChecklist(null);
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
-      setActionError('Erreur lors de la suppression.');
+      setActionError(convexErrorMessage(e, 'Erreur lors de la suppression.'));
     } finally {
       setDeletingLoading(false);
     }
@@ -445,21 +295,17 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   const handleUpdatePole = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetch(`/api/poles/${poleId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editName,
-          description: editDescription,
-          color: editColor
-        })
+      await updatePoleMutation({
+        poleId: poleId as Id<'poles'>,
+        name: editName,
+        description: editDescription,
+        color: editColor
       });
       setShowEditPoleModal(false);
       setActionSuccess('Informations du pôle mises à jour.');
-      fetchPoleDetails();
       onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, 'Erreur lors de la mise à jour du pôle'));
     }
   };
 
@@ -467,24 +313,16 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     e.preventDefault();
     if (!currentUser) return;
     try {
-      const res = await fetch('/api/membership-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          poleId,
-          motivation: joinMotivation.trim() || 'Demande d\'adhésion'
-        })
+      await requestToJoin({
+        poleId: poleId as Id<'poles'>,
+        motivation: joinMotivation.trim() || 'Demande d\'adhésion'
       });
-      if (res.ok) {
-        setShowJoinModal(false);
-        setJoinMotivation('');
-        setActionSuccess('Votre demande d\'adhésion a été transmise.');
-        fetchPoleDetails();
-        onRefreshAll();
-      }
+      setShowJoinModal(false);
+      setJoinMotivation('');
+      setActionSuccess('Votre demande d\'adhésion a été transmise.');
+      onRefreshAll();
     } catch (e) {
-      console.error(e);
+      setActionError(convexErrorMessage(e, "Erreur lors de l'envoi de la demande"));
     }
   };
 
@@ -529,6 +367,15 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
           <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
           <span className="font-semibold flex-1">{actionSuccess}</span>
           <button onClick={() => setActionSuccess(null)} className="text-emerald-100 hover:text-white flex-shrink-0">
+            ✕
+          </button>
+        </div>
+      )}
+      {actionError && (
+        <div className="fixed bottom-6 right-6 z-[70] max-w-sm p-4 rounded-2xl bg-rose-600 text-white text-xs flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span className="font-semibold flex-1">{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-rose-100 hover:text-white flex-shrink-0">
             ✕
           </button>
         </div>
@@ -1266,220 +1113,17 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
       )}
 
       {/* Modal: Add or Edit Checklist with DIRECT file upload */}
-      {showAddChecklistModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 space-y-4 max-h-[85vh] overflow-y-auto">
-            <h3 className="text-base font-bold text-slate-900">
-              {editingChecklist ? `Modifier la checklist : ${editingChecklist.title}` : `Nouvelle Checklist pour ${pole.name}`}
-            </h3>
-
-            <form onSubmit={handleSaveChecklist} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Titre de la checklist *</label>
-                <input
-                  type="text"
-                  required
-                  value={checklistTitle}
-                  onChange={(e) => setChecklistTitle(e.target.value)}
-                  placeholder="ex: Checklist Ouverture & Balance Son"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Description</label>
-                <textarea
-                  rows={2}
-                  value={checklistDescription}
-                  onChange={(e) => setChecklistDescription(e.target.value)}
-                  placeholder="Description du processus..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-700">Étapes de la checklist</label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setChecklistSteps([
-                        ...checklistSteps,
-                        { title: '', description: '', mediaType: 'NONE', mediaUrl: '' }
-                      ])
-                    }
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Ajouter une étape</span>
-                  </button>
-                </div>
-
-                {checklistSteps.map((step, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-indigo-600">Étape {idx + 1}</span>
-                      {checklistSteps.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setChecklistSteps(checklistSteps.filter((_, i) => i !== idx))}
-                          className="text-[10px] text-rose-600 hover:underline"
-                        >
-                          Supprimer
-                        </button>
-                      )}
-                    </div>
-
-                    <input
-                      type="text"
-                      required
-                      placeholder="Intitulé de l'étape *"
-                      value={step.title}
-                      onChange={(e) => {
-                        const newSteps = [...checklistSteps];
-                        newSteps[idx].title = e.target.value;
-                        setChecklistSteps(newSteps);
-                      }}
-                      className="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs"
-                    />
-
-                    <input
-                      type="text"
-                      placeholder="Instructions détaillées..."
-                      value={step.description}
-                      onChange={(e) => {
-                        const newSteps = [...checklistSteps];
-                        newSteps[idx].description = e.target.value;
-                        setChecklistSteps(newSteps);
-                      }}
-                      className="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs"
-                    />
-
-                    {/* Direct File Upload Zone (Photo / Video) */}
-                    <div className="p-3 bg-white rounded-xl border border-dashed border-slate-300 space-y-2">
-                      <label className="text-[11px] font-bold text-slate-700 block">
-                        📸 / 🎥 Téléverser un fichier photo ou vidéo (Direct)
-                      </label>
-
-                      {step.uploading ? (
-                        <div className="py-4 text-center flex items-center justify-center gap-2 text-xs text-indigo-600">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Téléversement en cours...</span>
-                        </div>
-                      ) : step.mediaUrl ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                              ✓ Fichier chargé ({step.mediaType === 'VIDEO' ? 'Vidéo' : 'Photo'})
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveStepMedia(idx)}
-                              className="text-xs text-rose-600 hover:underline flex items-center gap-1"
-                            >
-                              <X className="w-3 h-3" />
-                              <span>Retirer le fichier</span>
-                            </button>
-                          </div>
-
-                          <div className="max-w-md">
-                            <MediaViewer
-                              url={step.mediaUrl}
-                              mediaType={step.mediaType}
-                              title={step.title}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              placeholder="Collez un lien vidéo (YouTube, Vimeo, MP4) ou téléversez..."
-                              value={step.mediaUrl}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                const isVid =
-                                  val.includes('youtube.com') ||
-                                  val.includes('youtu.be') ||
-                                  val.includes('vimeo.com') ||
-                                  val.includes('loom.com') ||
-                                  /\.(mp4|webm|mov|m4v)$/i.test(val);
-                                const updated = [...checklistSteps];
-                                updated[idx].mediaUrl = val;
-                                updated[idx].mediaType = isVid ? 'VIDEO' : val ? 'PHOTO' : 'NONE';
-                                setChecklistSteps(updated);
-                              }}
-                              className="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
-                            />
-                            <label className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
-                              {step.uploading ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                              ) : (
-                                <Upload className="w-3.5 h-3.5 text-indigo-600" />
-                              )}
-                              <span>{step.uploading ? 'Envoi...' : 'Téléverser'}</span>
-                              <input
-                                type="file"
-                                accept="image/*,video/*"
-                                className="hidden"
-                                disabled={step.uploading}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleFileUpload(idx, file);
-                                }}
-                              />
-                            </label>
-                          </div>
-
-                          {/* Progress bar */}
-                          {stepUploadProgress[idx] && (
-                            <div className="p-2.5 bg-indigo-50/90 border border-indigo-200 rounded-xl space-y-1 animate-in fade-in">
-                              <div className="flex items-center justify-between text-[11px] font-bold text-indigo-900">
-                                <span>{stepUploadProgress[idx]?.statusText}</span>
-                                <span>{stepUploadProgress[idx]?.percent}%</span>
-                              </div>
-                              <div className="w-full bg-indigo-200/70 rounded-full h-1.5 overflow-hidden">
-                                <div
-                                  className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300 ease-out"
-                                  style={{ width: `${stepUploadProgress[idx]?.percent}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {step.error && (
-                            <p className="text-xs text-rose-600 font-semibold">⚠️ {step.error}</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddChecklistModal(false);
-                    setEditingChecklist(null);
-                  }}
-                  className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20"
-                >
-                  {editingChecklist ? 'Enregistrer les modifications' : 'Créer la checklist'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ChecklistFormModal
+        isOpen={showAddChecklistModal}
+        poleId={poleId}
+        poleName={pole.name}
+        editingChecklist={editingChecklist}
+        onClose={() => {
+          setShowAddChecklistModal(false);
+          setEditingChecklist(null);
+        }}
+        onSaved={handleChecklistSaved}
+      />
 
       {/* Modal: Edit Pole Details */}
       {showEditPoleModal && (
@@ -1584,7 +1228,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
           currentUser={currentUser}
           onClose={() => setRunningChecklist(null)}
           onCompleted={() => {
-            fetchPoleDetails();
             onRefreshAll();
           }}
         />

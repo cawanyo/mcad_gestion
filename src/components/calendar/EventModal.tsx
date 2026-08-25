@@ -2,7 +2,12 @@
 
 import React from 'react';
 import { X, Calendar, AlertCircle, CheckSquare, Repeat, Info } from 'lucide-react';
-import { Pole, Event, Checklist } from '@/types';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { adaptEvent, adaptChecklist } from '@/lib/convexAdapters';
+import { convexErrorMessage } from '@/lib/convexErrors';
+import { Pole, Event } from '@/types';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -41,33 +46,22 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [description, setDescription] = React.useState('Culte de célébration et louange.');
   const [poleRequirements, setPoleRequirements] = React.useState<Record<string, number>>({});
   const [poleChecklists, setPoleChecklists] = React.useState<Record<string, string>>({});
-  const [allChecklists, setAllChecklists] = React.useState<Checklist[]>([]);
-  
+  const allChecklistsRaw = useQuery(api.checklists.list, isOpen ? {} : 'skip');
+  const allChecklists = React.useMemo(() => (allChecklistsRaw || []).map(adaptChecklist), [allChecklistsRaw]);
+
   // Recurrence state
   const [recurrenceRule, setRecurrenceRule] = React.useState<'NONE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'>('NONE');
   const [recurrenceCount, setRecurrenceCount] = React.useState<number>(4);
   const [loading, setLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
+  const createEvent = useMutation(api.events.create);
+  const updateEvent = useMutation(api.events.update);
+
   const wasOpenRef = React.useRef(false);
 
-  // Fetch all checklists
   React.useEffect(() => {
-    const fetchChecklists = async () => {
-      try {
-        const res = await fetch('/api/checklists');
-        if (res.ok) {
-          const data = await res.json();
-          setAllChecklists(data);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    if (isOpen) {
-      fetchChecklists();
-      setErrorMessage(null);
-    }
+    if (isOpen) setErrorMessage(null);
   }, [isOpen]);
 
   // Initialize form state ONLY when modal first opens or editingEvent changes
@@ -153,69 +147,46 @@ export const EventModal: React.FC<EventModalProps> = ({
     setLoading(true);
 
     try {
-      const startsAt = new Date(`${date}T${startTime}:00`).toISOString();
-      const endsAt = new Date(`${date}T${endTime}:00`).toISOString();
+      const startsAt = new Date(`${date}T${startTime}:00`).getTime();
+      const endsAt = new Date(`${date}T${endTime}:00`).getTime();
 
       const requirements = Object.entries(poleRequirements)
         .filter(([_, count]) => count > 0)
-        .map(([poleId, requiredCount]) => ({ poleId, requiredCount }));
+        .map(([poleId, requiredCount]) => ({ poleId: poleId as Id<'poles'>, requiredCount }));
 
-      const checklistIds = Object.values(poleChecklists).filter(Boolean);
+      const checklistIds = Object.values(poleChecklists).filter(Boolean) as Id<'checklists'>[];
 
       if (editingEvent) {
-        // Update existing event
-        const res = await fetch(`/api/events/${editingEvent.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            description,
-            startsAt,
-            endsAt,
-            location,
-            requirements,
-            checklistIds
-          })
+        const updated = await updateEvent({
+          eventId: editingEvent.id as Id<'events'>,
+          title,
+          description,
+          startsAt,
+          endsAt,
+          location,
+          requirements,
+          checklistIds
         });
-
-        if (res.ok) {
-          const updated = await res.json();
-          onEventCreated(updated);
-          onClose();
-        } else {
-          const err = await res.json().catch(() => ({}));
-          setErrorMessage(err.error || 'Erreur lors de la mise à jour de l\'événement');
-        }
+        onEventCreated(adaptEvent(updated));
+        onClose();
       } else {
-        // Create new event (with recurrence)
-        const res = await fetch('/api/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            description,
-            startsAt,
-            endsAt,
-            location,
-            requirements,
-            checklistIds,
-            recurrenceRule,
-            recurrenceCount: recurrenceRule === 'NONE' ? 1 : recurrenceCount
-          })
+        const created = await createEvent({
+          title,
+          description,
+          startsAt,
+          endsAt,
+          location,
+          requirements,
+          checklistIds,
+          recurrenceRule,
+          recurrenceCount: recurrenceRule === 'NONE' ? 1 : recurrenceCount
         });
-
-        if (res.ok) {
-          const created = await res.json();
-          onEventCreated(created);
-          onClose();
-        } else {
-          const err = await res.json().catch(() => ({}));
-          setErrorMessage(err.error || 'Erreur lors de la création de l\'événement');
-        }
+        onEventCreated(Array.isArray(created) ? created.map(adaptEvent) : adaptEvent(created));
+        onClose();
       }
     } catch (err) {
       console.error(err);
-      setErrorMessage('Erreur réseau lors de la communication avec le serveur.');
+      setErrorMessage(convexErrorMessage(err, editingEvent ? 'Erreur lors de la mise à jour de l\'événement' : 'Erreur lors de la création de l\'événement'));
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,7 @@ import { MemberDashboard } from '@/components/dashboard/MemberDashboard';
 import { useAppShell } from '@/contexts/AppShellContext';
 
 export default function DashboardPage() {
-  const { currentUser, dashboardData, poles, navigateTab, navigateToEvent, openUnavailabilityModal } = useAppShell();
+  const { currentUser, dashboardData, poles, navigateTab, navigateToEvent, navigateToPole, openUnavailabilityModal } = useAppShell();
 
   if (!currentUser) return null;
 
@@ -15,6 +15,7 @@ export default function DashboardPage() {
       poles={poles}
       onNavigateTab={navigateTab}
       onNavigateToEvent={navigateToEvent}
+      onNavigateToPole={navigateToPole}
       onOpenUnavailabilityModal={openUnavailabilityModal}
     />
   );

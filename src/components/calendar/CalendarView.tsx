@@ -34,53 +34,50 @@ import {
   ExternalLink,
   Loader2
 } from 'lucide-react';
-import { Event, Pole, User, Assignment, Checklist } from '@/types';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { adaptEvent, adaptChecklist } from '@/lib/convexAdapters';
+import { Event, Pole, User } from '@/types';
 import { EventModal } from './EventModal';
 import { EventDetailPage } from './EventDetailPage';
 import { ChecklistRunnerModal } from '../checklists/ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from '../checklists/ChecklistFeedbackModal';
 import { ConfirmModal } from '@/components/ui';
-import { getCachedItem, setCachedItem, CacheKeys, CacheTTL, invalidateCache } from '@/lib/cache';
 
 interface CalendarViewProps {
-  events: Event[];
   poles: Pole[];
   currentUser: User | null;
   initialSelectedEvent?: Event | null;
-  externalEventUpdate?: Event | null;
   onOpenCreateEventModal: () => void;
   onOpenAssignmentsDrawer: (event: Event) => void;
   onOpenUnavailabilities: () => void;
-  onRefresh?: () => void;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
-  events = [],
   poles = [],
   currentUser,
   initialSelectedEvent,
-  externalEventUpdate,
   onOpenCreateEventModal,
   onOpenAssignmentsDrawer,
-  onOpenUnavailabilities,
-  onRefresh
+  onOpenUnavailabilities
 }) => {
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
   const [selectedPoleFilter, setSelectedPoleFilter] = React.useState<string>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = React.useState<'all' | 'my_services'>('all');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
-  const [selectedEvent, setSelectedEvent] = React.useState<Event | null>(null);
+  // Tracks the selected event by id, not a snapshot — the actual object is
+  // looked up from the live (reactive) filteredEvents list on every render,
+  // so it never goes stale after an edit/assignment elsewhere.
+  const [selectedEventId, setSelectedEventId] = React.useState<string | null>(null);
   const [selectedDateStr, setSelectedDateStr] = React.useState<string | null>(null);
 
   // Mobile (< lg) view states
   const [mobileCalendarView, setMobileCalendarView] = React.useState<'month' | 'week'>('month');
-  const [mobileEventDetail, setMobileEventDetail] = React.useState<Event | null>(null);
+  const [mobileEventDetailId, setMobileEventDetailId] = React.useState<string | null>(null);
 
   // Ref for auto-scroll on desktop
   const detailsPanelRef = React.useRef<HTMLDivElement>(null);
-
-  // All checklists for association
-  const [allChecklists, setAllChecklists] = React.useState<Checklist[]>([]);
 
   // Modals & Confirmations
   const [showEventModal, setShowEventModal] = React.useState(false);
@@ -124,10 +121,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleSelectEvent = (ev: Event) => {
-    setSelectedEvent(ev);
+    setSelectedEventId(ev.id);
     setSelectedDateStr(getLocalDateStr(ev.startsAt));
     if (canAccessEventDetailPage) {
-      setMobileEventDetail(ev);
+      setMobileEventDetailId(ev.id);
     } else {
       scrollToDetails();
     }
@@ -136,97 +133,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const handleSelectDateCell = (cell: { events: Event[]; date: Date; dateStr: string }) => {
     setSelectedDateStr(cell.dateStr);
     if (cell.events.length > 0) {
-      setSelectedEvent(cell.events[0]);
+      setSelectedEventId(cell.events[0].id);
       // Scroll ONLY when date has events
       scrollToDetails();
     } else {
       // Empty date: set empty, do NOT scroll
-      setSelectedEvent(null);
-    }
-  };
-
-  // Fetch checklists for linking
-  const fetchAllChecklists = async () => {
-    try {
-      const res = await fetch('/api/checklists');
-      if (res.ok) {
-        setAllChecklists(await res.json());
-      }
-    } catch (e) {
-      console.error(e);
+      setSelectedEventId(null);
     }
   };
 
   // Only needed once an event's full page is opened (checklist run/preview
   // there) — fetching every active checklist with its steps/pole/events for
   // the whole department on every calendar visit was needless DB load for
-  // the vast majority of visits that never open that page.
-  React.useEffect(() => {
-    if (mobileEventDetail && allChecklists.length === 0) {
-      fetchAllChecklists();
-    }
-  }, [mobileEventDetail]);
-
-  // Loaded Events with Month-keyed Cache
-  const [loadedEvents, setLoadedEvents] = React.useState<Event[]>(events);
-  const [loadingMonth, setLoadingMonth] = React.useState<boolean>(false);
-
-  // Sync initial / prop events into loadedEvents
-  React.useEffect(() => {
-    if (events && events.length > 0) {
-      setLoadedEvents((prev) => {
-        const map = new Map(prev.map((e) => [e.id, e]));
-        events.forEach((e) => map.set(e.id, e));
-        return Array.from(map.values());
-      });
-    }
-  }, [events]);
-
-  // Fresh event data pushed down from the shared assignments drawer (see
-  // AppShellContext.lastEventUpdate) — merge it in immediately so the
-  // calendar and any open event detail page reflect assignment changes
-  // right away, without waiting on a real-time broadcast round-trip.
-  React.useEffect(() => {
-    if (externalEventUpdate) {
-      setLoadedEvents((prev) => {
-        const map = new Map(prev.map((e) => [e.id, e]));
-        map.set(externalEventUpdate.id, externalEventUpdate);
-        return Array.from(map.values());
-      });
-    }
-  }, [externalEventUpdate]);
-
-  // Keep the open event detail page in sync with loadedEvents. Editing an
-  // event (or any real-time update to it) refreshes loadedEvents, but
-  // mobileEventDetail is a separate snapshot captured at the moment the
-  // user opened that event — without this, the detail page would keep
-  // showing the pre-edit version until manually reopened/reloaded.
-  React.useEffect(() => {
-    if (mobileEventDetail) {
-      const updated = loadedEvents.find((e) => e.id === mobileEventDetail.id);
-      if (updated && updated !== mobileEventDetail) {
-        setMobileEventDetail(updated);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadedEvents]);
-
-  // Merges one or more event objects (as returned directly by the
-  // create/update API response) into loadedEvents right away — no
-  // refetch, no round-trip, so there's no window where the change is
-  // "not there yet".
-  const mergeEventsIntoLoaded = React.useCallback((result: Event | Event[] | undefined) => {
-    if (!result) return;
-    const incoming = Array.isArray(result) ? result : [result];
-    if (incoming.length === 0) return;
-    setLoadedEvents((prev) => {
-      const map = new Map(prev.map((e) => [e.id, e]));
-      incoming.forEach((e) => map.set(e.id, e));
-      return Array.from(map.values());
-    });
-  }, []);
+  // the vast majority of visits that never open that page. "skip" keeps the
+  // query from running at all until that page is actually opened.
+  const allChecklistsRaw = useQuery(api.checklists.list, mobileEventDetailId ? {} : 'skip');
+  const allChecklists = React.useMemo(() => (allChecklistsRaw || []).map(adaptChecklist), [allChecklistsRaw]);
 
   const getMonthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const monthKey = getMonthKey(currentDate);
 
   // Default date for the "create event" form: today, if we're browsing
   // today's real month; otherwise the 1st of whichever month is currently
@@ -241,108 +166,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       ? undefined
       : `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
 
-  // Fetches one month's events from the API, merges them into loadedEvents,
-  // and refreshes the cache. Used both by the cache-first month loader below
-  // and by refreshCurrentMonth() (which always skips the cache, since it's
-  // called precisely when we know the cached data is now stale: right after
-  // creating/editing/deleting an event, or on a real-time notification that
-  // another user just did so).
-  const loadMonthEvents = React.useCallback(async (monthKey: string) => {
-    try {
-      setLoadingMonth(true);
-      const res = await fetch(`/api/events?month=${monthKey}`);
-      if (res.ok) {
-        const freshMonthEvents: Event[] = await res.json();
-        setCachedItem(`${CacheKeys.EVENTS}_${monthKey}`, freshMonthEvents, CacheTTL.MEDIUM);
-        setLoadedEvents((prev) => {
-          const map = new Map(prev.map((e) => [e.id, e]));
-          freshMonthEvents.forEach((e) => map.set(e.id, e));
-          return Array.from(map.values());
-        });
-      }
-    } catch (e) {
-      console.error('Error fetching month events:', e);
-    } finally {
-      setLoadingMonth(false);
-    }
-  }, []);
-
-  // Re-fetches whichever month is currently being viewed, bypassing the
-  // cache. Exposed so the create/edit/delete flows and the real-time
-  // listener below can force the calendar to reflect a change immediately
-  // instead of waiting for the cache to expire or a manual page reload.
-  const refreshCurrentMonth = React.useCallback(() => {
-    invalidateCache(`${CacheKeys.EVENTS}_${getMonthKey(currentDate)}`);
-    loadMonthEvents(getMonthKey(currentDate));
-  }, [currentDate, loadMonthEvents]);
-
-  // Dynamic month loader with caching:
-  // When currentDate changes, check if that month's events are in loadedEvents / cache.
-  // If not, fetch /api/events?month=YYYY-MM, cache it, and merge into loadedEvents!
-  React.useEffect(() => {
-    const monthKey = getMonthKey(currentDate);
-    const cached = getCachedItem<Event[]>(`${CacheKeys.EVENTS}_${monthKey}`);
-    if (cached && cached.length > 0) {
-      setLoadedEvents((prev) => {
-        const map = new Map(prev.map((e) => [e.id, e]));
-        cached.forEach((e) => map.set(e.id, e));
-        return Array.from(map.values());
-      });
-      return;
-    }
-    loadMonthEvents(monthKey);
-  }, [currentDate, loadMonthEvents]);
-
-  // Real-time: pick up event/assignment changes made by anyone (leaders
-  // creating/editing/deleting services, members self-assigning, etc.) and
-  // refresh the currently-viewed month automatically, for every connected
-  // user — not just whoever made the change.
-  //
-  // refreshCurrentMonth is kept in a ref so this effect can open the SSE
-  // connection once (on mount) and always call the *latest* version of it,
-  // instead of tearing down and reopening the connection every time the
-  // user changes month (refreshCurrentMonth's identity changes with
-  // currentDate) — reconnecting on every navigation risked a real, if
-  // narrow, window where a broadcast fires while no connection is open.
-  const refreshCurrentMonthRef = React.useRef(refreshCurrentMonth);
-  React.useEffect(() => {
-    refreshCurrentMonthRef.current = refreshCurrentMonth;
-  }, [refreshCurrentMonth]);
-
-  React.useEffect(() => {
-    const calendarRelevantTypes = new Set([
-      'EVENT_CREATED',
-      'EVENT_UPDATED',
-      'EVENT_DELETED',
-      'ASSIGNMENT_CREATED',
-      'ASSIGNMENT_DELETED'
-    ]);
-
-    let eventSource: EventSource | null = null;
-    try {
-      eventSource = new EventSource('/api/realtime');
-      eventSource.onmessage = (msg) => {
-        try {
-          const payload = JSON.parse(msg.data);
-          if (calendarRelevantTypes.has(payload.type)) {
-            refreshCurrentMonthRef.current();
-          }
-        } catch (e) {
-          console.error('Calendar SSE parse error:', e);
-        }
-      };
-    } catch (e) {
-      console.error('Calendar SSE initialization error:', e);
-    }
-
-    return () => {
-      if (eventSource) eventSource.close();
-    };
-  }, []);
-
-  // Filtered Events
-  const eventsPool = loadedEvents.length > 0 ? loadedEvents : events;
-  const filteredEvents = eventsPool.filter((ev) => {
+  // Reactive, per-month event loading: Convex's useQuery keeps this list
+  // live on its own — any mutation anywhere (self-assign, edit, delete,
+  // another user's change) re-renders this automatically, so none of the
+  // manual cache/merge/SSE machinery the old fetch()-based version needed
+  // is necessary anymore. Switching months just changes the query args;
+  // Convex caches per-argument, so returning to a previously-viewed month
+  // is instant.
+  const monthEventsRaw = useQuery(api.events.list, { month: monthKey });
+  const loadingMonth = monthEventsRaw === undefined;
+  const filteredEvents = React.useMemo(() => (monthEventsRaw || []).map(adaptEvent), [monthEventsRaw]).filter((ev) => {
     // Pole filter
     if (selectedPoleFilter !== 'all') {
       const hasPoleReq = ev.requirements?.some((r) => r.poleId === selectedPoleFilter);
@@ -369,6 +202,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return true;
   });
 
+  // Looked up from filteredEvents (the live query result) every render, so
+  // it reflects the latest data instead of a stale snapshot captured at
+  // selection time.
+  const selectedEvent = selectedEventId ? filteredEvents.find((e) => e.id === selectedEventId) || null : null;
+
   // User Pole Memberships & Permissions
   const userPoleMemberships = currentUser?.poleMemberships || [];
   const userPoles = userPoleMemberships.map((pm: any) => pm.pole).filter(Boolean);
@@ -380,9 +218,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     if (initialSelectedEvent) {
       const eventDate = new Date(initialSelectedEvent.startsAt);
       setCurrentDate(eventDate);
-      setSelectedEvent(initialSelectedEvent);
+      setSelectedEventId(initialSelectedEvent.id);
       setSelectedDateStr(getLocalDateStr(initialSelectedEvent.startsAt));
-      setMobileEventDetail(null);
+      setMobileEventDetailId(null);
       setMobileCalendarView('week');
       scrollToDetails();
     }
@@ -403,19 +241,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // of resetting for the newly-viewed one.
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    setSelectedEvent(null);
+    setSelectedEventId(null);
     setSelectedDateStr(null);
   };
 
   const handleNextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-    setSelectedEvent(null);
+    setSelectedEventId(null);
     setSelectedDateStr(null);
   };
 
   const handleToday = () => {
     setCurrentDate(new Date());
-    setSelectedEvent(null);
+    setSelectedEventId(null);
     setSelectedDateStr(null);
   };
 
@@ -536,7 +374,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // over selectedDateStr when a specific event is still selected — clear
     // it here so the events list actually follows the new date instead of
     // staying pinned to whatever event was selected before.
-    setSelectedEvent(null);
+    setSelectedEventId(null);
   };
 
   const handleNextWeekMobile = () => {
@@ -545,16 +383,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const newDateStr = getLocalDateStr(base);
     setSelectedDateStr(newDateStr);
     setCurrentDate(base);
-    setSelectedEvent(null);
+    setSelectedEventId(null);
   };
 
   const handleSelectDateCellMobile = (cell: { events: Event[]; date: Date; dateStr: string }) => {
     setSelectedDateStr(cell.dateStr);
     setMobileCalendarView('week');
     if (cell.events.length > 0) {
-      setSelectedEvent(cell.events[0]);
+      setSelectedEventId(cell.events[0].id);
     } else {
-      setSelectedEvent(null);
+      setSelectedEventId(null);
     }
   };
 
@@ -563,16 +401,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setDeleteConfirmEventId(eventId);
   };
 
+  const removeEvent = useMutation(api.events.remove);
   const executeDeleteEvent = async () => {
     if (!deleteConfirmEventId) return;
     try {
-      await fetch(`/api/events/${deleteConfirmEventId}`, { method: 'DELETE' });
-      if (selectedEvent?.id === deleteConfirmEventId) {
-        setSelectedEvent(null);
+      await removeEvent({ eventId: deleteConfirmEventId as Id<'events'> });
+      if (selectedEventId === deleteConfirmEventId) {
+        setSelectedEventId(null);
       }
       setDeleteConfirmEventId(null);
-      invalidateCache(CacheKeys.EVENTS);
-      if (onRefresh) onRefresh();
     } catch (e) {
       console.error(e);
       setDeleteConfirmEventId(null);
@@ -580,19 +417,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   // Dedicated Event Detail Page for Mobile (< lg) and deep view
-  if (mobileEventDetail) {
+  if (mobileEventDetailId) {
     return (
       <div className="space-y-6 font-sans">
         <EventDetailPage
-          event={mobileEventDetail}
+          eventId={mobileEventDetailId as Id<'events'>}
           currentUser={currentUser}
           poles={poles}
           allChecklists={allChecklists}
-          onBack={() => setMobileEventDetail(null)}
-          onRefresh={() => {
-            refreshCurrentMonth();
-            if (onRefresh) onRefresh();
-          }}
+          onBack={() => setMobileEventDetailId(null)}
           onOpenEditModal={(ev) => {
             setEditingEvent(ev);
             setShowEventModal(true);
@@ -602,7 +435,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           onFeedbackChecklist={(ex) => setFeedbackChecklist(ex)}
           onDeleteEvent={(evId) => {
             handleDeleteEvent(evId);
-            setMobileEventDetail(null);
+            setMobileEventDetailId(null);
           }}
         />
 
@@ -619,9 +452,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             defaultDate={modalDefaultDate}
             onEventCreated={(result) => {
               setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
-              mergeEventsIntoLoaded(result);
-              refreshCurrentMonth();
-              if (onRefresh) onRefresh();
             }}
           />
         )}
@@ -631,11 +461,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <ChecklistRunnerModal
             checklist={runningChecklist}
             currentUser={currentUser || null}
-            eventId={mobileEventDetail?.id}
+            eventId={mobileEventDetailId || undefined}
             onClose={() => setRunningChecklist(null)}
-            onCompleted={() => {
-              if (onRefresh) onRefresh();
-            }}
+            onCompleted={() => {}}
           />
         )}
 
@@ -878,9 +706,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       onClick={() => {
                         setSelectedDateStr(day.dateStr);
                         if (day.events.length > 0) {
-                          setSelectedEvent(day.events[0]);
+                          setSelectedEventId(day.events[0].id);
                         } else {
-                          setSelectedEvent(null);
+                          setSelectedEventId(null);
                         }
                       }}
                       className={`py-2 px-1 rounded-2xl flex flex-col items-center justify-center transition-all select-none ${
@@ -967,9 +795,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       <div
                         key={ev.id}
                         onClick={() => {
-                          setSelectedEvent(ev);
+                          setSelectedEventId(ev.id);
                           if (canAccessEventDetailPage) {
-                            setMobileEventDetail(ev);
+                            setMobileEventDetailId(ev.id);
                           }
                         }}
                         className={`bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs transition-all space-y-3 group ${
@@ -1339,9 +1167,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   <div
                     key={ev.id}
                     onClick={() => {
-                      setSelectedEvent(ev);
+                      setSelectedEventId(ev.id);
                       if (canAccessEventDetailPage) {
-                        setMobileEventDetail(ev);
+                        setMobileEventDetailId(ev.id);
                       }
                     }}
                     className={`bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs transition-all space-y-3 group ${
@@ -1433,9 +1261,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           defaultDate={modalDefaultDate}
           onEventCreated={(result) => {
             setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
-            mergeEventsIntoLoaded(result);
-            refreshCurrentMonth();
-            if (onRefresh) onRefresh();
           }}
         />
       )}
@@ -1447,9 +1272,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           currentUser={currentUser || null}
           eventId={selectedEvent?.id}
           onClose={() => setRunningChecklist(null)}
-          onCompleted={() => {
-            if (onRefresh) onRefresh();
-          }}
+          onCompleted={() => {}}
         />
       )}
 
