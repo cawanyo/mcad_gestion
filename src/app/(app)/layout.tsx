@@ -124,6 +124,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   const [showAssignmentsDrawer, setShowAssignmentsDrawer] = React.useState(false);
   const [selectedEventIdForAssignments, setSelectedEventIdForAssignments] = React.useState<Id<'events'> | null>(null);
   const [selectedEventForCalendar, setSelectedEventForCalendar] = React.useState<Event | null>(null);
+  const [selectedPoleForNav, setSelectedPoleForNav] = React.useState<string | null>(null);
   const [showUnavailabilityModal, setShowUnavailabilityModal] = React.useState(false);
 
   const navigateTab = React.useCallback((tabId: string) => {
@@ -133,6 +134,11 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   const navigateToEvent = React.useCallback((event: Event) => {
     setSelectedEventForCalendar(event);
     router.push('/calendar');
+  }, [router]);
+
+  const navigateToPole = React.useCallback((poleId: string) => {
+    setSelectedPoleForNav(poleId);
+    router.push('/poles');
   }, [router]);
 
   // allUsers and notifications above are reactive Convex queries too — no
@@ -300,6 +306,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     unreadNotificationsCount,
     isLeaderOrAdmin,
     selectedEventForCalendar,
+    selectedPoleForNav,
     fetchData,
     handleLogout,
     handleApproveRequest,
@@ -308,6 +315,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     handleMarkAllNotificationsRead,
     navigateTab,
     navigateToEvent,
+    navigateToPole,
     openEventModal: () => setShowEventModal(true),
     openAssignmentsDrawer: (event: Event) => {
       setSelectedEventIdForAssignments(event.id as Id<'events'>);

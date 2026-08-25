@@ -7,7 +7,7 @@ import { useAppShell } from '@/contexts/AppShellContext';
 
 export default function PolesPage() {
   const router = useRouter();
-  const { currentUser, poles, fetchData } = useAppShell();
+  const { currentUser, poles, fetchData, selectedPoleForNav } = useAppShell();
 
   if (!currentUser) return null;
 
@@ -21,7 +21,12 @@ export default function PolesPage() {
           onBack={() => router.push('/service')}
         />
       </div>
-      <PolesManagement poles={poles} currentUser={currentUser} onRefresh={fetchData} />
+      <PolesManagement
+        poles={poles}
+        currentUser={currentUser}
+        onRefresh={fetchData}
+        initialSelectedPoleId={selectedPoleForNav}
+      />
     </div>
   );
 }

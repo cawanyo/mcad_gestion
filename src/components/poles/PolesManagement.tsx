@@ -26,14 +26,23 @@ interface PolesManagementProps {
   poles: Pole[];
   currentUser?: any;
   onRefresh: () => void;
+  initialSelectedPoleId?: string | null;
 }
 
-export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, currentUser, onRefresh }) => {
+export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, currentUser, onRefresh, initialSelectedPoleId }) => {
   const createPole = useMutation(api.poles.create);
   const removePole = useMutation(api.poles.remove);
   const requestToJoin = useMutation(api.membershipRequests.create);
 
-  const [selectedPoleId, setSelectedPoleId] = React.useState<string | null>(null);
+  const [selectedPoleId, setSelectedPoleId] = React.useState<string | null>(initialSelectedPoleId || null);
+
+  // Navigated here from elsewhere (e.g. the dashboard's "Mes Pôles" list)
+  // with a specific pole to open directly.
+  React.useEffect(() => {
+    if (initialSelectedPoleId) {
+      setSelectedPoleId(initialSelectedPoleId);
+    }
+  }, [initialSelectedPoleId]);
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [showJoinModal, setShowJoinModal] = React.useState<Pole | null>(null);
   const [name, setName] = React.useState('');

@@ -14,6 +14,7 @@ export interface AppShellContextValue {
   unreadNotificationsCount: number;
   isLeaderOrAdmin: boolean;
   selectedEventForCalendar: Event | null;
+  selectedPoleForNav: string | null;
   // Refreshes notifications/allUsers — the only shell-level data still
   // backed by the old Postgres routes. Dashboard/poles/events are reactive
   // Convex queries and update on their own without this.
@@ -25,6 +26,7 @@ export interface AppShellContextValue {
   handleMarkAllNotificationsRead: () => Promise<void>;
   navigateTab: (tabId: string) => void;
   navigateToEvent: (event: Event) => void;
+  navigateToPole: (poleId: string) => void;
   openEventModal: () => void;
   openAssignmentsDrawer: (event: Event) => void;
   openUnavailabilityModal: () => void;
