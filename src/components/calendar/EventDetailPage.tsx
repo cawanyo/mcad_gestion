@@ -390,7 +390,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
                     const isRequired = (currentEvent.requirements || []).some((r) => r.poleId === pole.id);
                     return (
                       <option key={pole.id} value={pole.id}>
-                        {pole.name} {isRequired ? '🔥 (Besoin ouvert)' : ''}
+                        {pole.name} 
                       </option>
                     );
                   })}
@@ -406,7 +406,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
                   className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
                 >
                   <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>{selfAssigning ? 'Positionnement en cours...' : '✋ Me positionner comme STAR sur ce culte'}</span>
+                  <span>{selfAssigning ? 'Positionnement en cours...' : '✋ Me positionner'}</span>
                 </button>
               </div>
             </div>

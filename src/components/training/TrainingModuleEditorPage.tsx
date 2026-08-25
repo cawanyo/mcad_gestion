@@ -7,21 +7,14 @@ import {
   Trash2,
   Upload,
   BookOpen,
-  Layers,
-  Sparkles,
-  Video,
-  Image as ImageIcon,
-  FileText,
   Clock,
-  Check,
   Film,
   RefreshCw,
   Save,
   AlertCircle,
   Copy,
   ChevronUp,
-  ChevronDown,
-  Play
+  ChevronDown
 } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -418,36 +411,9 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
               )}
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-0.5">
-              {editingModule ? `Modifier : ${editingModule.title}` : 'Créer un Module de Formation'}
+              {editingModule ? editingModule.title : 'Nouveau module'}
             </h1>
-            <p className="text-xs text-slate-500">
-              Concevez un parcours interactif pour équiper et former les STARS avec excellence.
-            </p>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 self-end sm:self-center">
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={loading}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs transition-colors"
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl text-xs shadow-md shadow-indigo-600/20 flex items-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-50"
-          >
-            {loading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            <span>{editingModule ? 'Mettre à jour' : 'Enregistrer le module'}</span>
-          </button>
         </div>
       </div>
 
@@ -461,37 +427,29 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
 
       {/* Quick Template Presets (for new modules) */}
       {!editingModule && (
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-3xl border border-indigo-100 space-y-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-indigo-600" />
-            <span className="text-xs font-black text-indigo-900 uppercase tracking-wider">
-              Modèles rapides prédéfinis :
-            </span>
-          </div>
-          <p className="text-xs text-indigo-700">
-            Cliquez sur un modèle pour préremplir instantanément la structure et les leçons types :
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
+        <div className="p-4 bg-indigo-50/60 rounded-3xl border border-indigo-100 space-y-2">
+          <span className="text-xs font-bold text-indigo-900">Modèles rapides :</span>
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => applyPreset('SONO')}
               className="px-3 py-1.5 bg-white hover:bg-indigo-100/60 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900 shadow-xs transition-colors"
             >
-              🎧 Régie Son & Mixage
+              Régie Son & Mixage
             </button>
             <button
               type="button"
               onClick={() => applyPreset('MEDIA')}
               className="px-3 py-1.5 bg-white hover:bg-indigo-100/60 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900 shadow-xs transition-colors"
             >
-              📽️ Projection & Média
+              Projection & Média
             </button>
             <button
               type="button"
               onClick={() => applyPreset('ACCUEIL')}
               className="px-3 py-1.5 bg-white hover:bg-indigo-100/60 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900 shadow-xs transition-colors"
             >
-              🤝 Accueil & Protocole
+              Accueil & Protocole
             </button>
           </div>
         </div>
@@ -505,7 +463,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <BookOpen className="w-4 h-4 text-indigo-600" />
             <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
-              1. Informations Générales
+              Informations générales
             </h2>
           </div>
 
@@ -513,7 +471,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             {/* Pôle ministériel */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Pôle ministériel associé *
+                Pôle *
               </label>
               <select
                 value={poleId}
@@ -532,13 +490,13 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             {/* Niveau */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Niveau de compétence requis *
+                Niveau *
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { key: 'BEGINNER', label: 'Débutant 🟢' },
-                  { key: 'INTERMEDIATE', label: 'Moyen 🟡' },
-                  { key: 'ADVANCED', label: 'Avancé 🔴' }
+                  { key: 'BEGINNER', label: 'Débutant' },
+                  { key: 'INTERMEDIATE', label: 'Moyen' },
+                  { key: 'ADVANCED', label: 'Avancé' }
                 ].map((item) => (
                   <button
                     key={item.key}
@@ -559,12 +517,12 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             {/* Titre du module */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Titre du module de formation *
+                Titre *
               </label>
               <input
                 type="text"
                 required
-                placeholder="Ex: Fondamentaux de la Régie Son & Mixage Live"
+                placeholder="Ex: Régie Son & Mixage Live"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden"
@@ -574,13 +532,13 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             {/* Durée estimée */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Durée totale estimée
+                Durée estimée
               </label>
               <div className="relative">
                 <Clock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Ex: 30 min, 1h 15min"
+                  placeholder="Ex: 30 min"
                   value={estimatedDuration}
                   onChange={(e) => setEstimatedDuration(e.target.value)}
                   className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden"
@@ -591,12 +549,12 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             {/* Image de couverture */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Image de couverture (Photo du cours)
+                Image de couverture
               </label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="URL d'image ou téléversez ci-contre"
+                  placeholder="URL d'image"
                   value={coverImage}
                   onChange={(e) => setCoverImage(e.target.value)}
                   className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:bg-white outline-hidden"
@@ -641,11 +599,11 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             {/* Description du module */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Description & Objectifs pédagogiques
+                Description
               </label>
               <textarea
                 rows={3}
-                placeholder="Décrivez les compétences que la STAR acquerra au terme de ce parcours..."
+                placeholder="Ce que la STAR saura faire à la fin du parcours..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden"
@@ -662,7 +620,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             <div className="flex items-center gap-2">
               <Film className="w-4 h-4 text-indigo-600" />
               <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
-                2. Programme Pédagogique ({lessons.length} Leçon{lessons.length > 1 ? 's' : ''})
+                Leçons ({lessons.length})
               </h2>
             </div>
             <button
@@ -671,7 +629,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
               className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-2xl border border-indigo-200 transition-colors shadow-xs self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" />
-              <span>+ Ajouter une leçon</span>
+              <span>Ajouter</span>
             </button>
           </div>
 
@@ -689,7 +647,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                       {idx + 1}
                     </span>
                     <span className="text-xs font-bold text-slate-900">
-                      Leçon {idx + 1} : {lesson.title || 'Sans titre'}
+                      {lesson.title || 'Sans titre'}
                     </span>
                   </div>
 
@@ -737,12 +695,12 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                   {/* Titre Leçon */}
                   <div className="sm:col-span-2">
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Titre de la leçon *
+                      Titre *
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="Ex: Branchement et câblage de la régie"
+                      placeholder="Ex: Branchement et câblage"
                       value={lesson.title}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -757,7 +715,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                   {/* Durée Leçon */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Durée (minutes)
+                      Durée (min)
                     </label>
                     <input
                       type="number"
@@ -777,7 +735,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                   {/* Type de Média */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Support multimédia
+                      Support
                     </label>
                     <select
                       value={lesson.mediaType}
@@ -789,22 +747,22 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                       }}
                       className="w-full p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
                     >
-                      <option value="NONE">📝 Texte explicatif seul</option>
-                      <option value="VIDEO">🎥 Vidéo (MP4, YouTube, lien)</option>
-                      <option value="PHOTO">🖼️ Schéma ou Photo</option>
-                      <option value="DOCUMENT">📄 Document / PDF</option>
+                      <option value="NONE">Texte seul</option>
+                      <option value="VIDEO">Vidéo</option>
+                      <option value="PHOTO">Photo</option>
+                      <option value="DOCUMENT">Document</option>
                     </select>
                   </div>
 
                   {/* Média Upload / URL */}
                   <div className="sm:col-span-2">
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Vidéo ou Photo (Fichier direct ou lien YouTube, Vimeo, MP4)
+                      Média (lien ou fichier)
                     </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
-                        placeholder="Collez un lien vidéo (YouTube, Vimeo, Cloudinary, MP4) ou téléversez ci-contre..."
+                        placeholder="Lien YouTube, Vimeo, MP4..."
                         value={lesson.mediaUrl}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -874,7 +832,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                     <div className="sm:col-span-3 p-3 bg-white rounded-2xl border border-slate-200 space-y-2">
                       <div className="flex items-center justify-between">
                         <p className="text-[10px] uppercase font-bold text-slate-400">
-                          Aperçu en direct :
+                          Aperçu
                         </p>
                         <button
                           type="button"
@@ -923,11 +881,11 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                   {/* Contenu textuel / Guide détaillé */}
                   <div className="sm:col-span-3">
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Instructions & Contenu détaillé de la leçon
+                      Contenu détaillé
                     </label>
                     <textarea
                       rows={4}
-                      placeholder="Rédigez ici le cours complet, les étapes pas à pas, les consignes et les points d'attention..."
+                      placeholder="Étapes, consignes, points d'attention..."
                       value={lesson.content}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -950,7 +908,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             className="w-full py-4 border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 text-indigo-700 rounded-3xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Ajouter une nouvelle leçon au programme</span>
+            <span>Ajouter une leçon</span>
           </button>
         </div>
 
@@ -961,7 +919,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             onClick={onBack}
             className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs transition-colors"
           >
-            ‹ Retour sans sauvegarder
+            Annuler
           </button>
           <button
             type="submit"
@@ -973,7 +931,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             ) : (
               <Save className="w-4 h-4" />
             )}
-            <span>{editingModule ? 'Enregistrer les modifications' : 'Créer et publier le module'}</span>
+            <span>{editingModule ? 'Enregistrer' : 'Créer le module'}</span>
           </button>
         </div>
       </form>
