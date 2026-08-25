@@ -32,6 +32,7 @@ import { convexErrorMessage } from '@/lib/convexErrors';
 import { Checklist, Pole, Event, User } from '@/types';
 import { ChecklistRunnerModal } from './ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from './ChecklistFeedbackModal';
+import { ChecklistFormModal } from './ChecklistFormModal';
 import { ConfirmModal, Modal, Badge, Toast, ToastState, MediaViewer } from '@/components/ui';
 import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
 
@@ -63,7 +64,6 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   const [activeEditorTab, setActiveEditorTab] = React.useState<'etapes' | 'events'>('etapes');
   const [searchQuery, setSearchQuery] = React.useState('');
 
-  const createChecklistMutation = useMutation(api.checklists.create);
   const updateChecklistMutation = useMutation(api.checklists.update);
   const removeChecklistMutation = useMutation(api.checklists.remove);
 
@@ -87,9 +87,6 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
   // Create checklist modal
   const [showCreateModal, setShowCreateModal] = React.useState(false);
-  const [createTitle, setCreateTitle] = React.useState('');
-  const [createDescription, setCreateDescription] = React.useState('');
-  const [creatingChecklist, setCreatingChecklist] = React.useState(false);
 
   // Beautiful Confirmation Modals
   const [deletingChecklist, setDeletingChecklist] = React.useState<Checklist | null>(null);
@@ -140,46 +137,11 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     }
   };
 
-  // Create Checklist Handler
-  const handleCreateChecklist = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isLeaderOrAdmin) {
-      setToast({ message: 'Action réservée aux responsables.', type: 'error' });
-      return;
-    }
-
-    if (!createTitle.trim()) return;
-
-    try {
-      setCreatingChecklist(true);
-      const created = await createChecklistMutation({
-        poleId: (selectedPoleId || poles[0]?.id) as Id<'poles'>,
-        title: createTitle.trim(),
-        description: createDescription.trim() || 'Guide opérationnel de service.',
-        steps: [
-          {
-            title: 'Prier et consacrer le temps de service',
-            description: "Temps de prière d'équipe avant le début du culte.",
-            mediaType: 'TEXT'
-          },
-          {
-            title: 'Vérifier les installations techniques',
-            description: 'Contrôle visuel des équipements et validation du matériel.',
-            mediaType: 'TEXT'
-          }
-        ]
-      });
-      setShowCreateModal(false);
-      setCreateTitle('');
-      setCreateDescription('');
-      setActiveEditorChecklistId(created._id);
-      if (onRefresh) onRefresh();
-      setToast({ message: 'Checklist créée avec succès !', type: 'success' });
-    } catch (e) {
-      setToast({ message: convexErrorMessage(e, 'Erreur lors de la création.'), type: 'error' });
-    } finally {
-      setCreatingChecklist(false);
-    }
+  const handleChecklistCreated = (created: any) => {
+    setShowCreateModal(false);
+    setActiveEditorChecklistId(created._id);
+    if (onRefresh) onRefresh();
+    setToast({ message: 'Checklist créée avec succès !', type: 'success' });
   };
 
   // Edit Checklist Title & Description
@@ -340,11 +302,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
         {isLeaderOrAdmin && (
           <button
-            onClick={() => {
-              setCreateTitle('');
-              setCreateDescription('');
-              setShowCreateModal(true);
-            }}
+            onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
@@ -411,11 +369,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
               </p>
               {isLeaderOrAdmin && (
                 <button
-                  onClick={() => {
-                    setCreateTitle('');
-                    setCreateDescription('');
-                    setShowCreateModal(true);
-                  }}
+                  onClick={() => setShowCreateModal(true)}
                   className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-indigo-700 transition-colors"
                 >
                   + Créer une checklist
@@ -710,59 +664,15 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
         </div>
       )}
 
-      {/* MODAL CRÉER UNE CHECKLIST */}
-      {showCreateModal && (
-        <Modal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          title="Créer une nouvelle checklist"
-          subtitle="Définissez un guide opérationnel pour ce pôle"
-          icon={<CheckSquare className="w-5 h-5 text-white" />}
-          maxWidth="md"
-        >
-          <form onSubmit={handleCreateChecklist} className="space-y-4">
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Titre de la checklist *</label>
-              <input
-                type="text"
-                required
-                value={createTitle}
-                onChange={(e) => setCreateTitle(e.target.value)}
-                placeholder="ex: Guide de préparation Sonorisation Culte"
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Description / Objectif</label>
-              <textarea
-                rows={3}
-                value={createDescription}
-                onChange={(e) => setCreateDescription(e.target.value)}
-                placeholder="Explications sur les bonnes pratiques et les objectifs..."
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={creatingChecklist || !createTitle.trim()}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50"
-              >
-                {creatingChecklist ? 'Création...' : 'Créer la checklist'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
+      {/* MODAL CRÉER UNE CHECKLIST — same form used on the pole detail page */}
+      <ChecklistFormModal
+        isOpen={showCreateModal}
+        poleId={selectedPoleId || poles[0]?.id || ''}
+        poleName={poles.find((p) => p.id === selectedPoleId)?.name}
+        editingChecklist={null}
+        onClose={() => setShowCreateModal(false)}
+        onSaved={handleChecklistCreated}
+      />
 
       {/* MODAL MODIFIER TITRE / DESCRIPTION */}
       {showEditInfoModal && (
