@@ -22,7 +22,8 @@ import {
   ChevronDown,
   X,
   Home,
-  GraduationCap
+  GraduationCap,
+  Loader2
 } from 'lucide-react';
 import { User as UserType } from '@/types';
 import { Avatar } from '@/components/ui';
@@ -42,6 +43,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const router = useRouter();
   const pathname = usePathname();
+  const [isPending, startTransition] = React.useTransition();
+  const [pendingTabId, setPendingTabId] = React.useState<string | null>(null);
 
   const isLeaderOrAdmin = currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER' ||
@@ -87,9 +90,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const handleSelectTab = (id: string) => {
-    router.push(tabToPath(id));
+    setPendingTabId(id);
+    startTransition(() => {
+      router.push(tabToPath(id));
+    });
     if (onCloseMobile) onCloseMobile();
   };
+
+  // Clear the spinner once the route has actually changed — isPending alone
+  // can stay true briefly on the destination page too (React batches the
+  // transition with whatever that page renders first), so this avoids it
+  // looking stuck on the new page's own nav item.
+  React.useEffect(() => {
+    if (!isPending) setPendingTabId(null);
+  }, [isPending, pathname]);
 
   return (
     <aside className="w-64 bg-[#121929] text-slate-300 flex flex-col flex-shrink-0 h-full border-r border-slate-800 select-none">
@@ -122,6 +136,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === tabToPath(item.id);
+          const isLoading = pendingTabId === item.id && isPending;
           return (
             <button
               key={item.id}
@@ -133,7 +148,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }`}
             >
               <div className="flex items-center gap-3">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                {isLoading ? (
+                  <Loader2 className={`w-4 h-4 animate-spin ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                ) : (
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                )}
                 <span>{item.label}</span>
               </div>
               {item.badge && item.badge > 0 && (

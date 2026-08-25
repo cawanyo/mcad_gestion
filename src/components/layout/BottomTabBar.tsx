@@ -9,7 +9,8 @@ import {
   GraduationCap,
   HandHeart,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Loader2
 } from 'lucide-react';
 import { User } from '@/types';
 import { tabToPath, getBottomTabForPath } from '@/lib/navigation';
@@ -36,6 +37,22 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const isLeader = currentUser?.role && currentUser.role !== 'MEMBER';
 
   const currentParentTab = getBottomTabForPath(pathname);
+
+  const [isPending, startTransition] = React.useTransition();
+  const [pendingTabId, setPendingTabId] = React.useState<string | null>(null);
+
+  // Clear the spinner once the route has actually changed — see Sidebar's
+  // identical handling for why this can't just rely on isPending alone.
+  React.useEffect(() => {
+    if (!isPending) setPendingTabId(null);
+  }, [isPending, pathname]);
+
+  const handleSelectTab = (id: string) => {
+    setPendingTabId(id);
+    startTransition(() => {
+      router.push(tabToPath(id));
+    });
+  };
 
   const tabs: TabItem[] = [
     {
@@ -86,12 +103,13 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = currentParentTab === tab.id;
+            const isLoading = pendingTabId === tab.id && isPending;
 
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => router.push(tabToPath(tab.id))}
+                onClick={() => handleSelectTab(tab.id)}
                 className={`relative flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-xl transition-all duration-150 select-none ${
                   isActive
                     ? 'text-indigo-600 font-black'
@@ -112,7 +130,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                         : 'text-slate-400'
                     }`}
                   >
-                    <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                    {isLoading ? (
+                      <Loader2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 animate-spin" />
+                    ) : (
+                      <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                    )}
                   </div>
 
                   {/* Badge */}
