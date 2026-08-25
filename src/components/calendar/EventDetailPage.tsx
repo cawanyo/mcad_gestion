@@ -79,18 +79,8 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
     currentUser?.role === 'POLE_LEADER' ||
     currentUser?.role === 'CALENDAR_MANAGER';
 
-  if (!currentEvent) {
-    return (
-      <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-6 font-sans pb-32">
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs text-center">
-          <p className="text-xs font-bold text-slate-500">Chargement du culte...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Check if current user is assigned to this culte
-  const userAssignments = (currentEvent.assignments || []).filter(
+  const userAssignments = (currentEvent?.assignments || []).filter(
     (a) => a.userId === currentUser?.id
   );
   const isAssigned = userAssignments.length > 0;
@@ -103,14 +93,16 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
   const userPoleIds = userPoleMemberships.map((pm: any) => pm.poleId);
   const userPoles = userPoleMemberships.map((pm: any) => pm.pole).filter(Boolean);
 
-  const requiredPoleIds = (currentEvent.requirements || []).map((r) => r.poleId);
+  const requiredPoleIds = (currentEvent?.requirements || []).map((r) => r.poleId);
 
   // Self-positioning is strictly limited to poles the member actually
   // belongs to — role doesn't grant an exception here (leaders manage
   // other people's assignments through "Gérer les affectations" instead).
   const selectablePoles = React.useMemo(() => userPoles, [userPoles]);
 
-  // Set default selected pole if empty
+  // Set default selected pole if empty. Hooks must run unconditionally on
+  // every render (currentEvent starts null while the reactive query loads),
+  // so this stays above the early return below.
   React.useEffect(() => {
     if (!selfAssignPoleId && selectablePoles.length > 0) {
       // Prioritize a pole that is currently required
@@ -118,6 +110,16 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
       setSelfAssignPoleId(priorityPole.id);
     }
   }, [selectablePoles, requiredPoleIds, selfAssignPoleId]);
+
+  if (!currentEvent) {
+    return (
+      <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-6 font-sans pb-32">
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs text-center">
+          <p className="text-xs font-bold text-slate-500">Chargement du culte...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Self Assign / Volunteer Handler
   const handleSelfAssign = async () => {
