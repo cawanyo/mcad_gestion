@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
-import { api } from '../api/client';
 import { User, Pole, Unavailability } from '../types';
 
 interface ProfileScreenProps {
@@ -47,32 +46,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   }, [initialOpenUnavailability]);
 
+  // TODO(next pass): wire to Convex useQuery(api.poles.list)
   const loadPoles = async () => {
-    try {
-      const p = await api.poles.getAll();
-      setPoles(p);
-    } catch (e) {
-      console.error(e);
-    }
+    setPoles([]);
   };
 
+  // TODO(next pass): wire to Convex useQuery(api.birthdays.list)
   const loadBirthdays = async () => {
-    try {
-      const b = await api.birthdays.getWeekly();
-      setBirthdays(b);
-    } catch (e) {
-      console.error(e);
-    }
+    setBirthdays([]);
   };
 
   const handleCreateUnavailability = async () => {
     try {
       setSubmittingUnavail(true);
-      await api.unavailabilities.create({
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
-        reason
-      });
+      // TODO(next pass): wire to Convex useMutation(api.unavailabilities.create)
       Alert.alert('Indisponibilité enregistrée', 'Vos dates d’absence ont été prises en compte.');
       setShowUnavailabilityModal(false);
     } catch (e: any) {
@@ -85,7 +72,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const handleRequestMembership = async (poleId: string) => {
     try {
       setRequestingPoleId(poleId);
-      await api.poles.requestMembership(poleId);
+      // TODO(next pass): wire to Convex useMutation(api.membershipRequests.create)
       Alert.alert('Demande envoyée !', 'Le responsable du pôle a bien reçu votre demande d’adhésion.');
     } catch (e: any) {
       Alert.alert('Information', e.message || 'Demande déjà existante ou erreur');

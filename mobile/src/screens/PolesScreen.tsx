@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
-import { api } from '../api/client';
 import { User, Pole, MembershipRequest } from '../types';
 import { theme, getPoleTheme } from '../theme';
 
@@ -30,20 +29,12 @@ export const PolesScreen: React.FC<PolesScreenProps> = ({ currentUser }) => {
   const [motivation, setMotivation] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // TODO(next pass): wire to Convex useQuery(api.poles.list) / dashboard.get
   const loadPolesData = async () => {
-    try {
-      setLoading(true);
-      const [polesData, dashData] = await Promise.all([
-        api.poles.getAll().catch(() => []),
-        api.dashboard.get().catch(() => null)
-      ]);
-      setPoles(polesData);
-      setRequests(dashData?.membershipRequests || currentUser.membershipRequests || []);
-    } catch (e) {
-      console.error('Error loading poles:', e);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    setPoles([]);
+    setRequests([]);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -58,7 +49,7 @@ export const PolesScreen: React.FC<PolesScreenProps> = ({ currentUser }) => {
 
     try {
       setSubmitting(true);
-      await api.poles.requestMembership(selectedPoleId);
+      // TODO(next pass): wire to Convex useMutation(api.membershipRequests.create)
       Alert.alert('Demande envoyée !', 'Votre demande a été transmise aux responsables du pôle.');
       setShowRequestModal(false);
       setSelectedPoleId('');
@@ -144,7 +135,7 @@ export const PolesScreen: React.FC<PolesScreenProps> = ({ currentUser }) => {
               {requests.map((req) => {
                 const poleTheme = getPoleTheme(req.pole?.name);
                 const badge = getStatusBadge(req.status);
-                const dateStr = new Date(req.createdAt).toLocaleDateString('fr-FR', {
+                const dateStr = new Date(req.createdAt || Date.now()).toLocaleDateString('fr-FR', {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric'

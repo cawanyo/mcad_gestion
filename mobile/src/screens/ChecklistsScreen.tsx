@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
-import { api } from '../api/client';
 import { User, Checklist, ChecklistStep } from '../types';
 
 interface ChecklistsScreenProps {
@@ -30,15 +29,10 @@ export const ChecklistsScreen: React.FC<ChecklistsScreenProps> = ({ currentUser 
   const [satisfactionRating, setSatisfactionRating] = useState(5);
   const [validating, setValidating] = useState(false);
 
+  // TODO(next pass): wire to Convex useQuery(api.checklists.list, { poleId })
   const loadData = async () => {
-    try {
-      const list = await api.checklists.getAll();
-      setChecklists(list);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setRefreshing(false);
-    }
+    setChecklists([]);
+    setRefreshing(false);
   };
 
   useEffect(() => {
@@ -69,12 +63,7 @@ export const ChecklistsScreen: React.FC<ChecklistsScreenProps> = ({ currentUser 
 
     try {
       setValidating(true);
-      await api.checklists.validateService({
-        poleId: activeChecklist?.poleId,
-        comment: validationComment.trim(),
-        satisfactionRating
-      });
-
+      // TODO(next pass): wire to Convex useMutation(api.checklists.createExecution / serviceValidations)
       Alert.alert('Service validé !', 'Merci pour votre engagement et votre fidélité au service du Seigneur !');
       setShowValidationModal(false);
       setActiveChecklist(null);

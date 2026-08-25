@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
-import { api } from '../api/client';
 import { User, TrainingModule, TrainingLesson, Pole } from '../types';
 
 interface TrainingScreenProps {
@@ -35,19 +34,11 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
   const [toggling, setToggling] = useState(false);
 
+  // TODO(next pass): wire to Convex useQuery(api.training.list) / poles.list
   const loadData = async () => {
-    try {
-      const [modList, poleList] = await Promise.all([
-        api.training.getModules(),
-        api.poles.getAll()
-      ]);
-      setModules(modList);
-      setPoles(poleList);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setRefreshing(false);
-    }
+    setModules([]);
+    setPoles([]);
+    setRefreshing(false);
   };
 
   useEffect(() => {
@@ -72,25 +63,14 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({
     const completed = module.lessons?.filter((l) => l.isCompleted).map((l) => l.id) || [];
     setCompletedLessonIds(completed);
 
-    // Call START_MODULE API
-    try {
-      await api.training.startModule(module.id);
-    } catch (e) {
-      console.error(e);
-    }
+    // TODO(next pass): wire to Convex useMutation(api.training.updateProgress, { action: "START_MODULE" })
   };
 
   const handleToggleLesson = async (lesson: TrainingLesson) => {
     if (!activeModule) return;
     try {
       setToggling(true);
-      const res = await api.training.toggleLesson(activeModule.id, lesson.id);
-      if (res.isLessonCompleted) {
-        setCompletedLessonIds((prev) => [...new Set([...prev, lesson.id])]);
-      } else {
-        setCompletedLessonIds((prev) => prev.filter((id) => id !== lesson.id));
-      }
-      loadData();
+      // TODO(next pass): wire to Convex useMutation(api.training.updateProgress, { action: "TOGGLE_LESSON" })
     } catch (e: any) {
       Alert.alert('Erreur', e.message || 'Impossible de mettre à jour la progression');
     } finally {

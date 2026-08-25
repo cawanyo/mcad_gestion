@@ -12,14 +12,15 @@ import {
   Modal
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { api, API_BASE_URL, setApiBaseUrl } from '../api/client';
-import { User } from '../types';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthActions } from '@convex-dev/auth/react';
 
 interface LoginScreenProps {
-  onLoginSuccess: (user: User) => void;
+  onLoginSuccess?: () => void;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
+  const { signIn } = useAuthActions();
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -71,9 +72,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Server Config
-  const [serverUrl, setServerUrl] = useState(API_BASE_URL);
-  const [showConfig, setShowConfig] = useState(false);
-
   // -------------------------------------------------------------
   // DATE PICKER HANDLERS
   // -------------------------------------------------------------
@@ -123,10 +121,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       setLoading(true);
       setGlobalError(null);
       setFieldErrors({});
-      setApiBaseUrl(serverUrl);
 
-      const user = await api.auth.login(loginPhone.trim(), loginPassword.trim());
-      onLoginSuccess(user);
+      await signIn('phone-password', {
+        phone: loginPhone.trim(),
+        password: loginPassword.trim(),
+        flow: 'signIn'
+      });
+      onLoginSuccess?.();
     } catch (e: any) {
       setGlobalError('Numéro ou mot de passe incorrect.');
       setFieldErrors({
@@ -178,18 +179,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       setLoading(true);
       setGlobalError(null);
       setFieldErrors({});
-      setApiBaseUrl(serverUrl);
 
-      const user = await api.auth.register({
+      await signIn('phone-password', {
         phone: registerPhone.trim(),
         password: registerPassword.trim(),
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         gender: sex,
-        sex,
-        birthDate: isoBirthDate
+        flow: 'signUp',
+        ...(isoBirthDate ? { birthDate: isoBirthDate } : {})
       });
-      onLoginSuccess(user);
+      onLoginSuccess?.();
     } catch (e: any) {
       const errMsg = e.message || '';
       const isAlreadyTaken =
@@ -208,13 +208,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickDemoAdmin = () => {
-    setLoginPhone('+33 6 99 88 77 66');
-    setLoginPassword('AdminPassword2026!');
-    setGlobalError(null);
-    setFieldErrors({});
   };
 
   // Format Date for Display
@@ -241,6 +234,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   );
 
   return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
@@ -299,13 +293,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View
               style={[
                 styles.inputCard,
-                fieldErrors.loginPhone && styles.inputCardError
+                !!fieldErrors.loginPhone && styles.inputCardError
               ]}
             >
               <Text
                 style={[
                   styles.inputCardLabel,
-                  fieldErrors.loginPhone && styles.inputCardLabelError
+                  !!fieldErrors.loginPhone && styles.inputCardLabelError
                 ]}
               >
                 Numéro de téléphone
@@ -334,13 +328,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View
               style={[
                 styles.inputCard,
-                fieldErrors.loginPassword && styles.inputCardError
+                !!fieldErrors.loginPassword && styles.inputCardError
               ]}
             >
               <Text
                 style={[
                   styles.inputCardLabel,
-                  fieldErrors.loginPassword && styles.inputCardLabelError
+                  !!fieldErrors.loginPassword && styles.inputCardLabelError
                 ]}
               >
                 Mot de passe
@@ -386,17 +380,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               )}
             </TouchableOpacity>
 
-            {/* Demo Account Quick Fill */}
-            <TouchableOpacity
-              style={styles.demoPill}
-              onPress={handleQuickDemoAdmin}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.demoPillText}>
-                ⚡ Compte Démo (+33 6 99 88 77 66)
-              </Text>
-            </TouchableOpacity>
-
             {/* Switch to Register */}
             <View style={styles.switchAuthRow}>
               <Text style={styles.switchAuthText}>Vous n'avez pas de compte ? </Text>
@@ -422,13 +405,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View
               style={[
                 styles.inputCard,
-                fieldErrors.firstName && styles.inputCardError
+                !!fieldErrors.firstName && styles.inputCardError
               ]}
             >
               <Text
                 style={[
                   styles.inputCardLabel,
-                  fieldErrors.firstName && styles.inputCardLabelError
+                  !!fieldErrors.firstName && styles.inputCardLabelError
                 ]}
               >
                 Prénom
@@ -455,13 +438,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View
               style={[
                 styles.inputCard,
-                fieldErrors.lastName && styles.inputCardError
+                !!fieldErrors.lastName && styles.inputCardError
               ]}
             >
               <Text
                 style={[
                   styles.inputCardLabel,
-                  fieldErrors.lastName && styles.inputCardLabelError
+                  !!fieldErrors.lastName && styles.inputCardLabelError
                 ]}
               >
                 Nom
@@ -488,13 +471,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View
               style={[
                 styles.inputCard,
-                fieldErrors.registerPhone && styles.inputCardError
+                !!fieldErrors.registerPhone && styles.inputCardError
               ]}
             >
               <Text
                 style={[
                   styles.inputCardLabel,
-                  fieldErrors.registerPhone && styles.inputCardLabelError
+                  !!fieldErrors.registerPhone && styles.inputCardLabelError
                 ]}
               >
                 Numéro de téléphone
@@ -549,7 +532,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <TouchableOpacity
               style={[
                 styles.inputCard,
-                fieldErrors.birthDate && styles.inputCardError
+                !!fieldErrors.birthDate && styles.inputCardError
               ]}
               onPress={() => {
                 setTempPickerDate(selectedBirthDate || new Date(1998, 4, 15));
@@ -560,7 +543,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               <Text
                 style={[
                   styles.inputCardLabel,
-                  fieldErrors.birthDate && styles.inputCardLabelError
+                  !!fieldErrors.birthDate && styles.inputCardLabelError
                 ]}
               >
                 Date de naissance
@@ -588,13 +571,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View
               style={[
                 styles.inputCard,
-                fieldErrors.registerPassword && styles.inputCardError
+                !!fieldErrors.registerPassword && styles.inputCardError
               ]}
             >
               <Text
                 style={[
                   styles.inputCardLabel,
-                  fieldErrors.registerPassword && styles.inputCardLabelError
+                  !!fieldErrors.registerPassword && styles.inputCardLabelError
                 ]}
               >
                 Mot de passe
@@ -630,13 +613,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View
               style={[
                 styles.inputCard,
-                fieldErrors.confirmPassword && styles.inputCardError
+                !!fieldErrors.confirmPassword && styles.inputCardError
               ]}
             >
               <Text
                 style={[
                   styles.inputCardLabel,
-                  fieldErrors.confirmPassword && styles.inputCardLabelError
+                  !!fieldErrors.confirmPassword && styles.inputCardLabelError
                 ]}
               >
                 Confirmer le mot de passe
@@ -698,27 +681,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </View>
         )}
 
-        {/* ⚙ Config serveur (IP) */}
-        <TouchableOpacity
-          style={styles.configToggle}
-          onPress={() => setShowConfig(!showConfig)}
-        >
-          <Text style={styles.configToggleText}>⚙ Config serveur ({serverUrl})</Text>
-        </TouchableOpacity>
-
-        {showConfig && (
-          <View style={styles.configBox}>
-            <Text style={styles.configLabel}>Adresse du serveur API :</Text>
-            <TextInput
-              style={styles.configInput}
-              value={serverUrl}
-              onChangeText={setServerUrl}
-              placeholder="http://localhost:3000"
-              placeholderTextColor="#94a3b8"
-              autoCapitalize="none"
-            />
-          </View>
-        )}
       </ScrollView>
 
       {/* 📅 Native DatePicker Modal on iOS */}
@@ -768,6 +730,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         />
       )}
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 

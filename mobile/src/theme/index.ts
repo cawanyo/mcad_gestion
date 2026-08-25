@@ -1,9 +1,16 @@
+// Indigo as the single accent (matches the web app's sobered palette —
+// see src/components/dashboard/MemberDashboard.tsx and
+// src/components/unavailability/UnavailabilitiesView.tsx on the web side),
+// slate as neutral. success/warning/danger stay as real semantic status
+// colors (mirrors web's Badge component variants) — those aren't the
+// "too colorful" problem the web sobering passes were fixing, decorative
+// hue variety per-screen was.
 export const theme = {
   colors: {
-    primary: '#5b45ff',
+    primary: '#4f46e5',
     primaryDark: '#4338ca',
-    primaryLight: '#ede9fe',
-    accent: '#8b5cf6',
+    primaryLight: '#eef2ff',
+    accent: '#4f46e5',
     background: '#f8f9fe',
     card: '#ffffff',
     text: '#0f172a',
@@ -33,19 +40,19 @@ export const theme = {
       accueil: { bg: '#dcfce7', color: '#16a34a', icon: '🤝' },
       technique: { bg: '#fee2e2', color: '#dc2626', icon: '🎛️' },
       enseignement: { bg: '#e0f2fe', color: '#0284c7', icon: '📖' },
-      default: { bg: '#ede9fe', color: '#5b45ff', icon: '✨' }
+      default: { bg: '#eef2ff', color: '#4f46e5', icon: '✨' }
     }
   },
   shadow: {
     card: {
-      shadowColor: '#5b45ff',
+      shadowColor: '#4f46e5',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.05,
       shadowRadius: 10,
       elevation: 2
     },
     hero: {
-      shadowColor: '#5b45ff',
+      shadowColor: '#4f46e5',
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.25,
       shadowRadius: 16,

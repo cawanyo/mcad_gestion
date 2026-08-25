@@ -18,7 +18,7 @@ import { EventDetailScreen } from './EventDetailScreen';
 
 interface HomeScreenProps {
   currentUser: User;
-  onNavigateTab: (tab: 'accueil' | 'calendrier' | 'poles' | 'formations' | 'profil') => void;
+  onNavigateTab: (tab: 'accueil' | 'calendrier' | 'poles' | 'checklists' | 'formations' | 'profil') => void;
   onOpenTraining: (module: TrainingModule) => void;
   onOpenUnavailability?: () => void;
 }
@@ -115,11 +115,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     title: 'Leadership & Service Chrétien',
     description: 'Principes bibliques et excellence opérationnelle pour servir au sein de MCAD.',
     poleId: 'pole-1',
-    roleTag: 'LEADER',
+    level: 'INTERMEDIATE',
+    status: 'ACTIVE',
     orderIndex: 1,
     progressPercent: 65,
-    progressStatus: 'IN_PROGRESS',
-    chapters: []
+    userProgressStatus: 'IN_PROGRESS'
   });
 
   const [birthdays] = useState([
@@ -529,7 +529,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <View
               style={[
                 styles.progressBar,
-                { width: `${inProgressTraining.progressPercent}%` }
+                { width: `${inProgressTraining.progressPercent ?? 0}%` }
               ]}
             />
           </View>
