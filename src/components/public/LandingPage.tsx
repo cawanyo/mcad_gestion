@@ -38,7 +38,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
             <div>
               <span className="font-extrabold text-white text-base sm:text-lg tracking-tight">MCAD</span>
-              <span className="block text-[11px] text-slate-400 font-medium">Plateforme de Gestion de Département</span>
+              <span className="text-[11px] text-slate-400 font-medium hidden lg:block">Plateforme de Gestion de Département</span>
             </div>
           </div>
 

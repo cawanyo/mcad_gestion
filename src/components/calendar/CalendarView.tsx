@@ -617,7 +617,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <span
                       className={`text-[11px] font-bold ${
                         isSelected
-                          ? 'text-white'
+                          ? ''
                           : cell.isToday
                           ? 'text-indigo-700 font-black'
                           : cell.isCurrentMonth
@@ -635,7 +635,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           <span
                             key={eIdx}
                             className={`w-1.5 h-1.5 rounded-full ${
-                              isSelected ? 'bg-white' : 'bg-indigo-600'
+                              isSelected ? 'bg-indigo-600' : 'bg-indigo-600'
                             }`}
                             style={{
                               backgroundColor: isSelected
