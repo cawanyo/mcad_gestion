@@ -102,7 +102,9 @@ export const MembersScreen: React.FC<MembersScreenProps> = ({ currentUser }) => 
                   </View>
                   <View style={styles.roleBadge}>
                     <Shield color={theme.colors.primary} size={11} />
-                    <Text style={styles.roleBadgeText}>{ROLE_LABELS[m.role] || m.role}</Text>
+                    <Text style={styles.roleBadgeText}>
+                      {ROLE_LABELS[(m.role === 'MEMBER' && (m.poleLeaderships?.length ?? 0) > 0) ? 'POLE_LEADER' : m.role] || m.role}
+                    </Text>
                   </View>
                 </View>
 

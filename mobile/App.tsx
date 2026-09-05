@@ -38,7 +38,11 @@ const LifeStack = createNativeStackNavigator();
 const LeaderStack = createNativeStackNavigator();
 
 const isLeaderOrAdmin = (u: User) =>
-  u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER' || u.role === 'POLE_LEADER' || u.role === 'CALENDAR_MANAGER';
+  u.role === 'SUPER_ADMIN' ||
+  u.role === 'DEPARTMENT_LEADER' ||
+  u.role === 'POLE_LEADER' ||
+  u.role === 'CALENDAR_MANAGER' ||
+  ((u.poleLeaderships?.length ?? 0) > 0);
 
 // A bare back button, no title — lets Poles/Checklists/Unavailabilities/etc.
 // keep rendering their own in-content header (built as standalone tab

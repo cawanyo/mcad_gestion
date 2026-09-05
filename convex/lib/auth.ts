@@ -29,10 +29,20 @@ export function isLeaderOrAdmin(user: Doc<"users">): boolean {
 
 export async function requireLeaderOrAdmin(ctx: Ctx): Promise<Doc<"users">> {
   const user = await requireAuth(ctx);
-  if (!LEADER_ROLES.includes(user.role)) {
-    throw new ConvexError("Accès interdit. Privilèges de responsable requis.");
+  if (LEADER_ROLES.includes(user.role)) {
+    return user;
   }
-  return user;
+
+  // Fallback: check if the user is a designated leader of any pole
+  const isPoleLeader = await ctx.db
+    .query("poleLeaders")
+    .withIndex("userId", (q) => q.eq("userId", user._id))
+    .first();
+  if (isPoleLeader) {
+    return user;
+  }
+
+  throw new ConvexError("Accès interdit. Privilèges de responsable requis.");
 }
 
 export async function requireDepartmentLeaderOrAdmin(ctx: Ctx): Promise<Doc<"users">> {

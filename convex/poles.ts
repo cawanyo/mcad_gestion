@@ -286,6 +286,18 @@ export const removeMember = mutation({
       .collect();
     for (const l of leaderships) await ctx.db.delete(l._id);
 
+    // If the user's global role was POLE_LEADER, check if they lead any other pole
+    const targetUser = await ctx.db.get(userId);
+    if (targetUser && targetUser.role === "POLE_LEADER") {
+      const remainingLeaderships = await ctx.db
+        .query("poleLeaders")
+        .withIndex("userId", (q) => q.eq("userId", userId))
+        .collect();
+      if (remainingLeaderships.length === 0) {
+        await ctx.db.patch(userId, { role: "MEMBER" });
+      }
+    }
+
     return { success: true, message: "Membre retiré du pôle" };
   },
 });
@@ -293,20 +305,59 @@ export const removeMember = mutation({
 export const toggleLeader = mutation({
   args: { poleId: v.id("poles"), userId: v.id("users"), roleTitle: v.optional(v.string()) },
   handler: async (ctx, { poleId, userId, roleTitle }) => {
-    await requirePoleLeaderOrAdmin(ctx, poleId);
+    const actor = await requirePoleLeaderOrAdmin(ctx, poleId);
+
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser) throw new ConvexError("Membre introuvable");
 
     const existing = await ctx.db
       .query("poleLeaders")
       .withIndex("poleAndUser", (q) => q.eq("poleId", poleId).eq("userId", userId))
       .first();
 
+    const pole = await ctx.db.get(poleId);
+
     if (existing) {
       await ctx.db.delete(existing._id);
+
+      // Check if user still leads any other pole
+      if (targetUser.role === "POLE_LEADER") {
+        const remaining = await ctx.db
+          .query("poleLeaders")
+          .withIndex("userId", (q) => q.eq("userId", userId))
+          .collect();
+        const otherLeaderships = remaining.filter((l) => l._id !== existing._id);
+        if (otherLeaderships.length === 0) {
+          await ctx.db.patch(userId, { role: "MEMBER" });
+        }
+      }
     } else {
       await ctx.db.insert("poleLeaders", {
         poleId,
         userId,
         roleTitle: roleTitle || "Responsable de pôle",
+      });
+
+      // Automatically upgrade user role from MEMBER to POLE_LEADER
+      if (targetUser.role === "MEMBER") {
+        await ctx.db.patch(userId, { role: "POLE_LEADER" });
+      }
+
+      await ctx.db.insert("notifications", {
+        userId,
+        title: "Nomination comme Responsable",
+        message: `Vous avez été nommé(e) responsable du pôle "${pole?.name || 'Département'}". Vos accès de gestion ont été activés.`,
+        type: "ROLE_UPDATE",
+        isRead: false,
+        linkUrl: "/dashboard",
+      });
+
+      await ctx.db.insert("auditLogs", {
+        actorId: actor._id,
+        action: "POLE_LEADER_ASSIGNED",
+        targetType: "USER",
+        targetId: userId,
+        details: JSON.stringify({ poleId, poleName: pole?.name, previousRole: targetUser.role, newRole: "POLE_LEADER" }),
       });
     }
 

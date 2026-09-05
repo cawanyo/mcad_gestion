@@ -98,7 +98,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER' ||
     currentUser?.role === 'POLE_LEADER' ||
-    currentUser?.role === 'CALENDAR_MANAGER';
+    currentUser?.role === 'CALENDAR_MANAGER' ||
+    ((currentUser?.poleLeaderships?.length ?? 0) > 0);
 
   // Format Helper
   const getLocalDateStr = (d: Date | string) => {

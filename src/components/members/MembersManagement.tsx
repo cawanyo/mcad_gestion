@@ -365,7 +365,8 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
                 </tr>
               ) : (
                 filteredMembers.map((m) => {
-                  const roleConfig = ROLES_CONFIG[m.role] || ROLES_CONFIG.MEMBER;
+                  const effectiveRole = (m.role === 'MEMBER' && (m.poleLeaderships?.length ?? 0) > 0) ? 'POLE_LEADER' : m.role;
+                  const roleConfig = ROLES_CONFIG[effectiveRole] || ROLES_CONFIG.MEMBER;
                   const isSelf = currentUser?.id === m.id;
 
                   return (
