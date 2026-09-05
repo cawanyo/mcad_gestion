@@ -857,6 +857,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             </span>
                           )}
 
+                        <div className="flex items-center gap-2">
+                          {isLeaderOrAdmin && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingEvent(ev);
+                                setShowEventModal(true);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                              title="Modifier ce culte"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           {canAccessEventDetailPage ? (
                             <div className="flex items-center gap-1 text-indigo-600 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
                               <span>Voir la fiche</span>
@@ -868,6 +882,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               <span>Consultation</span>
                             </div>
                           )}
+                        </div>
                         </div>
                       </div>
                     );
@@ -1228,17 +1243,32 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         </span>
                       )}
 
-                      {canAccessEventDetailPage ? (
-                        <div className="flex items-center gap-1 text-indigo-600 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
-                          <span>Voir la fiche</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-slate-400 font-semibold text-[10px]">
-                          <Eye className="w-3 h-3 text-slate-400" />
-                          <span>Consultation</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {isLeaderOrAdmin && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingEvent(ev);
+                              setShowEventModal(true);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            title="Modifier ce culte"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {canAccessEventDetailPage ? (
+                          <div className="flex items-center gap-1 text-indigo-600 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
+                            <span>Voir la fiche</span>
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-slate-400 font-semibold text-[10px]">
+                            <Eye className="w-3 h-3 text-slate-400" />
+                            <span>Consultation</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

@@ -14,7 +14,11 @@ interface ChecklistsScreenProps {
 }
 
 const isLeaderOrAdmin = (u: User) =>
-  u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER' || u.role === 'POLE_LEADER' || u.role === 'CALENDAR_MANAGER';
+  u.role === 'SUPER_ADMIN' ||
+  u.role === 'DEPARTMENT_LEADER' ||
+  u.role === 'POLE_LEADER' ||
+  u.role === 'CALENDAR_MANAGER' ||
+  ((u.poleLeaderships?.length ?? 0) > 0);
 
 type Step = { id?: string; title: string; description: string; mediaType: 'NONE' | 'PHOTO' | 'VIDEO'; mediaUrl: string };
 const EMPTY_STEP: Step = { title: '', description: '', mediaType: 'NONE', mediaUrl: '' };
@@ -23,9 +27,26 @@ export const ChecklistsScreen: React.FC<ChecklistsScreenProps> = ({ currentUser 
   const polesRaw = useQuery(api.poles.list, {});
   const [selectedPoleId, setSelectedPoleId] = React.useState<Id<'poles'> | null>(null);
 
+  const isMemberOfPole = (p: any) => {
+    if (!currentUser) return false;
+    const inMemberships = (currentUser.poleMemberships || []).some(
+      (pm) => (pm.poleId === p._id || pm.pole?.id === p._id) && pm.status !== 'REJECTED'
+    );
+    const inPoleLeaderships = (currentUser.poleLeaderships || []).some(
+      (l) => l.poleId === p._id || l.pole?.id === p._id
+    );
+    const inPoles = (currentUser.poles || []).some((pole: any) => pole.pole?.id === p._id || pole.id === p._id);
+    return inMemberships || inPoleLeaderships || inPoles;
+  };
+
+  const myPoles = React.useMemo(() => (polesRaw || []).filter(isMemberOfPole), [polesRaw, currentUser]);
+  const otherPoles = React.useMemo(() => (polesRaw || []).filter((p: any) => !isMemberOfPole(p)), [polesRaw, currentUser]);
+
   React.useEffect(() => {
-    if (!selectedPoleId && polesRaw && polesRaw.length > 0) setSelectedPoleId(polesRaw[0]._id);
-  }, [polesRaw, selectedPoleId]);
+    if (!selectedPoleId && polesRaw && polesRaw.length > 0) {
+      setSelectedPoleId(myPoles[0]?._id || polesRaw[0]._id);
+    }
+  }, [polesRaw, selectedPoleId, myPoles]);
 
   const checklistsRaw = useQuery(api.checklists.list, selectedPoleId ? { poleId: selectedPoleId } : 'skip');
   const loading = checklistsRaw === undefined;
@@ -41,8 +62,22 @@ export const ChecklistsScreen: React.FC<ChecklistsScreenProps> = ({ currentUser 
         <Text style={styles.headerTitle}>Checklists</Text>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.poleTabs} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
-        {(polesRaw || []).map((p: any) => (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.poleTabs} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, alignItems: 'center' }}>
+        {myPoles.map((p: any) => (
+          <TouchableOpacity
+            key={p._id}
+            style={[styles.poleTab, selectedPoleId === p._id && styles.poleTabActive]}
+            onPress={() => setSelectedPoleId(p._id)}
+          >
+            <Text style={[styles.poleTabText, selectedPoleId === p._id && styles.poleTabTextActive]}>{p.name}</Text>
+          </TouchableOpacity>
+        ))}
+
+        {myPoles.length > 0 && otherPoles.length > 0 && (
+          <View style={{ width: 1, height: 20, backgroundColor: '#cbd5e1', alignSelf: 'center', marginHorizontal: 2 }} />
+        )}
+
+        {otherPoles.map((p: any) => (
           <TouchableOpacity
             key={p._id}
             style={[styles.poleTab, selectedPoleId === p._id && styles.poleTabActive]}

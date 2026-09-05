@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
-import { Search, Shield, X, Check, Trash2 } from 'lucide-react-native';
+import { Search, Shield, X, Check, Trash2, ChevronRight } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -10,6 +10,133 @@ import { User } from '../types';
 interface MembersScreenProps {
   currentUser: User;
 }
+
+const MemberDetailModal: React.FC<{
+  member: any;
+  currentUser: User;
+  canManage: boolean;
+  onClose: () => void;
+  onOpenRoleChange: () => void;
+  onRemove: () => void;
+  busy: boolean;
+}> = ({ member, currentUser, canManage, onClose, onOpenRoleChange, onRemove, busy }) => {
+  const currentYear = new Date().getFullYear();
+  const currentMonthIdx = new Date().getMonth();
+  const stats = useQuery(api.stats.get, { userId: member._id, year: currentYear });
+  const isSelf = member._id === currentUser.id;
+
+  const servicesThisMonth = stats?.monthlyStats?.[currentMonthIdx]?.count || 0;
+  const effectiveRole = (member.role === 'MEMBER' && (member.poleLeaderships?.length ?? 0) > 0) ? 'POLE_LEADER' : member.role;
+
+  return (
+    <Modal visible animationType="slide" onRequestClose={onClose}>
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={styles.headerTitle}>{member.firstName} {member.lastName}</Text>
+            <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
+              <X color={theme.colors.text} size={22} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
+          {/* Info Card */}
+          <View style={[styles.card, { gap: 12 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={styles.roleBadge}>
+                <Shield color={theme.colors.primary} size={13} />
+                <Text style={[styles.roleBadgeText, { fontSize: 11 }]}>
+                  {ROLE_LABELS[effectiveRole] || member.role}
+                </Text>
+              </View>
+              {isSelf && (
+                <View style={[styles.roleBadge, { backgroundColor: '#e0e7ff' }]}>
+                  <Text style={[styles.roleBadgeText, { color: '#4338ca' }]}>Moi</Text>
+                </View>
+              )}
+            </View>
+
+            {member.phone && (
+              <Text style={{ fontSize: 13, color: theme.colors.text, fontWeight: '600' }}>
+                📞 {member.phone}
+              </Text>
+            )}
+
+            {member.poleMemberships?.length > 0 && (
+              <View style={styles.poleChips}>
+                {member.poleMemberships.map((pm: any) => (
+                  <View key={pm._id} style={[styles.poleChip, { backgroundColor: `${pm.pole?.color || theme.colors.primary}18` }]}>
+                    <Text style={[styles.poleChipText, { color: pm.pole?.color || theme.colors.primary }]}>{pm.pole?.name}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Stats section */}
+          <Text style={{ fontSize: 15, fontWeight: '900', color: theme.colors.text }}>
+            Statistiques & Assiduité
+          </Text>
+
+          {stats === undefined ? (
+            <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 20 }} />
+          ) : (
+            <View style={{ gap: 10 }}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={[styles.card, { flex: 1, padding: 12, alignItems: 'center' }]}>
+                  <Text style={{ fontSize: 11, color: theme.colors.textMuted, fontWeight: '700' }}>Mois en cours</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '900', color: theme.colors.text, marginTop: 4 }}>{servicesThisMonth}</Text>
+                  <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>service(s)</Text>
+                </View>
+                <View style={[styles.card, { flex: 1, padding: 12, alignItems: 'center' }]}>
+                  <Text style={{ fontSize: 11, color: theme.colors.textMuted, fontWeight: '700' }}>Année {currentYear}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '900', color: theme.colors.primary, marginTop: 4 }}>{stats.kpis?.totalServicesYear || 0}</Text>
+                  <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>service(s)</Text>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={[styles.card, { flex: 1, padding: 12, alignItems: 'center' }]}>
+                  <Text style={{ fontSize: 11, color: theme.colors.textMuted, fontWeight: '700' }}>Historique total</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '900', color: theme.colors.text, marginTop: 4 }}>{stats.kpis?.totalServicesAllTime || 0}</Text>
+                  <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>services</Text>
+                </View>
+                <View style={[styles.card, { flex: 1, padding: 12, alignItems: 'center' }]}>
+                  <Text style={{ fontSize: 11, color: theme.colors.textMuted, fontWeight: '700' }}>Taux de validation</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '900', color: '#16a34a', marginTop: 4 }}>{stats.kpis?.validationRate ?? 100}%</Text>
+                  <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>note : {stats.kpis?.averageRating || 5}/5</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Leader actions */}
+          {canManage && (
+            <View style={{ gap: 10, marginTop: 10 }}>
+              <TouchableOpacity
+                style={[styles.roleBtn, { paddingVertical: 12 }]}
+                disabled={busy}
+                onPress={onOpenRoleChange}
+              >
+                <Text style={[styles.roleBtnText, { fontSize: 13 }]}>Changer le rôle</Text>
+              </TouchableOpacity>
+              {!isSelf && (
+                <TouchableOpacity
+                  style={{ paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: theme.colors.statusDangerBg }}
+                  disabled={busy}
+                  onPress={onRemove}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: theme.colors.statusDangerText }}>Supprimer ce membre</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+};
 
 const isDeptLeaderOrAdmin = (u: User) => u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER';
 
@@ -45,6 +172,7 @@ export const MembersScreen: React.FC<MembersScreenProps> = ({ currentUser }) => 
   const canManage = isDeptLeaderOrAdmin(currentUser);
 
   const [roleTarget, setRoleTarget] = React.useState<any | null>(null);
+  const [selectedMember, setSelectedMember] = React.useState<any | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
 
   const handleSetRole = async (role: string) => {
@@ -52,6 +180,9 @@ export const MembersScreen: React.FC<MembersScreenProps> = ({ currentUser }) => 
     setBusyId(roleTarget._id);
     try {
       await updateRole({ userId: roleTarget._id as Id<'users'>, role });
+      if (selectedMember && selectedMember._id === roleTarget._id) {
+        setSelectedMember({ ...selectedMember, role });
+      }
       setRoleTarget(null);
     } finally {
       setBusyId(null);
@@ -62,6 +193,9 @@ export const MembersScreen: React.FC<MembersScreenProps> = ({ currentUser }) => 
     setBusyId(m._id);
     try {
       await removeMember({ userId: m._id as Id<'users'> });
+      if (selectedMember && selectedMember._id === m._id) {
+        setSelectedMember(null);
+      }
     } finally {
       setBusyId(null);
     }
@@ -91,62 +225,50 @@ export const MembersScreen: React.FC<MembersScreenProps> = ({ currentUser }) => 
         ) : (
           members.map((m: any) => {
             const isSelf = m._id === currentUser.id;
+            const effectiveRole = (m.role === 'MEMBER' && (m.poleLeaderships?.length ?? 0) > 0) ? 'POLE_LEADER' : m.role;
             return (
-              <View key={m._id} style={styles.card}>
-                <View style={styles.cardTop}>
+              <TouchableOpacity
+                key={m._id}
+                style={styles.card}
+                onPress={() => setSelectedMember(m)}
+              >
+                <View style={[styles.cardTop, { alignItems: 'center', justifyContent: 'space-between' }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.name}>
                       {m.firstName} {m.lastName}{isSelf ? ' (Moi)' : ''}
                     </Text>
-                    {m.phone ? <Text style={styles.phone}>{m.phone}</Text> : null}
                   </View>
-                  <View style={styles.roleBadge}>
-                    <Shield color={theme.colors.primary} size={11} />
-                    <Text style={styles.roleBadgeText}>
-                      {ROLE_LABELS[(m.role === 'MEMBER' && (m.poleLeaderships?.length ?? 0) > 0) ? 'POLE_LEADER' : m.role] || m.role}
-                    </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <View style={styles.roleBadge}>
+                      <Shield color={theme.colors.primary} size={11} />
+                      <Text style={styles.roleBadgeText}>
+                        {ROLE_LABELS[effectiveRole] || m.role}
+                      </Text>
+                    </View>
+                    <ChevronRight color={theme.colors.textMuted} size={16} />
                   </View>
                 </View>
-
-                {m.poleMemberships?.length > 0 && (
-                  <View style={styles.poleChips}>
-                    {m.poleMemberships.map((pm: any) => (
-                      <View key={pm._id} style={[styles.poleChip, { backgroundColor: `${pm.pole?.color || theme.colors.primary}18` }]}>
-                        <Text style={[styles.poleChipText, { color: pm.pole?.color || theme.colors.primary }]}>{pm.pole?.name}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {canManage && (
-                  <View style={styles.actions}>
-                    <TouchableOpacity
-                      style={styles.roleBtn}
-                      disabled={busyId === m._id}
-                      onPress={() => setRoleTarget(m)}
-                    >
-                      <Text style={styles.roleBtnText}>Changer le rôle</Text>
-                    </TouchableOpacity>
-                    {!isSelf && (
-                      <TouchableOpacity
-                        style={styles.deleteBtn}
-                        disabled={busyId === m._id}
-                        onPress={() => handleRemove(m)}
-                      >
-                        {busyId === m._id ? (
-                          <ActivityIndicator color={theme.colors.statusDangerText} size="small" />
-                        ) : (
-                          <Trash2 color={theme.colors.statusDangerText} size={14} />
-                        )}
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-              </View>
+              </TouchableOpacity>
             );
           })
         )}
       </ScrollView>
+
+      {selectedMember && (
+        <MemberDetailModal
+          member={selectedMember}
+          currentUser={currentUser}
+          canManage={canManage}
+          busy={busyId === selectedMember._id}
+          onClose={() => setSelectedMember(null)}
+          onOpenRoleChange={() => {
+            setRoleTarget(selectedMember);
+          }}
+          onRemove={async () => {
+            await handleRemove(selectedMember);
+          }}
+        />
+      )}
 
       <Modal visible={!!roleTarget} animationType="slide" transparent onRequestClose={() => setRoleTarget(null)}>
         <View style={styles.modalOverlay}>

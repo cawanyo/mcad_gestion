@@ -196,131 +196,192 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({ poles, current
           title="Aucun pôle configuré"
           description="Les pôles créés apparaîtront ici."
         />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {visiblePoles.map((pole) => {
-            const isMember = isMemberOfPole(pole.id);
-            const isPending = isPendingForPole(pole.id);
-            const isLeader = pole.leaders?.some((l) => l.user.id === currentUser?.id);
+      ) : (() => {
+        const myPoles = visiblePoles.filter(
+          (p) => isMemberOfPole(p.id) || p.leaders?.some((l) => l.user.id === currentUser?.id)
+        );
+        const otherPoles = visiblePoles.filter(
+          (p) => !isMemberOfPole(p.id) && !p.leaders?.some((l) => l.user.id === currentUser?.id)
+        );
 
-            return (
+        const renderPoleCard = (pole: (typeof visiblePoles)[number]) => {
+          const isMember = isMemberOfPole(pole.id);
+          const isPending = isPendingForPole(pole.id);
+          const isLeader = pole.leaders?.some((l) => l.user.id === currentUser?.id);
+
+          return (
+            <div
+              key={pole.id}
+              onClick={() => setSelectedPoleId(pole.id)}
+              className="group p-5 bg-white rounded-3xl border border-slate-200 hover:border-slate-300 hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden"
+            >
+              {/* Top Accent Strip */}
               <div
-                key={pole.id}
-                onClick={() => setSelectedPoleId(pole.id)}
-                className="group p-5 bg-white rounded-3xl border border-slate-200 hover:border-slate-300 hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden"
-              >
-                {/* Top Accent Strip */}
-                <div
-                  className="absolute top-0 left-0 right-0 h-1.5"
-                  style={{ backgroundColor: pole.color || '#3b68f0' }}
-                />
+                className="absolute top-0 left-0 right-0 h-1.5"
+                style={{ backgroundColor: pole.color || '#3b68f0' }}
+              />
 
-                {isDepartmentLeaderOrAdmin && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteConfirmPole(pole);
+              {isDepartmentLeaderOrAdmin && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteConfirmPole(pole);
+                  }}
+                  title="Supprimer ce pôle"
+                  className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              <div className="space-y-3">
+                {/* Top line with Icon and Badges */}
+                <div className="flex items-start justify-between gap-2 pt-1">
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg shadow-xs"
+                    style={{
+                      backgroundColor: `${pole.color || '#3b68f0'}18`,
+                      color: pole.color || '#3b68f0'
                     }}
-                    title="Supprimer ce pôle"
-                    className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-
-                <div className="space-y-3">
-                  {/* Top line with Icon and Badges */}
-                  <div className="flex items-start justify-between gap-2 pt-1">
-                    <div
-                      className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg shadow-xs"
-                      style={{
-                        backgroundColor: `${pole.color || '#3b68f0'}18`,
-                        color: pole.color || '#3b68f0'
-                      }}
-                    >
-                      <Layers className="w-5 h-5" />
-                    </div>
-
-                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                      {isLeader && (
-                        <Badge variant="purple" size="sm" icon={<Shield className="w-3 h-3" />}>
-                          Responsable
-                        </Badge>
-                      )}
-                      {isMember && !isLeader && (
-                        <Badge variant="success" size="sm" icon={<Check className="w-3 h-3" />}>
-                          Membre
-                        </Badge>
-                      )}
-                      {isPending && (
-                        <Badge variant="warning" size="sm" icon={<Clock className="w-3 h-3" />}>
-                          En attente
-                        </Badge>
-                      )}
-                    </div>
+                    <Layers className="w-5 h-5" />
                   </div>
 
-                  {/* Title & Description */}
-                  <div>
-                    <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                      {pole.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                      {pole.description || 'Pôle de service actif au sein du département.'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Bottom Section */}
-                <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="flex items-center gap-1 font-semibold">
-                      <Users className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{pole.membersCount || 0} membre(s)</span>
-                    </span>
-
-                    {/* Join button for regular members */}
-                    {!isMember && !isLeader && !isDepartmentLeaderOrAdmin && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isPending) setShowJoinModal(pole);
-                        }}
-                        disabled={isPending}
-                        className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                          isPending
-                            ? 'bg-amber-50 text-amber-700 cursor-default'
-                            : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 shadow-xs'
-                        }`}
-                      >
-                        {isPending ? 'Demande envoyée' : 'Rejoindre +'}
-                      </button>
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {isLeader && (
+                      <Badge variant="purple" size="sm" icon={<Shield className="w-3 h-3" />}>
+                        Responsable
+                      </Badge>
+                    )}
+                    {isMember && !isLeader && (
+                      <Badge variant="success" size="sm" icon={<Check className="w-3 h-3" />}>
+                        Membre
+                      </Badge>
+                    )}
+                    {isPending && (
+                      <Badge variant="warning" size="sm" icon={<Clock className="w-3 h-3" />}>
+                        En attente
+                      </Badge>
                     )}
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center -space-x-1.5 overflow-hidden">
-                      {pole.leaders?.slice(0, 3).map((l, idx) => (
-                        <Avatar
-                          key={idx}
-                          src={l.user.avatar}
-                          name={`${l.user.firstName} ${l.user.lastName}`}
-                          size="xs"
-                        />
-                      ))}
-                    </div>
-
-                    <span className="text-xs font-bold text-indigo-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                      <span>Détails</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
+                {/* Title & Description */}
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                    {pole.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                    {pole.description || 'Pôle de service actif au sein du département.'}
+                  </p>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+
+              {/* Bottom Section */}
+              <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span className="flex items-center gap-1 font-semibold">
+                    <Users className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{pole.membersCount || 0} membre(s)</span>
+                  </span>
+
+                  {/* Join button for regular members */}
+                  {!isMember && !isLeader && !isDepartmentLeaderOrAdmin && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isPending) setShowJoinModal(pole);
+                      }}
+                      disabled={isPending}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                        isPending
+                          ? 'bg-amber-50 text-amber-700 cursor-default'
+                          : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 shadow-xs'
+                      }`}
+                    >
+                      {isPending ? 'Demande envoyée' : 'Rejoindre +'}
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center -space-x-1.5 overflow-hidden">
+                    {pole.leaders?.slice(0, 3).map((l, idx) => (
+                      <Avatar
+                        key={idx}
+                        src={l.user.avatar}
+                        name={`${l.user.firstName} ${l.user.lastName}`}
+                        size="xs"
+                      />
+                    ))}
+                  </div>
+
+                  <span className="text-xs font-bold text-indigo-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    <span>Détails</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // If user belongs to some poles and there are also other poles: separate with a line
+        if (myPoles.length > 0 && otherPoles.length > 0) {
+          return (
+            <div className="space-y-6">
+              {/* Section 1: Mes Pôles */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xs font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Mes Pôles ({myPoles.length})</span>
+                  </h2>
+                  <div className="flex-1 h-px bg-indigo-100" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {myPoles.map(renderPoleCard)}
+                </div>
+              </div>
+
+              {/* Trait de séparation élégant */}
+              <div className="relative py-3">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-slate-50 px-4 py-1 rounded-full text-xs font-extrabold text-slate-500 border border-slate-200 shadow-2xs flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Autres pôles du département ({otherPoles.length})</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Section 2: Autres Pôles */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {otherPoles.map(renderPoleCard)}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // Otherwise render flat grid
+        return (
+          <div className="space-y-3">
+            {myPoles.length > 0 && (
+              <h2 className="text-xs font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Mes Pôles ({myPoles.length})</span>
+              </h2>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {visiblePoles.map(renderPoleCard)}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal Join Pole for Member */}
       {showJoinModal && (

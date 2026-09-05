@@ -12,7 +12,8 @@ import {
   KeyRound,
   Trash2,
   UserX,
-  Send
+  Send,
+  ChevronRight
 } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { User, Pole, UserRole } from '@/types';
@@ -21,6 +22,7 @@ import { adaptMemberListItem } from '@/lib/convexAdapters';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
+import { MemberDetailView } from './MemberDetailView';
 
 interface MembersManagementProps {
   poles: Pole[];
@@ -79,6 +81,7 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [selectedPole, setSelectedPole] = React.useState('all');
   const [selectedRoleFilter, setSelectedRoleFilter] = React.useState('all');
+  const [selectedMemberId, setSelectedMemberId] = React.useState<string | null>(null);
 
   // Role Edit Modal State
   const [editingMember, setEditingMember] = React.useState<any | null>(null);
@@ -149,6 +152,18 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
     if (selectedRoleFilter === 'all') return true;
     return m.role === selectedRoleFilter;
   });
+
+  if (selectedMemberId) {
+    return (
+      <MemberDetailView
+        memberId={selectedMemberId}
+        currentUser={currentUser || null}
+        poles={poles}
+        onBack={() => setSelectedMemberId(null)}
+        onRefreshAll={onRefresh}
+      />
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 font-sans">
@@ -233,103 +248,40 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
             </div>
           ) : (
             filteredMembers.map((m) => {
-              const roleConfig = ROLES_CONFIG[m.role] || ROLES_CONFIG.MEMBER;
+              const effectiveRole = (m.role === 'MEMBER' && (m.poleLeaderships?.length ?? 0) > 0) ? 'POLE_LEADER' : m.role;
+              const roleConfig = ROLES_CONFIG[effectiveRole] || ROLES_CONFIG.MEMBER;
               const isSelf = currentUser?.id === m.id;
 
               return (
-                <div key={m.id} className="p-4 space-y-3">
-                  {/* Top: Avatar, Name, Role */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar src={m.avatar} name={`${m.firstName} ${m.lastName}`} size="md" />
-                      <div>
-                        <p className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
-                          <span>{m.firstName} {m.lastName}</span>
-                          {isSelf && (
-                            <Badge variant="primary" size="xs">
-                              Moi
-                            </Badge>
-                          )}
+                <div
+                  key={m.id}
+                  onClick={() => setSelectedMemberId(m.id)}
+                  className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50 active:bg-slate-100 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar src={m.avatar} name={`${m.firstName} ${m.lastName}`} size="md" />
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-extrabold text-slate-900 text-sm truncate">
+                          {m.firstName} {m.lastName}
                         </p>
-                        <p className="text-[11px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-                          <span>{m.gender === 'FEMME' ? '👩 Femme' : '👨 Homme'}</span>
-                          {m.phone && <span>• {m.phone}</span>}
-                        </p>
-                      </div>
-                    </div>
-
-                    <span
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold border inline-flex items-center gap-1 ${roleConfig.bg}`}
-                    >
-                      <Shield className="w-2.5 h-2.5" />
-                      <span>{roleConfig.label}</span>
-                    </span>
-                  </div>
-
-                  {/* Poles Badges */}
-                  <div className="flex flex-wrap gap-1">
-                    {m.poleMemberships?.length > 0 ? (
-                      m.poleMemberships.map((pm: any) => (
-                        <Badge key={pm.id || pm.poleId} color={pm.pole?.color || '#3b68f0'} dot size="xs">
-                          {pm.pole?.name}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-slate-400 text-[10px] italic">Aucun pôle</span>
-                    )}
-                  </div>
-
-                  {/* Bottom: Contact & Actions */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      {m.phone ? (
-                        <>
-                          <a
-                            href={`tel:${m.phone}`}
-                            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs transition-colors"
-                            title="Appeler"
-                          >
-                            <Phone className="w-3.5 h-3.5" />
-                          </a>
-                          <a
-                            href={`https://wa.me/${m.phone.replace(/[^0-9]/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs border border-emerald-200 transition-colors"
-                            title="WhatsApp"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                          </a>
-                        </>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 italic">Sans numéro</span>
-                      )}
-                    </div>
-
-                    {isDeptLeaderOrAdmin && (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => {
-                            setEditingMember(m);
-                            setSelectedNewRole(m.role || 'MEMBER');
-                          }}
-                          className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1"
-                        >
-                          <KeyRound className="w-3 h-3 text-indigo-600" />
-                          <span>Rôle</span>
-                        </button>
-
-                        {!isSelf && (
-                          <button
-                            onClick={() => setDeletingMember(m)}
-                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl transition-all shadow-xs"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                        {isSelf && (
+                          <Badge variant="primary" size="xs">
+                            Moi
+                          </Badge>
                         )}
                       </div>
-                    )}
+                      <span
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold border inline-flex items-center gap-1 ${roleConfig.bg}`}
+                      >
+                        <Shield className="w-2.5 h-2.5" />
+                        <span>{roleConfig.label}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 text-slate-400">
+                    <ChevronRight className="w-4 h-4" />
                   </div>
                 </div>
               );
@@ -342,24 +294,21 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase font-extrabold text-[10px] tracking-wider">
               <tr>
-                <th className="py-3.5 px-4">Membre</th>
-                <th className="py-3.5 px-4">Pôles d'appartenance</th>
-                <th className="py-3.5 px-4">Rôle / Autorisations</th>
-                <th className="py-3.5 px-4">Contact</th>
-                <th className="py-3.5 px-4">Statut</th>
-                {isDeptLeaderOrAdmin && <th className="py-3.5 px-4 text-right">Actions</th>}
+                <th className="py-3.5 px-6">Membre</th>
+                <th className="py-3.5 px-6">Rôle</th>
+                <th className="py-3.5 px-6 text-right"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={3} className="py-12 text-center text-slate-400">
                     Chargement des membres...
                   </td>
                 </tr>
               ) : filteredMembers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={3} className="py-12 text-center text-slate-400">
                     Aucun membre trouvé pour ces critères.
                   </td>
                 </tr>
@@ -370,45 +319,30 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
                   const isSelf = currentUser?.id === m.id;
 
                   return (
-                    <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
-                      {/* Membre */}
-                      <td className="py-3.5 px-4">
+                    <tr
+                      key={m.id}
+                      onClick={() => setSelectedMemberId(m.id)}
+                      className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                    >
+                      {/* Membre (Nom et Avatar) */}
+                      <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
                           <Avatar src={m.avatar} name={`${m.firstName} ${m.lastName}`} size="md" />
-                          <div>
-                            <p className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                              <span>{m.firstName} {m.lastName}</span>
-                              {isSelf && (
-                                <Badge variant="primary" size="sm">
-                                  Moi
-                                </Badge>
-                              )}
-                            </p>
-                            <p className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
-                              <span>{m.gender === 'FEMME' ? '👩 Femme' : '👨 Homme'}</span>
-                              {m.phone && <span>• {m.phone}</span>}
-                            </p>
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                              {m.firstName} {m.lastName}
+                            </span>
+                            {isSelf && (
+                              <Badge variant="primary" size="xs">
+                                Moi
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </td>
 
-                      {/* Pôles */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1">
-                          {m.poleMemberships?.length > 0 ? (
-                            m.poleMemberships.map((pm: any) => (
-                              <Badge key={pm.id || pm.poleId} color={pm.pole?.color || '#3b68f0'} dot size="sm">
-                                {pm.pole?.name}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-slate-400 text-[11px] italic">Aucun pôle</span>
-                          )}
-                        </div>
-                      </td>
-
                       {/* Rôle Badge */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-4 px-6">
                         <span
                           className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold border inline-flex items-center gap-1.5 ${roleConfig.bg}`}
                         >
@@ -417,57 +351,13 @@ export const MembersManagement: React.FC<MembersManagementProps> = ({
                         </span>
                       </td>
 
-                      {/* Contact */}
-                      <td className="py-3.5 px-4 text-slate-600 text-xs">
-                        <div className="flex items-center gap-2">
-                          {m.phone ? (
-                            <a
-                              href={`tel:${m.phone}`}
-                              className="text-slate-700 hover:text-indigo-600 font-medium inline-flex items-center gap-1"
-                            >
-                              <Phone className="w-3 h-3 text-slate-400" />
-                              <span>{m.phone}</span>
-                            </a>
-                          ) : (
-                            <span className="text-slate-400 italic text-[11px]">Non renseigné</span>
-                          )}
+                      {/* Action Chevron */}
+                      <td className="py-4 px-6 text-right">
+                        <div className="inline-flex items-center gap-1 text-slate-400 group-hover:text-indigo-600 font-bold text-xs transition-colors">
+                          <span>Voir la fiche</span>
+                          <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                       </td>
-
-                      {/* Statut */}
-                      <td className="py-3.5 px-4">
-                        <Badge variant="success" size="sm">
-                          {m.status === 'ACTIVE' ? 'Actif' : m.status || 'Actif'}
-                        </Badge>
-                      </td>
-
-                      {/* Actions */}
-                      {isDeptLeaderOrAdmin && (
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => {
-                                setEditingMember(m);
-                                setSelectedNewRole(m.role || 'MEMBER');
-                              }}
-                              className="px-3 py-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 hover:border-indigo-300 rounded-xl text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5"
-                            >
-                              <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
-                              <span>Changer rôle</span>
-                            </button>
-
-                            {!isSelf && (
-                              <button
-                                onClick={() => setDeletingMember(m)}
-                                className="p-1.5 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 rounded-xl transition-all shadow-xs"
-                                title="Supprimer définitivement ce membre"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
                     </tr>
                   );
                 })

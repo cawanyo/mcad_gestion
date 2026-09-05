@@ -51,8 +51,11 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   currentUser,
   onRefresh
 }) => {
-  const [selectedPoleId, setSelectedPoleId] = React.useState(poles[0]?.id || '');
-  const checklistsRaw = useQuery(api.checklists.list, selectedPoleId ? { poleId: selectedPoleId as Id<'poles'> } : 'skip');
+  const [selectedPoleId, setSelectedPoleId] = React.useState<string>('all');
+  const checklistsRaw = useQuery(
+    api.checklists.list,
+    selectedPoleId && selectedPoleId !== 'all' ? { poleId: selectedPoleId as Id<'poles'> } : {}
+  );
   const loading = checklistsRaw === undefined;
   const checklists = React.useMemo(() => (checklistsRaw || []).map(adaptChecklist), [checklistsRaw]);
   const [activeEditorChecklistId, setActiveEditorChecklistId] = React.useState<string | null>(null);
@@ -109,11 +112,28 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     currentUser?.role === 'CALENDAR_MANAGER' ||
     ((currentUser?.poleLeaderships?.length ?? 0) > 0);
 
-  React.useEffect(() => {
-    if (poles.length > 0 && !selectedPoleId) {
-      setSelectedPoleId(poles[0].id);
-    }
-  }, [poles]);
+  const isMemberOfPole = React.useCallback(
+    (poleId?: string | null) => {
+      if (!currentUser || !poleId) return false;
+      const inMemberships = (currentUser.poleMemberships || []).some(
+        (pm) => (pm.poleId === poleId || pm.pole?.id === poleId) && pm.status === 'ACTIVE'
+      );
+      const inLeaderships = (currentUser.poleLeaderships || []).some(
+        (pl) => pl.poleId === poleId || pl.pole?.id === poleId
+      );
+      return inMemberships || inLeaderships;
+    },
+    [currentUser]
+  );
+
+  const myPoles = React.useMemo(
+    () => poles.filter((p) => isMemberOfPole(p.id)),
+    [poles, isMemberOfPole]
+  );
+  const otherPoles = React.useMemo(
+    () => poles.filter((p) => !isMemberOfPole(p.id)),
+    [poles, isMemberOfPole]
+  );
 
   const [stepUploadProgress, setStepUploadProgress] = React.useState<UploadProgressInfo | null>(null);
 
@@ -315,6 +335,99 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     );
   });
 
+  const myChecklists = React.useMemo(
+    () => filteredChecklists.filter((c) => isMemberOfPole(c.poleId)),
+    [filteredChecklists, isMemberOfPole]
+  );
+  const otherChecklists = React.useMemo(
+    () => filteredChecklists.filter((c) => !isMemberOfPole(c.poleId)),
+    [filteredChecklists, isMemberOfPole]
+  );
+
+  const renderChecklistCard = (chk: Checklist) => (
+    <div
+      key={chk.id}
+      className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-4 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition-all"
+    >
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-extrabold text-slate-900">{chk.title}</h3>
+          <Badge variant="success" size="sm">
+            {chk.steps?.length || 0} étape(s)
+          </Badge>
+        </div>
+        {chk.pole && (
+          <div className="flex items-center gap-1.5">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: chk.pole.color || '#4f46e5' }}
+            />
+            <span className="text-[11px] font-bold text-slate-500">{chk.pole.name}</span>
+          </div>
+        )}
+        <p className="text-xs text-slate-500 line-clamp-2">
+          {chk.description || 'Guide opérationnel de service.'}
+        </p>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="space-y-2 pt-2 border-t border-slate-100">
+        <button
+          onClick={() => setRunningChecklist(chk)}
+          className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-all"
+        >
+          <Play className="w-3.5 h-3.5 fill-current" />
+          <span>Exécuter la checklist</span>
+        </button>
+
+        <div className="flex items-center justify-between pt-1">
+          {isLeaderOrAdmin ? (
+            <button
+              onClick={() => {
+                setActiveEditorChecklistId(chk.id);
+                setEditTitle(chk.title);
+                setEditDescription(chk.description || '');
+              }}
+              className="text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1 transition-colors"
+            >
+              <Edit2 className="w-3 h-3" />
+              <span>Gérer & modifier</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button
+              onClick={() => setRunningChecklist(chk)}
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
+            >
+              <span>Voir les étapes</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setFeedbackChecklist(chk)}
+              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Voir les retours & commentaires"
+            >
+              <MessageSquare className="w-4 h-4" />
+            </button>
+
+            {isLeaderOrAdmin && (
+              <button
+                onClick={() => setDeletingChecklist(chk)}
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                title="Supprimer la checklist"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 font-sans">
       {/* Header */}
@@ -348,7 +461,43 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Pole Selector */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {poles.map((p) => {
+          <button
+            onClick={() => setSelectedPoleId('all')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
+              selectedPoleId === 'all'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+            }`}
+          >
+            <span>Tous les pôles</span>
+          </button>
+
+          {myPoles.map((p) => {
+            const isSelected = selectedPoleId === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setSelectedPoleId(p.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                }`}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: p.color || '#4f46e5' }}
+                />
+                <span>{p.name}</span>
+              </button>
+            );
+          })}
+
+          {myPoles.length > 0 && otherPoles.length > 0 && (
+            <div className="h-6 w-px bg-slate-300 mx-1 flex-shrink-0" />
+          )}
+
+          {otherPoles.map((p) => {
             const isSelected = selectedPoleId === p.id;
             return (
               <button
@@ -394,11 +543,11 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
           ) : filteredChecklists.length === 0 ? (
             <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-3 shadow-xs">
               <CheckSquare className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="text-sm font-bold text-slate-800">Aucune checklist pour ce pôle</h3>
+              <h3 className="text-sm font-bold text-slate-800">Aucune checklist trouvée</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
                 {isLeaderOrAdmin
                   ? 'Créez des checklists pour formaliser les étapes de service de vos équipes.'
-                  : 'Aucun guide de service n’a encore été configuré pour ce pôle.'}
+                  : 'Aucun guide de service n’a encore été configuré.'}
               </p>
               {isLeaderOrAdmin && (
                 <button
@@ -409,82 +558,40 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                 </button>
               )}
             </div>
+          ) : selectedPoleId === 'all' && myChecklists.length > 0 && otherChecklists.length > 0 ? (
+            <div className="space-y-6">
+              {/* Mes Checklists de Pôle */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
+                    Mes checklists de pôle ({myChecklists.length})
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {myChecklists.map(renderChecklistCard)}
+                </div>
+              </div>
+
+              {/* Petit trait séparateur */}
+              <div className="relative py-4">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                  <div className="w-full border-t border-slate-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-slate-50 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Autres checklists ({otherChecklists.length})
+                  </span>
+                </div>
+              </div>
+
+              {/* Autres Checklists */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {otherChecklists.map(renderChecklistCard)}
+              </div>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredChecklists.map((chk) => (
-                <div
-                  key={chk.id}
-                  className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-4 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition-all"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-extrabold text-slate-900">{chk.title}</h3>
-                      <Badge variant="success" size="sm">
-                        {chk.steps?.length || 0} étape(s)
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-slate-500 line-clamp-2">
-                      {chk.description || 'Guide opérationnel de service.'}
-                    </p>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <button
-                      onClick={() => setRunningChecklist(chk)}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Exécuter la checklist</span>
-                    </button>
-
-                    <div className="flex items-center justify-between pt-1">
-                      {isLeaderOrAdmin ? (
-                        <button
-                          onClick={() => {
-                            setActiveEditorChecklistId(chk.id);
-                            setEditTitle(chk.title);
-                            setEditDescription(chk.description || '');
-                          }}
-                          className="text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1 transition-colors"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                          <span>Gérer & modifier</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setRunningChecklist(chk)}
-                          className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
-                        >
-                          <span>Voir les étapes</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setFeedbackChecklist(chk)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Voir les retours & commentaires"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                        </button>
-
-                        {isLeaderOrAdmin && (
-                          <button
-                            onClick={() => setDeletingChecklist(chk)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                            title="Supprimer la checklist"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {filteredChecklists.map(renderChecklistCard)}
             </div>
           )}
         </div>
@@ -732,8 +839,8 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
       {/* MODAL CRÉER UNE CHECKLIST — same form used on the pole detail page */}
       <ChecklistFormModal
         isOpen={showCreateModal}
-        poleId={selectedPoleId || poles[0]?.id || ''}
-        poleName={poles.find((p) => p.id === selectedPoleId)?.name}
+        poleId={selectedPoleId && selectedPoleId !== 'all' ? selectedPoleId : (myPoles[0]?.id || poles[0]?.id || '')}
+        poleName={poles.find((p) => p.id === (selectedPoleId && selectedPoleId !== 'all' ? selectedPoleId : (myPoles[0]?.id || poles[0]?.id || '')) )?.name}
         editingChecklist={null}
         onClose={() => setShowCreateModal(false)}
         onSaved={handleChecklistCreated}
