@@ -55,7 +55,13 @@ export const list = query({
           ...m,
           poleMemberships: membershipsWithPole,
           poleLeaderships: leadershipsWithPole,
-          unavailabilities: unavailabilities.map((u) => ({ _id: u._id, startsAt: u.startsAt, endsAt: u.endsAt, reason: u.reason })),
+          unavailabilities: unavailabilities.map((u) => ({
+            _id: u._id,
+            startsAt: u.startsAt,
+            endsAt: u.endsAt,
+            reason: u.reason,
+            recurrence: u.recurrence || "NONE",
+          })),
         };
       })
     );

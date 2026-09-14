@@ -136,11 +136,14 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
 
     setLoading(true);
     try {
+      const startsAtMs = new Date(`${startDate}T00:00:00`).getTime();
+      const endsAtMs = new Date(`${endDate}T23:59:59.999`).getTime();
+
       if (editingUnavailability) {
         await updateUnavailability({
           unavailabilityId: editingUnavailability.id as Id<'unavailabilities'>,
-          startsAt: new Date(startDate).getTime(),
-          endsAt: new Date(endDate).getTime(),
+          startsAt: startsAtMs,
+          endsAt: endsAtMs,
           reason,
           recurrence
         });
@@ -149,8 +152,8 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
       } else {
         const data = await createUnavailability({
           userId: effectiveUserId as Id<'users'>,
-          startsAt: new Date(startDate).getTime(),
-          endsAt: new Date(endDate).getTime(),
+          startsAt: startsAtMs,
+          endsAt: endsAtMs,
           reason,
           recurrence
         });

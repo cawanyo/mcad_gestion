@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth, isLeaderOrAdmin } from "./lib/auth";
 import { Doc } from "./_generated/dataModel";
+import { isUnavailabilityOverlapping } from "./lib/unavailability";
 
 async function enrichWithUser(ctx: any, u: Doc<"unavailabilities">) {
   const user = await ctx.db.get(u.userId);
@@ -93,14 +94,21 @@ export const create = mutation({
     if (!args.startsAt || !args.endsAt) {
       throw new ConvexError("Veuillez renseigner la date de début et la date de fin.");
     }
-    if (args.endsAt < args.startsAt) {
+
+    let finalEndsAt = args.endsAt;
+    const endD = new Date(args.endsAt);
+    if (endD.getUTCHours() === 0 && endD.getUTCMinutes() === 0 && endD.getUTCSeconds() === 0) {
+      finalEndsAt = args.endsAt + 86400000 - 1;
+    }
+
+    if (finalEndsAt < args.startsAt) {
       throw new ConvexError("La date de fin ne peut pas être antérieure à la date de début.");
     }
 
     const unavailabilityId = await ctx.db.insert("unavailabilities", {
       userId: targetUserId,
       startsAt: args.startsAt,
-      endsAt: args.endsAt,
+      endsAt: finalEndsAt,
       reason: args.reason?.trim() || "Indisponible",
       recurrence: args.recurrence || "NONE",
       updatedAt: Date.now(),
@@ -111,7 +119,7 @@ export const create = mutation({
       await Promise.all(
         userAssignments.map(async (a) => {
           const event = await ctx.db.get(a.eventId);
-          if (!event || event.startsAt > args.endsAt || event.endsAt < args.startsAt) return null;
+          if (!event || !isUnavailabilityOverlapping({ startsAt: args.startsAt, endsAt: finalEndsAt, recurrence: args.recurrence }, event.startsAt, event.endsAt)) return null;
           return { ...a, event, pole: await ctx.db.get(a.poleId) };
         })
       )
@@ -141,14 +149,20 @@ export const update = mutation({
     }
 
     const nextStart = startsAt ?? existing.startsAt;
-    const nextEnd = endsAt ?? existing.endsAt;
+    let nextEnd = endsAt ?? existing.endsAt;
+    if (endsAt !== undefined) {
+      const endD = new Date(endsAt);
+      if (endD.getUTCHours() === 0 && endD.getUTCMinutes() === 0 && endD.getUTCSeconds() === 0) {
+        nextEnd = endsAt + 86400000 - 1;
+      }
+    }
     if (nextEnd < nextStart) {
       throw new ConvexError("La date de fin ne peut pas être antérieure à la date de début.");
     }
 
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
-    if (startsAt) patch.startsAt = startsAt;
-    if (endsAt) patch.endsAt = endsAt;
+    if (startsAt !== undefined) patch.startsAt = startsAt;
+    if (endsAt !== undefined) patch.endsAt = nextEnd;
     if (reason !== undefined) patch.reason = reason?.trim() || undefined;
     if (recurrence !== undefined) patch.recurrence = recurrence;
 

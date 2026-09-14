@@ -1,10 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { X, UserPlus, UserMinus } from 'lucide-react-native';
+import { X, UserPlus, UserMinus, AlertTriangle } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { adaptEvent } from '../lib/convexAdapters';
+import { isUnavailabilityOverlapping } from '../lib/unavailability';
 import { theme } from '../theme';
 
 interface AssignmentsScreenProps {
@@ -58,7 +59,9 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
     const assignment = assignedUserMap.get(m._id);
     if (assignment?.poleId === selectedPoleId) return true;
     if (assignment && assignment.poleId !== selectedPoleId) return false;
-    const unavailable = (m.unavailabilities || []).some((u: any) => u.startsAt <= eventEnd && u.endsAt >= eventStart);
+    const unavailable = (m.unavailabilities || []).some((u: any) =>
+      isUnavailabilityOverlapping(u, eventStart, eventEnd)
+    );
     return !unavailable;
   });
 
@@ -125,9 +128,20 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
                   const assignment = assignedUserMap.get(m._id);
                   const isAssignedHere = assignment?.poleId === selectedPoleId;
                   const busy = busyUserId === m._id;
+                  const isUnavailable = (m.unavailabilities || []).some((u: any) =>
+                    isUnavailabilityOverlapping(u, eventStart, eventEnd)
+                  );
                   return (
                     <View key={m._id} style={styles.memberRow}>
-                      <Text style={styles.memberName}>{m.firstName} {m.lastName}</Text>
+                      <View style={{ flex: 1, marginRight: 8 }}>
+                        <Text style={styles.memberName}>{m.firstName} {m.lastName}</Text>
+                        {isAssignedHere && isUnavailable && (
+                          <View style={styles.unavailBadge}>
+                            <AlertTriangle size={10} color={theme.colors.statusWarningText} />
+                            <Text style={styles.unavailBadgeText}>Indisponible</Text>
+                          </View>
+                        )}
+                      </View>
                       <TouchableOpacity
                         disabled={busy}
                         onPress={() => (isAssignedHere ? handleRemove(assignment!.id, m._id) : handleAssign(m._id))}
@@ -169,5 +183,7 @@ const styles = StyleSheet.create({
   memberBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.round },
   memberBtnAdd: { backgroundColor: theme.colors.primaryLight },
   memberBtnRemove: { backgroundColor: theme.colors.statusDangerBg },
-  memberBtnText: { fontSize: 11, fontWeight: '700', color: theme.colors.primaryDark }
+  memberBtnText: { fontSize: 11, fontWeight: '700', color: theme.colors.primaryDark },
+  unavailBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, alignSelf: 'flex-start', backgroundColor: theme.colors.statusWarningBg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  unavailBadgeText: { fontSize: 9, fontWeight: '800', color: theme.colors.statusWarningText }
 });

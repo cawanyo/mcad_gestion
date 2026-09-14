@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
 import { Doc } from "./_generated/dataModel";
+import { isUnavailabilityOverlapping } from "./lib/unavailability";
 
 export const list = query({
   args: {
@@ -78,8 +79,8 @@ export const create = mutation({
     }
 
     const userUnavailabilities = await ctx.db.query("unavailabilities").withIndex("userId", (q) => q.eq("userId", userId)).collect();
-    const overlappingUnavailability = userUnavailabilities.find(
-      (u) => u.startsAt <= event.endsAt && u.endsAt >= event.startsAt
+    const overlappingUnavailability = userUnavailabilities.find((u) =>
+      isUnavailabilityOverlapping(u, event.startsAt, event.endsAt)
     );
     if (overlappingUnavailability && !force) {
       throw new ConvexError(

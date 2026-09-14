@@ -21,6 +21,7 @@ import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { adaptEvent } from '@/lib/convexAdapters';
 import { convexErrorMessage } from '@/lib/convexErrors';
+import { isUnavailabilityOverlapping } from '@/lib/unavailability';
 import { Pole } from '@/types';
 
 interface AssignmentsDrawerProps {
@@ -148,7 +149,7 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
 
       // 3. If member is unavailable on this event's date: EXCLUDE
       const isUnavailable = (m.unavailabilities || []).some((u: any) => {
-        return u.startsAt <= eventEnd && u.endsAt >= eventStart;
+        return isUnavailabilityOverlapping(u, eventStart, eventEnd);
       });
 
       if (isUnavailable) {
@@ -157,7 +158,19 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
 
       // 4. Otherwise, member belongs to this pole and is 100% available & eligible!
       return true;
-    }).map((m) => ({ id: m._id, firstName: m.firstName, lastName: m.lastName, avatar: m.avatar, phone: m.phone }));
+    }).map((m) => {
+      const isUnavailable = (m.unavailabilities || []).some((u: any) =>
+        isUnavailabilityOverlapping(u, eventStart, eventEnd)
+      );
+      return {
+        id: m._id,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        avatar: m.avatar,
+        phone: m.phone,
+        isUnavailable,
+      };
+    });
   }, [poleMembers, assignedUserMap, selectedPoleId, eventStart, eventEnd]);
 
   const filteredMembers = React.useMemo(() => {
@@ -304,7 +317,15 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
                           className="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200"
                         />
                         <div>
-                          <p className="text-xs font-bold text-slate-900">{m.firstName} {m.lastName}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-bold text-slate-900">{m.firstName} {m.lastName}</p>
+                            {isAssignedToThisPole && m.isUnavailable && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Ce membre a signalé une indisponibilité pour cette date">
+                                <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
+                                <span>Indisponible</span>
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[11px] text-slate-500">
                             {isAssignedToThisPole ? (assignment?.roleTag || 'Affecté(e)') : (m.phone || 'Disponible')}
                           </p>
