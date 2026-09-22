@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import { X, Camera, User as UserIcon, Lock, Bell, LogOut, ChevronRight, Layers, Phone } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useMutation, useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -42,9 +42,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
   const [showEdit, setShowEdit] = React.useState(false);
   const [firstName, setFirstName] = React.useState(currentUser?.firstName || '');
   const [lastName, setLastName] = React.useState(currentUser?.lastName || '');
-  const [avatar, setAvatar] = React.useState(currentUser?.avatar || '');
   const [savingProfile, setSavingProfile] = React.useState(false);
   const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
+  const [avatarError, setAvatarError] = React.useState<string | null>(null);
 
   const [showPassword, setShowPassword] = React.useState(false);
   const [currentPassword, setCurrentPassword] = React.useState('');
@@ -54,18 +54,32 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
 
   const [showNotifications, setShowNotifications] = React.useState(false);
 
-  const handlePickAvatar = async () => {
+  const poleCount = currentUser?.poleMemberships?.length ?? 0;
+
+  // Tapping the avatar itself picks + uploads + saves in one go — no need
+  // to open "Modifier mon profil" just to change the photo. That modal now
+  // only handles the name.
+  const handlePickAvatarDirect = async () => {
+    setAvatarError(null);
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return;
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+    if (!perm.granted) {
+      Alert.alert('Permission requise', "Autorisez l'accès à la galerie pour changer votre photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      allowsEditing: true,
+      aspect: [1, 1]
+    });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
     setUploadingAvatar(true);
     try {
       const uploaded = await uploadPickedMedia(getUploadSignature, { uri: asset.uri, fileName: asset.fileName, mimeType: asset.mimeType, isVideo: false }, 'mcad_avatars');
-      setAvatar(uploaded.url);
+      await updateProfile({ avatar: uploaded.url });
     } catch (e: any) {
-      Alert.alert('Erreur', e?.message || "Échec du téléversement de la photo.");
+      setAvatarError(e?.message || "Échec du changement de photo.");
     } finally {
       setUploadingAvatar(false);
     }
@@ -74,7 +88,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      await updateProfile({ firstName: firstName.trim(), lastName: lastName.trim(), avatar });
+      await updateProfile({ firstName: firstName.trim(), lastName: lastName.trim() });
       setShowEdit(false);
     } catch (e: any) {
       Alert.alert('Erreur', e?.message || 'Impossible de mettre à jour le profil.');
@@ -103,6 +117,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
     }
   };
 
+  const menuItems = [
+    { key: 'edit', icon: UserIcon, title: 'Modifier mon profil', subtitle: 'Prénom et nom', onPress: () => setShowEdit(true) },
+    { key: 'password', icon: Lock, title: 'Changer mon mot de passe', subtitle: 'Sécurité du compte', onPress: () => setShowPassword(true) },
+    { key: 'notifications', icon: Bell, title: 'Notifications', subtitle: 'Historique et préférences', onPress: () => setShowNotifications(true) }
+  ];
+
   return (
     // Always shown inside App.tsx's <Modal> now (its only entry point) —
     // Modal is a separate native view hierarchy, so the outer app-root
@@ -119,82 +139,109 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
           </TouchableOpacity>
         </View>
       )}
-      <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.profileCard}>
-        <Avatar uri={currentUser?.avatar} firstName={currentUser?.firstName} lastName={currentUser?.lastName} size={64} />
-        <View style={[styles.roleBadge, { marginTop: 10 }]}>
-          <Text style={styles.roleBadgeText}>{roleLabel(currentUser?.role)}</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Hero */}
+        <View style={styles.hero}>
+          <TouchableOpacity onPress={handlePickAvatarDirect} disabled={uploadingAvatar} style={styles.avatarWrap} activeOpacity={0.8}>
+            <View style={styles.avatarRing}>
+              <Avatar uri={currentUser?.avatar} firstName={currentUser?.firstName} lastName={currentUser?.lastName} size={88} />
+            </View>
+            <View style={styles.cameraBadge}>
+              {uploadingAvatar ? <ActivityIndicator size="small" color="#fff" /> : <Camera size={14} color="#fff" />}
+            </View>
+          </TouchableOpacity>
+
+          <Text style={styles.userName}>{currentUser?.firstName} {currentUser?.lastName}</Text>
+
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleBadgeText}>{roleLabel(currentUser?.role)}</Text>
+          </View>
+
+          <View style={styles.heroMetaRow}>
+            <View style={styles.heroMetaItem}>
+              <Phone size={12} color="rgba(255,255,255,0.7)" />
+              <Text style={styles.heroMetaText}>{currentUser?.phone}</Text>
+            </View>
+            {poleCount > 0 && (
+              <View style={styles.heroMetaItem}>
+                <Layers size={12} color="rgba(255,255,255,0.7)" />
+                <Text style={styles.heroMetaText}>{poleCount} pôle{poleCount > 1 ? 's' : ''}</Text>
+              </View>
+            )}
+          </View>
+
+          {avatarError && <Text style={styles.heroError}>{avatarError}</Text>}
         </View>
-        <Text style={styles.userName}>{currentUser?.firstName} {currentUser?.lastName}</Text>
-        <Text style={styles.userPhone}>{currentUser?.phone}</Text>
-      </View>
 
-      <View style={styles.menuCard}>
-        <TouchableOpacity style={styles.menuItem} onPress={() => setShowEdit(true)}>
-          <Text style={styles.menuTitle}>Modifier mon profil</Text>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={() => setShowPassword(true)}>
-          <Text style={styles.menuTitle}>Changer mon mot de passe</Text>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={() => setShowNotifications(true)}>
-          <Text style={styles.menuTitle}>Notifications</Text>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-        <Text style={styles.logoutBtnText}>Se déconnecter</Text>
-      </TouchableOpacity>
-
-      <Modal visible={showEdit} transparent animationType="slide" onRequestClose={() => setShowEdit(false)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Modifier mon profil</Text>
-            <TouchableOpacity onPress={handlePickAvatar} style={styles.avatarPicker}>
-              {avatar ? <Image source={{ uri: avatar }} style={styles.avatarPickerImage} /> : (
-                <View style={styles.avatarPickerFallback}>
-                  {uploadingAvatar ? <ActivityIndicator color={theme.colors.primary} /> : <Text style={styles.avatarPickerText}>Changer la photo</Text>}
+        {/* Menu */}
+        <View style={styles.menuCard}>
+          {menuItems.map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                style={[styles.menuItem, idx === menuItems.length - 1 && styles.menuItemLast]}
+                onPress={item.onPress}
+                activeOpacity={0.6}
+              >
+                <View style={styles.menuIconWrap}>
+                  <Icon size={17} color={theme.colors.primary} />
                 </View>
-              )}
-            </TouchableOpacity>
-            <Text style={styles.inputLabel}>Prénom</Text>
-            <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} />
-            <Text style={styles.inputLabel}>Nom</Text>
-            <TextInput style={styles.input} value={lastName} onChangeText={setLastName} />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEdit(false)}>
-                <Text style={styles.cancelBtnText}>Annuler</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.menuTitle}>{item.title}</Text>
+                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                </View>
+                <ChevronRight size={18} color={theme.colors.textMuted} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmBtn} onPress={handleSaveProfile} disabled={savingProfile}>
-                {savingProfile ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmBtnText}>Enregistrer</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+            );
+          })}
+        </View>
 
-      <Modal visible={showPassword} transparent animationType="slide" onRequestClose={() => setShowPassword(false)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Changer mon mot de passe</Text>
-            {passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
-            <Text style={styles.inputLabel}>Mot de passe actuel</Text>
-            <TextInput style={styles.input} value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry placeholder="••••••••" placeholderTextColor={theme.colors.textMuted} />
-            <Text style={styles.inputLabel}>Nouveau mot de passe</Text>
-            <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} secureTextEntry placeholder="8 caractères minimum" placeholderTextColor={theme.colors.textMuted} />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowPassword(false)}>
-                <Text style={styles.cancelBtnText}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmBtn} onPress={handleChangePassword} disabled={savingPassword}>
-                {savingPassword ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmBtnText}>Modifier</Text>}
-              </TouchableOpacity>
+        <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.7}>
+          <LogOut size={16} color={theme.colors.statusDangerText} />
+          <Text style={styles.logoutBtnText}>Se déconnecter</Text>
+        </TouchableOpacity>
+
+        <Modal visible={showEdit} transparent animationType="slide" onRequestClose={() => setShowEdit(false)}>
+          <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Modifier mon profil</Text>
+              <Text style={styles.inputLabel}>Prénom</Text>
+              <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} />
+              <Text style={styles.inputLabel}>Nom</Text>
+              <TextInput style={styles.input} value={lastName} onChangeText={setLastName} />
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEdit(false)}>
+                  <Text style={styles.cancelBtnText}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.confirmBtn} onPress={handleSaveProfile} disabled={savingProfile}>
+                  {savingProfile ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmBtnText}>Enregistrer</Text>}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        <Modal visible={showPassword} transparent animationType="slide" onRequestClose={() => setShowPassword(false)}>
+          <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Changer mon mot de passe</Text>
+              {passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
+              <Text style={styles.inputLabel}>Mot de passe actuel</Text>
+              <TextInput style={styles.input} value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry placeholder="••••••••" placeholderTextColor={theme.colors.textMuted} />
+              <Text style={styles.inputLabel}>Nouveau mot de passe</Text>
+              <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} secureTextEntry placeholder="8 caractères minimum" placeholderTextColor={theme.colors.textMuted} />
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowPassword(false)}>
+                  <Text style={styles.cancelBtnText}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.confirmBtn} onPress={handleChangePassword} disabled={savingPassword}>
+                  {savingPassword ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmBtnText}>Modifier</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </ScrollView>
 
       <NotificationsScreen visible={showNotifications} onClose={() => setShowNotifications(false)} />
@@ -216,19 +263,63 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border
   },
   closeBarTitle: { fontSize: 15, fontWeight: '900', color: theme.colors.text },
-  content: { padding: 16, paddingBottom: 40 },
-  profileCard: { backgroundColor: theme.colors.card, borderRadius: 24, padding: 20, alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: theme.colors.borderDark },
-  roleBadge: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10, marginBottom: 6 },
-  roleBadgeText: { color: theme.colors.primaryDark, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  userName: { fontSize: 18, fontWeight: '900', color: theme.colors.text },
-  userPhone: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
-  menuCard: { backgroundColor: theme.colors.card, borderRadius: 24, borderWidth: 1, borderColor: theme.colors.borderDark, overflow: 'hidden', marginBottom: 16 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  content: { padding: 16, paddingBottom: 40, gap: 16 },
+
+  hero: {
+    backgroundColor: theme.colors.primaryDark,
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    ...theme.shadow.hero
+  },
+  avatarWrap: { position: 'relative', marginBottom: 14 },
+  avatarRing: {
+    borderRadius: 999,
+    padding: 3,
+    backgroundColor: 'rgba(255,255,255,0.18)'
+  },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: theme.colors.primaryDark
+  },
+  userName: { fontSize: 19, fontWeight: '900', color: '#fff', marginBottom: 8, textAlign: 'center' },
+  roleBadge: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, marginBottom: 14 },
+  roleBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.4 },
+  heroMetaRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 14 },
+  heroMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  heroMetaText: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600' },
+  heroError: { color: '#fecaca', fontSize: 11, fontWeight: '700', marginTop: 10, textAlign: 'center' },
+
+  menuCard: { backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.xl, borderWidth: 1, borderColor: theme.colors.borderDark, overflow: 'hidden', ...theme.shadow.card },
+  menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   menuItemLast: { borderBottomWidth: 0 },
+  menuIconWrap: { width: 38, height: 38, borderRadius: 12, backgroundColor: theme.colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
   menuTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text },
-  chevron: { fontSize: 20, color: theme.colors.textMuted, fontWeight: '700' },
-  logoutBtn: { backgroundColor: theme.colors.statusDangerBg, paddingVertical: 14, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.statusDangerBg },
+  menuSubtitle: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1 },
+
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: theme.colors.statusDangerBg,
+    paddingVertical: 14,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.statusDangerBg
+  },
   logoutBtnText: { color: theme.colors.statusDangerText, fontSize: 12, fontWeight: '800' },
+
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'center', padding: 20 },
   modalCard: { backgroundColor: theme.colors.card, borderRadius: 24, padding: 20 },
   modalTitle: { fontSize: 16, fontWeight: '900', color: theme.colors.text, marginBottom: 12 },
@@ -239,9 +330,5 @@ const styles = StyleSheet.create({
   cancelBtn: { flex: 1, paddingVertical: 12, backgroundColor: theme.colors.background, borderRadius: 14, alignItems: 'center' },
   cancelBtnText: { color: theme.colors.textSecondary, fontSize: 12, fontWeight: '700' },
   confirmBtn: { flex: 1, paddingVertical: 12, backgroundColor: theme.colors.primary, borderRadius: 14, alignItems: 'center' },
-  confirmBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  avatarPicker: { alignSelf: 'center', marginBottom: 12 },
-  avatarPickerImage: { width: 72, height: 72, borderRadius: 36 },
-  avatarPickerFallback: { width: 72, height: 72, borderRadius: 36, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDark },
-  avatarPickerText: { fontSize: 9, fontWeight: '700', color: theme.colors.textSecondary, textAlign: 'center', paddingHorizontal: 4 }
+  confirmBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' }
 });
