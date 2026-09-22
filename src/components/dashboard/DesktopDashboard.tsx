@@ -13,7 +13,8 @@ import {
   TrendingUp,
   Sparkles,
   Calendar,
-  Plus
+  Plus,
+  Package
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -100,6 +101,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
           >
             <Layers className="w-3.5 h-3.5 text-slate-500" />
             <span>Gérer les pôles</span>
+          </button>
+          <button
+            onClick={() => onNavigateTab('equipment')}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold shadow-xs"
+          >
+            <Package className="w-3.5 h-3.5 text-slate-500" />
+            <span>Matériel</span>
           </button>
           {onOpenCreateEvent && (
             <button

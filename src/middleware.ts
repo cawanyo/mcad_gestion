@@ -7,7 +7,12 @@ import {
 // Everything else — every (app)/* page (dashboard, calendar, poles, ...) —
 // is protected. Route groups like (app) don't appear in the actual URL, so
 // this is an allowlist of public paths rather than a match on "/(app)/*".
-const isPublicRoute = createRouteMatcher(['/', '/landing', '/login', '/register']);
+//
+// /equipment(.*) is public on purpose: it's a deliberately separate module
+// (its own top-level route, outside the (app) shell) that must be reachable
+// by a scanned QR code or a shared link without requiring login. Writes are
+// still gated per-mutation by requireAuth in convex/equipment.ts.
+const isPublicRoute = createRouteMatcher(['/', '/landing', '/login', '/register', '/equipment(.*)']);
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   if (isPublicRoute(request)) return;

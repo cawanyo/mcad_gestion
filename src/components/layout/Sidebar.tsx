@@ -23,7 +23,8 @@ import {
   X,
   Home,
   GraduationCap,
-  Loader2
+  Loader2,
+  Package
 } from 'lucide-react';
 import { User as UserType } from '@/types';
 import { Avatar } from '@/components/ui';
@@ -59,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'leader_dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
         { id: 'calendar', label: 'Calendrier', icon: Calendar },
         { id: 'poles', label: 'Pôles', icon: Layers },
+        { id: 'equipment', label: 'Matériel', icon: Package },
         { id: 'members', label: 'Membres', icon: Users },
         { id: 'requests', label: "Demandes d'adhésion", icon: UserPlus, badge: pendingRequestsCount },
         { id: 'training', label: 'Formations', icon: GraduationCap },
@@ -75,6 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'checklists', label: 'Mes Checklists', icon: CheckSquare },
         { id: 'unavailabilities', label: 'Mes Indisponibilités', icon: Clock },
         { id: 'poles', label: 'Mes Pôles', icon: Layers },
+        { id: 'equipment', label: 'Matériel', icon: Package },
         { id: 'birthdays', label: 'Anniversaires', icon: Cake },
         { id: 'statistics', label: 'Mes Statistiques', icon: BarChart3 },
         { id: 'settings', label: 'Mon Compte', icon: Settings },

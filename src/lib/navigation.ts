@@ -27,7 +27,8 @@ export const TAB_PATHS: Record<string, string> = {
   admin_dashboard: '/leader-dashboard',
   members: '/members',
   requests: '/requests',
-  settings: '/settings'
+  settings: '/settings',
+  equipment: '/equipment'
 };
 
 export function tabToPath(tabId: string): string {

@@ -295,4 +295,28 @@ export default defineSchema({
     .index("userAndModule", ["userId", "moduleId"]) // @@unique
     .index("userId", ["userId"])
     .index("moduleId", ["moduleId"]),
+
+  // Equipment/inventory tracker. Deliberately outside the auth-gated (app)
+  // route group: the list and detail pages are reachable without logging
+  // in (a scanned QR code must resolve for an anonymous visitor), so reads
+  // here are public queries — only the mutations require requireAuth. Soft
+  // delete (status DELETED + deletedAt) backs the "corbeille" instead of
+  // ctx.db.delete, since this is the one place in the app that needs a
+  // recoverable trash rather than the ACTIVE/ARCHIVED convention used by
+  // poles/checklists/trainingModules.
+  equipment: defineTable({
+    name: v.string(),
+    quantity: v.number(),
+    photoUrl: v.optional(v.string()),
+    poleId: v.optional(v.id("poles")),
+    description: v.optional(v.string()),
+    status: v.union(v.literal("ACTIVE"), v.literal("DELETED")),
+    createdBy: v.optional(v.id("users")),
+    updatedBy: v.optional(v.id("users")),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  })
+    .index("status", ["status"])
+    .index("poleId", ["poleId"])
+    .searchIndex("search_name", { searchField: "name", filterFields: ["status"] }),
 });

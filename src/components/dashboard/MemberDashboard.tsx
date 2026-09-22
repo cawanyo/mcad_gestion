@@ -16,7 +16,8 @@ import {
   UserCheck,
   Play,
   Hand,
-  GraduationCap
+  GraduationCap,
+  Package
 } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -132,6 +133,13 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
             >
               <Clock className="w-3.5 h-3.5 text-indigo-200" />
               <span>Déclarer une absence</span>
+            </button>
+            <button
+              onClick={() => onNavigateTab('equipment')}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-2xl text-xs font-bold transition-all backdrop-blur-xs"
+            >
+              <Package className="w-3.5 h-3.5 text-indigo-200" />
+              <span>Matériel</span>
             </button>
           </div>
         </div>

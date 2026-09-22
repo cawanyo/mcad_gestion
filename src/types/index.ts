@@ -29,6 +29,20 @@ export interface Pole {
   leaders?: { id: string; user: User; roleTitle?: string | null }[];
 }
 
+export interface Equipment {
+  id: string;
+  name: string;
+  quantity: number;
+  photoUrl?: string | null;
+  description?: string | null;
+  status: 'ACTIVE' | 'DELETED';
+  updatedAt: string;
+  deletedAt?: string | null;
+  poleId?: string | null;
+  pole?: { id: string; name: string; color: string; icon: string } | null;
+  createdByUser?: { id: string; firstName: string; lastName: string; avatar?: string | null } | null;
+}
+
 export interface MembershipRequest {
   id: string;
   userId: string;
