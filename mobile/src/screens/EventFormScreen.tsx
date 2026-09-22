@@ -22,10 +22,20 @@ function timeOf(d: Date) {
   return new Date(2000, 0, 1, d.getHours(), d.getMinutes());
 }
 
+const RECURRENCE_OPTIONS: { value: 'NONE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'; label: string }[] = [
+  { value: 'NONE', label: 'Aucune' },
+  { value: 'WEEKLY', label: 'Hebdomadaire' },
+  { value: 'BIWEEKLY', label: 'Toutes les 2 semaines' },
+  { value: 'MONTHLY', label: 'Mensuelle' }
+];
+
 // Mirrors src/components/calendar/EventModal.tsx's core fields (title,
-// date/time, location, organizer pole, per-pole STAR requirements).
-// Recurrence and checklist association are left out — genuinely separate
-// pieces of scope, not a trimmed-down "lite" version of the same field.
+// date/time, location, organizer pole, per-pole STAR requirements,
+// recurrence). Checklist association at creation time is left out —
+// genuinely separate scope, not a trimmed-down version of the same field.
+// Recurrence only applies to create (convex/events.ts's update mutation
+// has no recurrenceRule/recurrenceCount args — editing one occurrence of
+// an existing series doesn't regenerate the series).
 export const EventFormScreen: React.FC<EventFormScreenProps> = ({ editingEvent, defaultDate, onClose, onSaved }) => {
   const polesRaw = useQuery(api.poles.list, {});
   const createEvent = useMutation(api.events.create);
@@ -51,6 +61,8 @@ export const EventFormScreen: React.FC<EventFormScreenProps> = ({ editingEvent, 
     });
     return map;
   });
+  const [recurrenceRule, setRecurrenceRule] = React.useState<'NONE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'>('NONE');
+  const [recurrenceCount, setRecurrenceCount] = React.useState(4);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -129,7 +141,9 @@ export const EventFormScreen: React.FC<EventFormScreenProps> = ({ editingEvent, 
           endsAt,
           location: location.trim(),
           organizerPoleId: (organizerPoleId || undefined) as Id<'poles'> | undefined,
-          requirements: requirementsPayload
+          requirements: requirementsPayload,
+          recurrenceRule,
+          recurrenceCount: recurrenceRule === 'NONE' ? 1 : recurrenceCount
         });
       }
       onSaved();
@@ -192,6 +206,45 @@ export const EventFormScreen: React.FC<EventFormScreenProps> = ({ editingEvent, 
               </TouchableOpacity>
             </View>
           </View>
+
+          {!editingEvent && (
+            <>
+              <Text style={styles.label}>Récurrence</Text>
+              <View style={styles.chipsRow}>
+                {RECURRENCE_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.chip, recurrenceRule === opt.value && styles.chipActive]}
+                    onPress={() => setRecurrenceRule(opt.value)}
+                  >
+                    <Text style={[styles.chipText, recurrenceRule === opt.value && styles.chipTextActive]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {recurrenceRule !== 'NONE' && (
+                <View style={styles.recurrenceCountRow}>
+                  <Text style={styles.recurrenceCountLabel}>Nombre d'occurrences</Text>
+                  <View style={styles.stepper}>
+                    <TouchableOpacity
+                      style={styles.stepperBtn}
+                      onPress={() => setRecurrenceCount((c) => Math.max(1, c - 1))}
+                      disabled={recurrenceCount <= 1}
+                    >
+                      <Minus size={13} color={recurrenceCount <= 1 ? theme.colors.textMuted : theme.colors.primary} />
+                    </TouchableOpacity>
+                    <Text style={styles.stepperValue}>{recurrenceCount}</Text>
+                    <TouchableOpacity
+                      style={styles.stepperBtn}
+                      onPress={() => setRecurrenceCount((c) => Math.min(52, c + 1))}
+                      disabled={recurrenceCount >= 52}
+                    >
+                      <Plus size={13} color={recurrenceCount >= 52 ? theme.colors.textMuted : theme.colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </>
+          )}
 
           <Text style={styles.label}>Lieu *</Text>
           <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="ex: Temple Principal" />
@@ -309,6 +362,8 @@ const styles = StyleSheet.create({
   pickerBtnText: { fontSize: 12, fontWeight: '700', color: theme.colors.text },
 
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  recurrenceCountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.md, padding: 12, borderWidth: 1, borderColor: theme.colors.borderDark, marginTop: 10 },
+  recurrenceCountLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.text },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.borderRadius.round, backgroundColor: '#f1f5f9' },
   chipActive: { backgroundColor: theme.colors.primary },
   chipText: { fontSize: 12, fontWeight: '700', color: theme.colors.textSecondary },
