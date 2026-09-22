@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Compass,
   Sparkles,
+  Search,
   Check,
   GraduationCap,
   Clock,
@@ -532,6 +533,7 @@ const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack
   onOpen
 }) => {
   const polesRaw = useQuery(api.poles.list, {});
+  const [search, setSearch] = React.useState('');
   const [poleFilter, setPoleFilter] = React.useState<string>('ALL');
   const [levelFilter, setLevelFilter] = React.useState<(typeof LEVEL_FILTERS)[number]>('ALL');
   const [openFilter, setOpenFilter] = React.useState<'pole' | 'level' | null>(null);
@@ -539,14 +541,18 @@ const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack
 
   React.useEffect(() => {
     setPage(1);
-  }, [poleFilter, levelFilter]);
+  }, [search, poleFilter, levelFilter]);
 
   // Explorer sert à découvrir de nouvelles formations : celles déjà
   // commencées ou terminées vivent dans le sélecteur En cours/Terminé de
   // la page principale, pas ici.
   const notStarted = modules.filter((m: any) => !m.userProgressStatus || m.userProgressStatus === 'NOT_STARTED');
+  const query = search.trim().toLowerCase();
   const filtered = notStarted.filter(
-    (m: any) => (poleFilter === 'ALL' || m.poleId === poleFilter) && (levelFilter === 'ALL' || m.level === levelFilter)
+    (m: any) =>
+      (poleFilter === 'ALL' || m.poleId === poleFilter) &&
+      (levelFilter === 'ALL' || m.level === levelFilter) &&
+      (!query || m.title?.toLowerCase().includes(query) || m.description?.toLowerCase().includes(query))
   );
   const pageCount = Math.max(1, Math.ceil(filtered.length / EXPLORE_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -563,6 +569,22 @@ const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack
       </View>
 
       <View style={styles.filtersWrap}>
+        <View style={styles.searchBox}>
+          <Search color={theme.colors.textMuted} size={14} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher une formation..."
+            placeholderTextColor={theme.colors.textMuted}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <X size={14} color={theme.colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
         <View style={styles.filtersRow}>
           <SelectField
             label="Pôle"
@@ -594,7 +616,9 @@ const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack
           <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 40 }} />
         ) : filtered.length === 0 ? (
           <Text style={[styles.muted, { textAlign: 'center', marginTop: 30 }]}>
-            {notStarted.length === 0 ? 'Vous avez déjà commencé ou terminé toutes les formations disponibles.' : 'Aucune formation disponible ne correspond à ces filtres.'}
+            {notStarted.length === 0
+              ? 'Vous avez déjà commencé ou terminé toutes les formations disponibles.'
+              : 'Aucune formation disponible ne correspond à cette recherche.'}
           </Text>
         ) : (
           <View style={{ gap: 10 }}>
@@ -1072,6 +1096,8 @@ const styles = StyleSheet.create({
   exploreBtnText: { fontSize: 12, fontWeight: '800', color: theme.colors.primary },
 
   filtersWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border, zIndex: 30, elevation: 30 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.background, borderRadius: theme.borderRadius.md, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 10 },
+  searchInput: { flex: 1, fontSize: 12, color: theme.colors.text },
   filtersRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   selectField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderDark, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11 },
   selectFieldText: { flex: 1, fontSize: 12, fontWeight: '700', color: theme.colors.text },
