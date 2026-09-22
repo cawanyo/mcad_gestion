@@ -487,45 +487,40 @@ const TrainingManagementScreen: React.FC<{
 const EXPLORE_PAGE_SIZE = 6;
 const LEVEL_FILTERS = ['ALL', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
 
-const SelectField: React.FC<{ label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }> = ({
-  label,
-  value,
-  options,
-  onChange
-}) => {
-  const [open, setOpen] = React.useState(false);
+const SelectField: React.FC<{
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+  open: boolean;
+  onToggle: () => void;
+}> = ({ label, value, options, onChange, open, onToggle }) => {
   const current = options.find((o) => o.value === value);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, zIndex: open ? 20 : 1 }}>
       <Text style={styles.microLabel}>{label}</Text>
-      <TouchableOpacity style={styles.selectField} onPress={() => setOpen(true)} activeOpacity={0.7}>
+      <TouchableOpacity style={styles.selectField} onPress={onToggle} activeOpacity={0.7}>
         <Text style={styles.selectFieldText} numberOfLines={1}>{current?.label || 'Sélectionner'}</Text>
-        <ChevronDown size={14} color={theme.colors.textSecondary} />
+        {open ? <ChevronUp size={14} color={theme.colors.textSecondary} /> : <ChevronDown size={14} color={theme.colors.textSecondary} />}
       </TouchableOpacity>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={styles.selectModalCard}>
-            <Text style={styles.selectModalTitle}>{label}</Text>
-            <ScrollView style={{ maxHeight: 340 }}>
-              {options.map((o) => (
-                <TouchableOpacity
-                  key={o.value}
-                  style={[styles.selectOption, o.value === value && styles.selectOptionActive]}
-                  onPress={() => {
-                    onChange(o.value);
-                    setOpen(false);
-                  }}
-                >
-                  <Text style={[styles.selectOptionText, o.value === value && styles.selectOptionTextActive]}>{o.label}</Text>
-                  {o.value === value && <Check size={15} color={theme.colors.primary} />}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      {open && (
+        <View style={styles.selectDropdown}>
+          <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
+            {options.map((o) => (
+              <TouchableOpacity
+                key={o.value}
+                style={[styles.selectOption, o.value === value && styles.selectOptionActive]}
+                onPress={() => onChange(o.value)}
+              >
+                <Text style={[styles.selectOptionText, o.value === value && styles.selectOptionTextActive]} numberOfLines={1}>{o.label}</Text>
+                {o.value === value && <Check size={13} color={theme.colors.primary} />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 };
@@ -539,6 +534,7 @@ const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack
   const polesRaw = useQuery(api.poles.list, {});
   const [poleFilter, setPoleFilter] = React.useState<string>('ALL');
   const [levelFilter, setLevelFilter] = React.useState<(typeof LEVEL_FILTERS)[number]>('ALL');
+  const [openFilter, setOpenFilter] = React.useState<'pole' | 'level' | null>(null);
   const [page, setPage] = React.useState(1);
 
   React.useEffect(() => {
@@ -568,8 +564,28 @@ const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack
 
       <View style={styles.filtersWrap}>
         <View style={styles.filtersRow}>
-          <SelectField label="Pôle" value={poleFilter} options={poleOptions} onChange={setPoleFilter} />
-          <SelectField label="Niveau" value={levelFilter} options={levelOptions} onChange={(v) => setLevelFilter(v as (typeof LEVEL_FILTERS)[number])} />
+          <SelectField
+            label="Pôle"
+            value={poleFilter}
+            options={poleOptions}
+            onChange={(v) => {
+              setPoleFilter(v);
+              setOpenFilter(null);
+            }}
+            open={openFilter === 'pole'}
+            onToggle={() => setOpenFilter((f) => (f === 'pole' ? null : 'pole'))}
+          />
+          <SelectField
+            label="Niveau"
+            value={levelFilter}
+            options={levelOptions}
+            onChange={(v) => {
+              setLevelFilter(v as (typeof LEVEL_FILTERS)[number]);
+              setOpenFilter(null);
+            }}
+            open={openFilter === 'level'}
+            onToggle={() => setOpenFilter((f) => (f === 'level' ? null : 'level'))}
+          />
         </View>
       </View>
 
@@ -1056,14 +1072,25 @@ const styles = StyleSheet.create({
   exploreBtnText: { fontSize: 12, fontWeight: '800', color: theme.colors.primary },
 
   filtersWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  filtersRow: { flexDirection: 'row', gap: 10 },
+  filtersRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   selectField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderDark, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11 },
   selectFieldText: { flex: 1, fontSize: 12, fontWeight: '700', color: theme.colors.text },
-  selectModalCard: { width: '100%', maxWidth: 340, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.xl, padding: 16 },
-  selectModalTitle: { fontSize: 14, fontWeight: '900', color: theme.colors.text, marginBottom: 10 },
-  selectOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 10, borderRadius: 12 },
+  selectDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDark,
+    ...theme.shadow.card,
+    paddingVertical: 4
+  },
+  selectOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 12 },
   selectOptionActive: { backgroundColor: theme.colors.primaryLight },
-  selectOptionText: { fontSize: 13, fontWeight: '700', color: theme.colors.text },
+  selectOptionText: { flex: 1, fontSize: 12, fontWeight: '700', color: theme.colors.text },
   selectOptionTextActive: { color: theme.colors.primaryDark, fontWeight: '900' },
 
   sectionBlock: { marginTop: 18 },
