@@ -105,8 +105,9 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
   }
 
   const modules = modulesRaw || [];
-  const inProgressCount = modules.filter((m: any) => m.userProgressStatus === 'IN_PROGRESS').length;
+  const inProgressModules = modules.filter((m: any) => m.userProgressStatus === 'IN_PROGRESS');
   const completedCount = modules.filter((m: any) => m.userProgressStatus === 'COMPLETED').length;
+  const overallPct = modules.length > 0 ? Math.round(modules.reduce((sum: number, m: any) => sum + (m.progressPercent || 0), 0) / modules.length) : 0;
 
   return (
     <View style={styles.screen}>
@@ -129,19 +130,45 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
           </View>
         ) : (
           <>
-            <View style={styles.kpiRow}>
-              <View style={styles.kpiTile}>
-                <Text style={styles.kpiValue}>{modules.length}</Text>
-                <Text style={styles.kpiLabel}>Modules</Text>
+            {/* Mon parcours — personal summary + quick-resume, replaces a
+                flat KPI row with the "Reprendre mes formations en cours"
+                intent from web's TrainingWeb.tsx, condensed. */}
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryHeaderRow}>
+                <View style={styles.summaryIconWrap}>
+                  <GraduationCap size={20} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.summaryTitle}>Mon parcours</Text>
+                  <Text style={styles.summarySubtitle}>
+                    {completedCount}/{modules.length} module{modules.length > 1 ? 's' : ''} validé{completedCount > 1 ? 's' : ''}
+                    {inProgressModules.length > 0 ? ` · ${inProgressModules.length} en cours` : ''}
+                  </Text>
+                </View>
+                <Text style={styles.summaryPercent}>{overallPct}%</Text>
               </View>
-              <View style={styles.kpiTile}>
-                <Text style={[styles.kpiValue, { color: theme.colors.statusWarningText }]}>{inProgressCount}</Text>
-                <Text style={styles.kpiLabel}>En cours</Text>
+              <View style={styles.summaryProgressTrack}>
+                <View style={[styles.summaryProgressFill, { width: `${overallPct}%` }]} />
               </View>
-              <View style={styles.kpiTile}>
-                <Text style={[styles.kpiValue, { color: theme.colors.statusSuccessText }]}>{completedCount}</Text>
-                <Text style={styles.kpiLabel}>Validés 🎓</Text>
-              </View>
+
+              {inProgressModules.length > 0 && (
+                <View style={styles.continueSection}>
+                  {inProgressModules.slice(0, 2).map((m: any) => (
+                    <TouchableOpacity key={m._id} style={styles.continueRow} onPress={() => setOpenModuleId(m._id)} activeOpacity={0.7}>
+                      <View style={styles.continuePlayWrap}>
+                        <Play size={11} color="#fff" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.continueRowTitle} numberOfLines={1}>{m.title}</Text>
+                        <View style={styles.continueMiniTrack}>
+                          <View style={[styles.continueMiniFill, { width: `${m.progressPercent || 0}%` }]} />
+                        </View>
+                      </View>
+                      <Text style={styles.continueRowPct}>{m.progressPercent || 0}%</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             {modules.map((m: any) => {
@@ -197,6 +224,12 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
                           { width: `${m.progressPercent || 0}%`, backgroundColor: isCompleted ? theme.colors.statusSuccessText : theme.colors.primary }
                         ]}
                       />
+                    </View>
+                    <View style={[styles.ctaRow, isCompleted ? styles.ctaRowDone : isInProgress ? styles.ctaRowProgress : styles.ctaRowStart]}>
+                      {isCompleted ? <Check size={13} color={theme.colors.statusSuccessText} /> : <Play size={13} color={isInProgress ? theme.colors.primaryDark : '#fff'} />}
+                      <Text style={[styles.ctaRowText, isCompleted ? { color: theme.colors.statusSuccessText } : isInProgress ? { color: theme.colors.primaryDark } : { color: '#fff' }]}>
+                        {isCompleted ? 'Revoir la formation' : isInProgress ? `Continuer (${m.progressPercent || 0}%)` : 'Commencer'}
+                      </Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -659,10 +692,27 @@ const styles = StyleSheet.create({
 
   emptyState: { alignItems: 'center', gap: 10, paddingVertical: 50 },
 
-  kpiRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  kpiTile: { flex: 1, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.borderDark },
-  kpiValue: { fontSize: 18, fontWeight: '900', color: theme.colors.text },
-  kpiLabel: { fontSize: 10, fontWeight: '700', color: theme.colors.textSecondary, marginTop: 2, textAlign: 'center' },
+  summaryCard: { backgroundColor: theme.colors.primaryDark, borderRadius: theme.borderRadius.xl, padding: 16, marginBottom: 4, ...theme.shadow.hero },
+  summaryHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  summaryIconWrap: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  summaryTitle: { fontSize: 14, fontWeight: '900', color: '#fff' },
+  summarySubtitle: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2, fontWeight: '600' },
+  summaryPercent: { fontSize: 20, fontWeight: '900', color: '#fff' },
+  summaryProgressTrack: { height: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3, overflow: 'hidden', marginTop: 12 },
+  summaryProgressFill: { height: 5, backgroundColor: theme.colors.statusSuccessText, borderRadius: 3 },
+  continueSection: { marginTop: 12, gap: 6 },
+  continueRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: theme.borderRadius.md, padding: 8 },
+  continuePlayWrap: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  continueRowTitle: { fontSize: 11, fontWeight: '800', color: '#fff' },
+  continueMiniTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden', marginTop: 4 },
+  continueMiniFill: { height: 3, backgroundColor: theme.colors.statusSuccessText, borderRadius: 2 },
+  continueRowPct: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.85)' },
+
+  ctaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: theme.borderRadius.round, paddingVertical: 8, marginTop: 10 },
+  ctaRowStart: { backgroundColor: '#0f172a' },
+  ctaRowProgress: { backgroundColor: theme.colors.primaryLight },
+  ctaRowDone: { backgroundColor: theme.colors.statusSuccessBg },
+  ctaRowText: { fontSize: 11, fontWeight: '800' },
 
   moduleCard: { backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.xl, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.borderDark, ...theme.shadow.card },
   moduleCardActive: { borderColor: theme.colors.primary },
