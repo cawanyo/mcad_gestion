@@ -12,7 +12,11 @@ interface UnavailabilitiesScreenProps {
 }
 
 const isLeaderOrAdmin = (u: User) =>
-  u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER' || u.role === 'POLE_LEADER' || u.role === 'CALENDAR_MANAGER';
+  u.role === 'SUPER_ADMIN' ||
+  u.role === 'DEPARTMENT_LEADER' ||
+  u.role === 'POLE_LEADER' ||
+  u.role === 'CALENDAR_MANAGER' ||
+  ((u.poleLeaderships?.length ?? 0) > 0);
 
 const fmt = (ms: number) => new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 

@@ -34,7 +34,11 @@ interface TrainingScreenProps {
 }
 
 const isLeaderOrAdmin = (u: User) =>
-  u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER' || u.role === 'POLE_LEADER' || u.role === 'CALENDAR_MANAGER';
+  u.role === 'SUPER_ADMIN' ||
+  u.role === 'DEPARTMENT_LEADER' ||
+  u.role === 'POLE_LEADER' ||
+  u.role === 'CALENDAR_MANAGER' ||
+  ((u.poleLeaderships?.length ?? 0) > 0);
 
 type MediaType = 'NONE' | 'VIDEO' | 'PHOTO' | 'DOCUMENT';
 type Lesson = { id?: string; title: string; description: string; content: string; mediaType: MediaType; mediaUrl: string; durationMinutes: number };

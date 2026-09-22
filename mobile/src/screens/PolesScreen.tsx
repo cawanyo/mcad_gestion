@@ -12,7 +12,11 @@ interface PolesScreenProps {
 }
 
 const isLeaderOrAdmin = (u: User) =>
-  u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER' || u.role === 'POLE_LEADER' || u.role === 'CALENDAR_MANAGER';
+  u.role === 'SUPER_ADMIN' ||
+  u.role === 'DEPARTMENT_LEADER' ||
+  u.role === 'POLE_LEADER' ||
+  u.role === 'CALENDAR_MANAGER' ||
+  ((u.poleLeaderships?.length ?? 0) > 0);
 
 // Mirrors src/components/poles/PolesManagement.tsx: pole detail is a local
 // view swap, not a separate route, same as the web version.

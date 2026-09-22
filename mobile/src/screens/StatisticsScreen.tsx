@@ -11,7 +11,11 @@ interface StatisticsScreenProps {
 }
 
 const isLeaderOrAdmin = (u: User) =>
-  u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER' || u.role === 'POLE_LEADER' || u.role === 'CALENDAR_MANAGER';
+  u.role === 'SUPER_ADMIN' ||
+  u.role === 'DEPARTMENT_LEADER' ||
+  u.role === 'POLE_LEADER' ||
+  u.role === 'CALENDAR_MANAGER' ||
+  ((u.poleLeaderships?.length ?? 0) > 0);
 
 function StatTile({ label, value }: { label: string; value: string | number }) {
   return (
