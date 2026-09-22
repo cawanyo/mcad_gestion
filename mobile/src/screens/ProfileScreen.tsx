@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -143,7 +143,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
       </TouchableOpacity>
 
       <Modal visible={showEdit} transparent animationType="slide" onRequestClose={() => setShowEdit(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Modifier mon profil</Text>
             <TouchableOpacity onPress={handlePickAvatar} style={styles.avatarPicker}>
@@ -166,11 +166,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showPassword} transparent animationType="slide" onRequestClose={() => setShowPassword(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Changer mon mot de passe</Text>
             {passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
@@ -187,7 +187,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       </ScrollView>
 
