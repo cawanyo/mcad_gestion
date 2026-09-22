@@ -10,6 +10,8 @@ import {
   Settings2,
   ChevronLeft,
   ChevronRight,
+  Compass,
+  Sparkles,
   Check,
   GraduationCap,
   Clock,
@@ -76,8 +78,10 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
 
   const [openModuleId, setOpenModuleId] = React.useState<Id<'trainingModules'> | null>(selectedModuleFromHome?._id ?? null);
   const [showManagement, setShowManagement] = React.useState(false);
+  const [showExplore, setShowExplore] = React.useState(false);
   const [editingModule, setEditingModule] = React.useState<any>(null);
   const [showCreate, setShowCreate] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<'IN_PROGRESS' | 'COMPLETED'>('IN_PROGRESS');
 
   React.useEffect(() => {
     if (selectedModuleFromHome) {
@@ -125,11 +129,19 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
     );
   }
 
+  if (showExplore) {
+    return <TrainingExploreScreen modules={modules} loading={loading} onBack={() => setShowExplore(false)} onOpen={setOpenModuleId} />;
+  }
+
   const availableModules = modules.filter((m: any) => !m.userProgressStatus || m.userProgressStatus === 'NOT_STARTED');
   const inProgressModules = modules.filter((m: any) => m.userProgressStatus === 'IN_PROGRESS');
   const completedModules = modules.filter((m: any) => m.userProgressStatus === 'COMPLETED');
   const completedCount = completedModules.length;
   const overallPct = modules.length > 0 ? Math.round(modules.reduce((sum: number, m: any) => sum + (m.progressPercent || 0), 0) / modules.length) : 0;
+  const tabItems = activeTab === 'IN_PROGRESS' ? inProgressModules : completedModules;
+
+  const userPoleIds = new Set((currentUser.poleMemberships || []).map((pm) => pm.poleId));
+  const suggestedModule = availableModules.find((m: any) => userPoleIds.has(m.poleId)) || availableModules[0] || null;
 
   return (
     <View style={styles.screen}>
@@ -199,27 +211,43 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
               )}
             </View>
 
+            <View style={styles.filterExploreRow}>
+              <View style={styles.segmentedControl}>
+                <TouchableOpacity
+                  style={[styles.segmentBtn, activeTab === 'IN_PROGRESS' && styles.segmentBtnActive]}
+                  onPress={() => setActiveTab('IN_PROGRESS')}
+                >
+                  <Text style={[styles.segmentBtnText, activeTab === 'IN_PROGRESS' && styles.segmentBtnTextActive]}>En cours</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.segmentBtn, activeTab === 'COMPLETED' && styles.segmentBtnActive]}
+                  onPress={() => setActiveTab('COMPLETED')}
+                >
+                  <Text style={[styles.segmentBtnText, activeTab === 'COMPLETED' && styles.segmentBtnTextActive]}>Terminé</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={styles.exploreBtn} onPress={() => setShowExplore(true)}>
+                <Compass size={13} color={theme.colors.primary} />
+                <Text style={styles.exploreBtnText}>Explorer</Text>
+              </TouchableOpacity>
+            </View>
+
             <ModuleSection
-              title="À faire"
-              icon={<BookOpen size={14} color={theme.colors.text} />}
-              items={availableModules}
+              key={activeTab}
+              items={tabItems}
               onOpen={setOpenModuleId}
-              emptyText="Aucun module à commencer pour l'instant."
+              emptyText={activeTab === 'IN_PROGRESS' ? "Aucune formation en cours pour l'instant." : 'Aucune formation terminée pour le moment.'}
             />
-            <ModuleSection
-              title="Commencées"
-              icon={<Play size={14} color={theme.colors.text} />}
-              items={inProgressModules}
-              onOpen={setOpenModuleId}
-              emptyText="Aucune formation en cours."
-            />
-            <ModuleSection
-              title="Terminées"
-              icon={<Award size={14} color={theme.colors.text} />}
-              items={completedModules}
-              onOpen={setOpenModuleId}
-              emptyText="Aucune formation terminée."
-            />
+
+            {suggestedModule && (
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeaderRow}>
+                  <Sparkles size={14} color={theme.colors.text} />
+                  <Text style={styles.sectionHeaderTitle}>Cela pourrait vous intéresser</Text>
+                </View>
+                <ModuleCard module={suggestedModule} onPress={() => setOpenModuleId(suggestedModule._id)} />
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -237,27 +265,30 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
 
 const SECTION_PAGE_SIZE = 4;
 
-const ModuleSection: React.FC<{ title: string; icon: React.ReactNode; items: any[]; onOpen: (id: any) => void; emptyText: string }> = ({
+const ModuleSection: React.FC<{ title?: string; icon?: React.ReactNode; items: any[]; onOpen: (id: any) => void; emptyText: string; pageSize?: number }> = ({
   title,
   icon,
   items,
   onOpen,
-  emptyText
+  emptyText,
+  pageSize = SECTION_PAGE_SIZE
 }) => {
   const [page, setPage] = React.useState(1);
-  const pageCount = Math.max(1, Math.ceil(items.length / SECTION_PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const paged = items.slice((currentPage - 1) * SECTION_PAGE_SIZE, currentPage * SECTION_PAGE_SIZE);
+  const paged = items.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <View style={styles.sectionBlock}>
-      <View style={styles.sectionHeaderRow}>
-        {icon}
-        <Text style={styles.sectionHeaderTitle}>{title}</Text>
-        <View style={styles.sectionCountPill}>
-          <Text style={styles.sectionCountText}>{items.length}</Text>
+      {title && (
+        <View style={styles.sectionHeaderRow}>
+          {icon}
+          <Text style={styles.sectionHeaderTitle}>{title}</Text>
+          <View style={styles.sectionCountPill}>
+            <Text style={styles.sectionCountText}>{items.length}</Text>
+          </View>
         </View>
-      </View>
+      )}
 
       {items.length === 0 ? (
         <Text style={styles.mutedSm}>{emptyText}</Text>
@@ -447,6 +478,98 @@ const TrainingManagementScreen: React.FC<{
           </View>
         </View>
       </Modal>
+    </View>
+  );
+};
+
+// ---------------------------------------------------------------------------
+
+const EXPLORE_PAGE_SIZE = 6;
+const LEVEL_FILTERS = ['ALL', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
+
+const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack: () => void; onOpen: (id: any) => void }> = ({
+  modules,
+  loading,
+  onBack,
+  onOpen
+}) => {
+  const polesRaw = useQuery(api.poles.list, {});
+  const [poleFilter, setPoleFilter] = React.useState<string>('ALL');
+  const [levelFilter, setLevelFilter] = React.useState<(typeof LEVEL_FILTERS)[number]>('ALL');
+  const [page, setPage] = React.useState(1);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [poleFilter, levelFilter]);
+
+  const filtered = modules.filter(
+    (m: any) => (poleFilter === 'ALL' || m.poleId === poleFilter) && (levelFilter === 'ALL' || m.level === levelFilter)
+  );
+  const pageCount = Math.max(1, Math.ceil(filtered.length / EXPLORE_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = filtered.slice((currentPage - 1) * EXPLORE_PAGE_SIZE, currentPage * EXPLORE_PAGE_SIZE);
+
+  return (
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+        <Text style={styles.headerTitle}>Explorer les formations</Text>
+      </View>
+
+      <View style={styles.filtersWrap}>
+        <Text style={styles.microLabel}>Pôle</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 8 }}>
+          <TouchableOpacity style={[styles.poleTab, poleFilter === 'ALL' && styles.poleTabActive]} onPress={() => setPoleFilter('ALL')}>
+            <Text style={[styles.poleTabText, poleFilter === 'ALL' && styles.poleTabTextActive]}>Tous</Text>
+          </TouchableOpacity>
+          {(polesRaw || []).map((p: any) => (
+            <TouchableOpacity key={p._id} style={[styles.poleTab, poleFilter === p._id && styles.poleTabActive]} onPress={() => setPoleFilter(p._id)}>
+              <Text style={[styles.poleTabText, poleFilter === p._id && styles.poleTabTextActive]}>{p.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <Text style={styles.microLabel}>Niveau</Text>
+        <View style={styles.row}>
+          {LEVEL_FILTERS.map((lv) => (
+            <TouchableOpacity key={lv} style={[styles.levelBtn, levelFilter === lv && styles.levelBtnActive]} onPress={() => setLevelFilter(lv)}>
+              <Text style={[styles.poleTabText, levelFilter === lv && styles.poleTabTextActive]}>{lv === 'ALL' ? 'Tous' : LEVEL_LABEL[lv]}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+        {loading ? (
+          <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 40 }} />
+        ) : filtered.length === 0 ? (
+          <Text style={[styles.muted, { textAlign: 'center', marginTop: 30 }]}>Aucune formation ne correspond à ces filtres.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {paged.map((m: any) => (
+              <ModuleCard key={m._id} module={m} onPress={() => onOpen(m._id)} />
+            ))}
+          </View>
+        )}
+        {filtered.length > 0 && pageCount > 1 && (
+          <View style={styles.paginationRow}>
+            <TouchableOpacity
+              style={[styles.pageBtn, currentPage <= 1 && styles.pageBtnDisabled]}
+              disabled={currentPage <= 1}
+              onPress={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft size={15} color={currentPage <= 1 ? theme.colors.textMuted : theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.pageIndicatorText}>Page {currentPage}/{pageCount}</Text>
+            <TouchableOpacity
+              style={[styles.pageBtn, currentPage >= pageCount && styles.pageBtnDisabled]}
+              disabled={currentPage >= pageCount}
+              onPress={() => setPage((p) => Math.min(pageCount, p + 1))}
+            >
+              <ChevronRight size={15} color={currentPage >= pageCount ? theme.colors.textMuted : theme.colors.text} />
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 };
@@ -885,6 +1008,17 @@ const styles = StyleSheet.create({
   editLink: { fontSize: 12, fontWeight: '800', color: theme.colors.primary },
   manageLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.primaryLight, paddingHorizontal: 10, paddingVertical: 7, borderRadius: theme.borderRadius.round },
   manageLinkText: { fontSize: 11, fontWeight: '800', color: theme.colors.primary },
+
+  filterExploreRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
+  segmentedControl: { flex: 1, flexDirection: 'row', backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.round, padding: 3, borderWidth: 1, borderColor: theme.colors.borderDark },
+  segmentBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: theme.borderRadius.round },
+  segmentBtnActive: { backgroundColor: theme.colors.primary },
+  segmentBtnText: { fontSize: 12, fontWeight: '800', color: theme.colors.textSecondary },
+  segmentBtnTextActive: { color: '#fff' },
+  exploreBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.primaryLight, paddingHorizontal: 12, paddingVertical: 10, borderRadius: theme.borderRadius.round },
+  exploreBtnText: { fontSize: 12, fontWeight: '800', color: theme.colors.primary },
+
+  filtersWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 6, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
 
   sectionBlock: { marginTop: 18 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
