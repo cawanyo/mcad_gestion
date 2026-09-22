@@ -3,7 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { useQuery, useConvexAuth } from 'convex/react';
+import { useQuery, useConvexAuth, useConvex } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { Search, ScanLine, Plus, Package, LogIn, X, Boxes, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui';
 import { EquipmentCard } from './EquipmentCard';
 import { EquipmentFormModal } from './EquipmentFormModal';
 import { adaptEquipment } from '@/lib/convexAdapters';
-import { extractEquipmentId } from '@/lib/equipmentCode';
+import { resolveScannedEquipment } from '@/lib/equipmentCode';
 import Link from 'next/link';
 
 const CodeScannerModal = dynamic(
@@ -23,6 +23,7 @@ const PAGE_SIZE = 15;
 
 export const EquipmentManagement: React.FC = () => {
   const router = useRouter();
+  const convex = useConvex();
   const { isAuthenticated } = useConvexAuth();
   const [search, setSearch] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
@@ -62,13 +63,13 @@ export const EquipmentManagement: React.FC = () => {
     [items, currentPage]
   );
 
-  const handleDecode = (data: string) => {
-    const id = extractEquipmentId(data);
-    if (id) {
+  const handleDecode = async (data: string) => {
+    const resolved = await resolveScannedEquipment(convex, data);
+    if (resolved) {
       setShowScanner(false);
-      router.push(`/equipment/${id}`);
+      router.push(`/equipment/${resolved.equipmentId}`);
     } else {
-      setScanError("Code non reconnu. Réessayez ou utilisez la recherche par nom.");
+      setScanError('Ce code ne correspond à aucun matériel enregistré.');
     }
   };
 

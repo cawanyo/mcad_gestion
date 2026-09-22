@@ -178,7 +178,7 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipmentId })
         {!isDeleted && (
           <div className="space-y-4">
             <EquipmentQrCode equipmentId={item.id} equipmentName={item.name} />
-            <EquipmentBarcode equipmentId={item.id} equipmentName={item.name} />
+            <EquipmentBarcode equipmentId={item.id} equipmentName={item.name} shortCode={item.shortCode} />
           </div>
         )}
       </div>

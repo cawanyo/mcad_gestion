@@ -38,6 +38,7 @@ export interface Equipment {
   id: string;
   name: string;
   quantity: number;
+  shortCode?: string | null;
   photoUrl?: string | null;
   description?: string | null;
   status: 'ACTIVE' | 'DELETED';

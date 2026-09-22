@@ -1,6 +1,29 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, MutationCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
+
+// Excludes 0/O and 1/I — the code is meant to be printed small and
+// occasionally read by eye as a scan fallback, so ambiguous characters are
+// worth avoiding even though nothing here parses it by hand normally.
+const SHORT_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const SHORT_CODE_LENGTH = 6;
+
+function generateShortCode(): string {
+  let code = "";
+  for (let i = 0; i < SHORT_CODE_LENGTH; i++) {
+    code += SHORT_CODE_ALPHABET[Math.floor(Math.random() * SHORT_CODE_ALPHABET.length)];
+  }
+  return code;
+}
+
+async function generateUniqueShortCode(ctx: MutationCtx): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const code = generateShortCode();
+    const existing = await ctx.db.query("equipment").withIndex("shortCode", (q) => q.eq("shortCode", code)).first();
+    if (!existing) return code;
+  }
+  throw new ConvexError("Impossible de générer un code unique, réessayez");
+}
 
 const POLE_CARD_FIELDS = (p: any) =>
   p ? { _id: p._id, name: p.name, color: p.color, icon: p.icon } : null;
@@ -70,6 +93,33 @@ export const get = query({
   },
 });
 
+// Public: turns whatever a scan decoded — the QR's full id (already run
+// through extractEquipmentId client-side) or the barcode's short code —
+// into a real equipment id. Every scan-consuming flow (search-by-scan,
+// add-to-group, record-return) calls this once before touching the id, so
+// they don't each need their own id-vs-shortCode branching.
+export const resolveCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const trimmed = code.trim();
+    if (!trimmed) return null;
+
+    const asId = ctx.db.normalizeId("equipment", trimmed);
+    if (asId) {
+      const item = await ctx.db.get(asId);
+      if (item) return { equipmentId: item._id, name: item.name };
+    }
+
+    const byShortCode = await ctx.db
+      .query("equipment")
+      .withIndex("shortCode", (q) => q.eq("shortCode", trimmed.toUpperCase()))
+      .first();
+    if (byShortCode) return { equipmentId: byShortCode._id, name: byShortCode.name };
+
+    return null;
+  },
+});
+
 export const listTrash = query({
   args: {},
   handler: async (ctx) => {
@@ -104,6 +154,8 @@ export const create = mutation({
       throw new ConvexError("La quantité doit être un nombre positif");
     }
 
+    const shortCode = await generateUniqueShortCode(ctx);
+
     const equipmentId = await ctx.db.insert("equipment", {
       name,
       quantity: Math.round(args.quantity),
@@ -112,6 +164,7 @@ export const create = mutation({
       categoryId: args.categoryId || undefined,
       description: args.description?.trim() || undefined,
       status: "ACTIVE",
+      shortCode,
       createdBy: user._id,
       updatedBy: user._id,
       updatedAt: Date.now(),

@@ -312,6 +312,13 @@ export default defineSchema({
     categoryId: v.optional(v.id("equipmentCategories")),
     description: v.optional(v.string()),
     status: v.union(v.literal("ACTIVE"), v.literal("DELETED")),
+    // Short (6-char) code printed as the barcode instead of the full
+    // 32-char Convex id: a barcode encoding the whole id needs bars too
+    // thin to scan reliably at sticker size (see equipment.ts's
+    // generateUniqueShortCode). Optional because equipment created before
+    // this field existed has none — EquipmentBarcode.tsx falls back to
+    // encoding the raw id for those.
+    shortCode: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
     updatedBy: v.optional(v.id("users")),
     updatedAt: v.number(),
@@ -320,6 +327,7 @@ export default defineSchema({
     .index("status", ["status"])
     .index("poleId", ["poleId"])
     .index("categoryId", ["categoryId"])
+    .index("shortCode", ["shortCode"])
     .searchIndex("search_name", { searchField: "name", filterFields: ["status"] }),
 
   // Free-form, user-grown tags for equipment ("Câbles", "Sonorisation", ...).

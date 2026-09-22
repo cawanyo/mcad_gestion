@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { useMutation } from 'convex/react';
+import { useMutation, useConvex } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { Modal } from '@/components/ui';
-import { ScanLine, Package, Minus, Plus, AlertCircle, CheckCircle2, PackageCheck } from 'lucide-react';
+import { ScanLine, Package, Minus, Plus, AlertCircle, CheckCircle2, PackageCheck, ArrowRight } from 'lucide-react';
 import { useCodeScanner } from './useCodeScanner';
-import { extractEquipmentId } from '@/lib/equipmentCode';
+import { resolveScannedEquipment } from '@/lib/equipmentCode';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { EquipmentGroupItem } from '@/types';
 
@@ -25,9 +25,11 @@ interface ScanLogEntry {
 }
 
 export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onClose, groupId, items }) => {
+  const convex = useConvex();
   const [tab, setTab] = React.useState<'scan' | 'manual'>('scan');
   const [scanLog, setScanLog] = React.useState<ScanLogEntry[]>([]);
   const [scanBusy, setScanBusy] = React.useState(false);
+  const [manualCode, setManualCode] = React.useState('');
   const [pendingEquipmentId, setPendingEquipmentId] = React.useState<string | null>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const scanLogIdRef = React.useRef(0);
@@ -42,33 +44,32 @@ export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onCl
     }
   }, [isOpen]);
 
-  const { error: scanError } = useCodeScanner(videoRef, {
-    active: isOpen && tab === 'scan',
-    onDecode: async (text) => {
-      if (scanBusyRef.current) return;
-      const id = extractEquipmentId(text);
-      if (!id) return;
-      scanBusyRef.current = true;
-      setScanBusy(true);
-      try {
-        const result = await recordReturn({ groupId: groupId as Id<'equipmentGroups'>, equipmentId: id as Id<'equipment'>, delta: 1 });
-        setScanLog((prev) => [
-          { id: scanLogIdRef.current++, text: `${result.equipmentName} : ${result.quantityReturned}/${result.quantityOut} revenus`, ok: true },
-          ...prev.slice(0, 4)
-        ]);
-      } catch (err) {
-        setScanLog((prev) => [
-          { id: scanLogIdRef.current++, text: convexErrorMessage(err, 'Code non reconnu'), ok: false },
-          ...prev.slice(0, 4)
-        ]);
-      } finally {
-        setTimeout(() => {
-          scanBusyRef.current = false;
-          setScanBusy(false);
-        }, 1200);
+  const handleScanned = async (text: string) => {
+    if (scanBusyRef.current) return;
+    scanBusyRef.current = true;
+    setScanBusy(true);
+    try {
+      const resolved = await resolveScannedEquipment(convex, text);
+      if (!resolved) {
+        setScanLog((prev) => [{ id: scanLogIdRef.current++, text: 'Code non reconnu', ok: false }, ...prev.slice(0, 4)]);
+        return;
       }
+      const result = await recordReturn({ groupId: groupId as Id<'equipmentGroups'>, equipmentId: resolved.equipmentId as Id<'equipment'>, delta: 1 });
+      setScanLog((prev) => [
+        { id: scanLogIdRef.current++, text: `${result.equipmentName} : ${result.quantityReturned}/${result.quantityOut} revenus`, ok: true },
+        ...prev.slice(0, 4)
+      ]);
+    } catch (err) {
+      setScanLog((prev) => [{ id: scanLogIdRef.current++, text: convexErrorMessage(err, 'Erreur'), ok: false }, ...prev.slice(0, 4)]);
+    } finally {
+      setTimeout(() => {
+        scanBusyRef.current = false;
+        setScanBusy(false);
+      }, 1200);
     }
-  });
+  };
+
+  const { error: scanError } = useCodeScanner(videoRef, { active: isOpen && tab === 'scan', onDecode: handleScanned });
 
   if (!isOpen) return null;
 
@@ -151,6 +152,32 @@ export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onCl
                 )}
               </div>
             )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (manualCode.trim()) {
+                  handleScanned(manualCode.trim());
+                  setManualCode('');
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <input
+                type="text"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                placeholder="Ou saisir le code du matériel..."
+                className="flex-1 min-w-0 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium uppercase focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              />
+              <button
+                type="submit"
+                disabled={!manualCode.trim()}
+                className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl flex-shrink-0"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
 
             {scanLog.length > 0 && (
               <ul className="space-y-1.5">

@@ -56,6 +56,7 @@ export function adaptEquipment(e: any): Equipment {
     id: e._id,
     name: e.name,
     quantity: e.quantity,
+    shortCode: e.shortCode ?? null,
     photoUrl: e.photoUrl ?? null,
     description: e.description ?? null,
     status: e.status,

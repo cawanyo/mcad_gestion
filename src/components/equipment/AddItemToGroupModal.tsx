@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery, useConvex } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { Modal } from '@/components/ui';
-import { Search, ScanLine, Package, Plus, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Search, ScanLine, Package, Plus, AlertCircle, CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
 import { useCodeScanner } from './useCodeScanner';
-import { extractEquipmentId } from '@/lib/equipmentCode';
+import { resolveScannedEquipment } from '@/lib/equipmentCode';
 import { convexErrorMessage } from '@/lib/convexErrors';
 
 interface AddItemToGroupModalProps {
@@ -23,6 +23,7 @@ interface ScanLogEntry {
 }
 
 export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen, onClose, groupId }) => {
+  const convex = useConvex();
   const [tab, setTab] = React.useState<'manual' | 'scan'>('manual');
   const [search, setSearch] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
@@ -32,11 +33,39 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
   const [loading, setLoading] = React.useState(false);
   const [scanLog, setScanLog] = React.useState<ScanLogEntry[]>([]);
   const [scanBusy, setScanBusy] = React.useState(false);
+  const [manualCode, setManualCode] = React.useState('');
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const scanLogIdRef = React.useRef(0);
   const scanBusyRef = React.useRef(false);
 
   const addItem = useMutation(api.equipmentGroups.addItem);
+
+  const handleScanned = async (text: string) => {
+    if (scanBusyRef.current) return;
+    scanBusyRef.current = true;
+    setScanBusy(true);
+    try {
+      const resolved = await resolveScannedEquipment(convex, text);
+      if (!resolved) {
+        setScanLog((prev) => [{ id: scanLogIdRef.current++, text: 'Code non reconnu', ok: false }, ...prev.slice(0, 4)]);
+        return;
+      }
+      const result = await addItem({ groupId: groupId as Id<'equipmentGroups'>, equipmentId: resolved.equipmentId as Id<'equipment'>, quantity: 1 });
+      setScanLog((prev) => [
+        { id: scanLogIdRef.current++, text: `${result.equipmentName} ajouté (total : ${result.quantityOut})`, ok: true },
+        ...prev.slice(0, 4)
+      ]);
+    } catch (err) {
+      setScanLog((prev) => [{ id: scanLogIdRef.current++, text: convexErrorMessage(err, 'Erreur'), ok: false }, ...prev.slice(0, 4)]);
+    } finally {
+      // Small cooldown so the same steady frame doesn't get decoded and
+      // added a dozen times before the item is physically moved away.
+      setTimeout(() => {
+        scanBusyRef.current = false;
+        setScanBusy(false);
+      }, 1200);
+    }
+  };
 
   React.useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 250);
@@ -56,35 +85,7 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
 
   const resultsRaw = useQuery(api.equipment.list, tab === 'manual' && debouncedSearch ? { search: debouncedSearch } : 'skip');
 
-  const { error: scanError } = useCodeScanner(videoRef, {
-    active: isOpen && tab === 'scan',
-    onDecode: async (text) => {
-      if (scanBusyRef.current) return;
-      const id = extractEquipmentId(text);
-      if (!id) return;
-      scanBusyRef.current = true;
-      setScanBusy(true);
-      try {
-        const result = await addItem({ groupId: groupId as Id<'equipmentGroups'>, equipmentId: id as Id<'equipment'>, quantity: 1 });
-        setScanLog((prev) => [
-          { id: scanLogIdRef.current++, text: `${result.equipmentName} ajouté (total : ${result.quantityOut})`, ok: true },
-          ...prev.slice(0, 4)
-        ]);
-      } catch (err) {
-        setScanLog((prev) => [
-          { id: scanLogIdRef.current++, text: convexErrorMessage(err, 'Code non reconnu'), ok: false },
-          ...prev.slice(0, 4)
-        ]);
-      } finally {
-        // Small cooldown so the same steady frame doesn't get decoded and
-        // added a dozen times before the item is physically moved away.
-        setTimeout(() => {
-          scanBusyRef.current = false;
-          setScanBusy(false);
-        }, 1200);
-      }
-    }
-  });
+  const { error: scanError } = useCodeScanner(videoRef, { active: isOpen && tab === 'scan', onDecode: handleScanned });
 
   if (!isOpen) return null;
 
@@ -238,6 +239,32 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
               </div>
             )}
             <p className="text-[11px] text-slate-400 text-center">Chaque scan ajoute 1 unité — visez l'étiquette suivante pour continuer.</p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (manualCode.trim()) {
+                  handleScanned(manualCode.trim());
+                  setManualCode('');
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <input
+                type="text"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                placeholder="Ou saisir le code du matériel..."
+                className="flex-1 min-w-0 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium uppercase focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              />
+              <button
+                type="submit"
+                disabled={!manualCode.trim()}
+                className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl flex-shrink-0"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
 
             {scanLog.length > 0 && (
               <ul className="space-y-1.5">

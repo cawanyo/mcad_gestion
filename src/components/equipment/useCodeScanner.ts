@@ -32,6 +32,11 @@ export function useCodeScanner(videoRef: React.RefObject<HTMLVideoElement>, { ac
 
         const hints = new Map();
         hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE]);
+        // Trades a bit of scan speed for better detection of a barcode
+        // that's small, printed on a curved surface (wrapped on a cable),
+        // or held at an awkward angle — the actual conditions this scanner
+        // is used in, per user feedback that scans were unreliable.
+        hints.set(DecodeHintType.TRY_HARDER, true);
         const reader = new BrowserMultiFormatReader(hints);
 
         const controls = await reader.decodeFromConstraints(

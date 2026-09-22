@@ -7,6 +7,7 @@ import { Download, Barcode as BarcodeIcon } from 'lucide-react';
 interface EquipmentBarcodeProps {
   equipmentId: string;
   equipmentName: string;
+  shortCode?: string | null;
 }
 
 /**
@@ -14,31 +15,32 @@ interface EquipmentBarcodeProps {
  * distance, or printed small on a sticker wrapped around a cable — which is
  * the actual use case here, per the pole leaders who'll be printing these.
  *
- * Encodes the bare equipment id rather than the full /equipment/[id] URL
- * (unlike the QR code, which keeps the full URL for third-party
- * link-detection): a CODE128 of the whole URL comes out extremely wide
- * relative to its height, which is what made it look stretched. The id
- * alone is short enough to print at a sane ~1:3 height:width ratio, and
- * CodeScannerModal's own decoder already accepts a bare id (see
- * extractEquipmentId in EquipmentManagement.tsx), so nothing in-app
- * changes — only a generic barcode-scanning app loses the "opens the page
- * directly" convenience, which the QR code alongside it still covers.
+ * Encodes the 6-char shortCode rather than the full equipment id: with the
+ * id (32 chars), reliable scanning needed bars thin enough that they came
+ * out unreadable once printed small — a phone camera is much less
+ * forgiving of thin/dense bars than a dedicated laser scanner. The short
+ * code needs a third of the modules, so the bars here can be roughly twice
+ * as thick while the overall label stays about the same size. Falls back
+ * to the id for equipment created before shortCode existed.
  */
-export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId, equipmentName }) => {
+export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId, equipmentName, shortCode }) => {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [dataUrl, setDataUrl] = React.useState<string | null>(null);
   const [renderError, setRenderError] = React.useState(false);
+  const value = shortCode || equipmentId;
 
   React.useEffect(() => {
     if (!canvasRef.current) return;
 
     try {
-      JsBarcode(canvasRef.current, equipmentId, {
+      JsBarcode(canvasRef.current, value, {
         format: 'CODE128',
-        width: 1.5,
-        height: 160,
-        displayValue: false,
-        margin: 8,
+        width: 3,
+        height: 110,
+        displayValue: true,
+        fontSize: 22,
+        textMargin: 6,
+        margin: 20,
         background: '#ffffff',
         lineColor: '#0f172a',
       });
@@ -49,7 +51,7 @@ export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId,
       // practice, but fail soft instead of leaving a blank canvas.
       setRenderError(true);
     }
-  }, [equipmentId]);
+  }, [value]);
 
   const handleDownload = () => {
     if (!dataUrl) return;
