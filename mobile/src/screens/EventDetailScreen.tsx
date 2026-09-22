@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Linking } from 'react-native';
-import { ArrowLeft, MapPin, Clock, Calendar as CalendarIcon, Users, SlidersHorizontal, Phone, CircleCheck } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Clock, Calendar as CalendarIcon, Users, SlidersHorizontal, Phone, CircleCheck, Pencil, Trash2 } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -8,6 +8,7 @@ import { adaptEvent } from '../lib/convexAdapters';
 import { theme } from '../theme';
 import { User } from '../types';
 import { Avatar } from '../components/Avatar';
+import { EventFormScreen } from './EventFormScreen';
 
 interface EventDetailScreenProps {
   currentUser: User;
@@ -32,11 +33,26 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({ currentUse
   const rawEvent = useQuery(api.events.get, { eventId });
   const currentEvent = rawEvent ? adaptEvent(rawEvent) : null;
   const createAssignment = useMutation(api.assignments.create);
+  const removeEvent = useMutation(api.events.remove);
 
   const [selfAssignPoleId, setSelfAssignPoleId] = React.useState<string>('');
   const [selfAssigning, setSelfAssigning] = React.useState(false);
   const [showConfirm, setShowConfirm] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [showEditForm, setShowEditForm] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+
+  // Editing/deleting the event itself — not pole-scoped, matches
+  // convex/events.ts's requireLeaderOrAdmin exactly (unlike
+  // canManageThisEvent below, which is deliberately scoped to
+  // *assignments* on poles the actor leads).
+  const canManageEvent =
+    currentUser.role === 'SUPER_ADMIN' ||
+    currentUser.role === 'DEPARTMENT_LEADER' ||
+    currentUser.role === 'POLE_LEADER' ||
+    currentUser.role === 'CALENDAR_MANAGER' ||
+    ((currentUser.poleLeaderships?.length ?? 0) > 0);
 
   const userPoles = (currentUser.poleMemberships || []).map((pm) => pm.pole).filter(Boolean) as NonNullable<
     User['poleMemberships']
@@ -98,6 +114,18 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({ currentUse
     }
   };
 
+  const handleDeleteEvent = async () => {
+    setDeleting(true);
+    try {
+      await removeEvent({ eventId });
+      setShowDeleteConfirm(false);
+      onBack();
+    } catch (e: any) {
+      setError(e?.message || 'Erreur lors de la suppression');
+      setDeleting(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.headerRow}>
@@ -107,6 +135,16 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({ currentUse
         <View style={styles.eyebrowPill}>
           <Text style={styles.eyebrowPillText}>Fiche Culte</Text>
         </View>
+        {canManageEvent && (
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowEditForm(true)}>
+              <Pencil size={16} color={theme.colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowDeleteConfirm(true)}>
+              <Trash2 size={16} color={theme.colors.statusDangerText} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Main event card */}
@@ -295,6 +333,32 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({ currentUse
           </View>
         </View>
       </Modal>
+
+      {showEditForm && (
+        <Modal visible animationType="slide" onRequestClose={() => setShowEditForm(false)}>
+          <EventFormScreen editingEvent={currentEvent} onClose={() => setShowEditForm(false)} onSaved={() => {}} />
+        </Modal>
+      )}
+
+      <Modal visible={showDeleteConfirm} transparent animationType="fade" onRequestClose={() => setShowDeleteConfirm(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Supprimer ce culte</Text>
+            <Text style={styles.modalBody}>
+              "{currentEvent.title}" sera définitivement supprimé, ainsi que toutes les affectations et validations liées. Cette action est irréversible.
+            </Text>
+            {error ? <Text style={styles.errorBannerText}>{error}</Text> : null}
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                <Text style={styles.modalCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalDeleteBtn} onPress={handleDeleteEvent} disabled={deleting}>
+                <Text style={styles.modalConfirmText}>{deleting ? 'Suppression...' : 'Supprimer'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -304,6 +368,8 @@ const styles = StyleSheet.create({
   centerScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background },
   content: { padding: 16, gap: 14, paddingBottom: 40 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' },
+  headerIconBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: theme.colors.card, alignItems: 'center', justifyContent: 'center', ...theme.shadow.card },
   backBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: theme.colors.card, alignItems: 'center', justifyContent: 'center', ...theme.shadow.card },
   eyebrowPill: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.borderRadius.round },
   eyebrowPillText: { fontSize: 10, fontWeight: '900', color: theme.colors.primaryDark, textTransform: 'uppercase', letterSpacing: 0.4 },
@@ -373,5 +439,6 @@ const styles = StyleSheet.create({
   modalCancelBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: theme.borderRadius.md },
   modalCancelText: { fontSize: 13, fontWeight: '700', color: theme.colors.textSecondary },
   modalConfirmBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.primary },
+  modalDeleteBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.statusDangerText },
   modalConfirmText: { fontSize: 13, fontWeight: '800', color: '#fff' }
 });

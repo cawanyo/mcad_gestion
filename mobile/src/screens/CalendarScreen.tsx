@@ -1,11 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { ChevronLeft, ChevronRight, MapPin, Clock, CalendarDays, Check } from 'lucide-react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
+import { ChevronLeft, ChevronRight, MapPin, Clock, CalendarDays, Check, Plus } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { theme } from '../theme';
 import { User } from '../types';
+import { EventFormScreen } from './EventFormScreen';
 
 interface CalendarScreenProps {
   currentUser: User;
@@ -91,6 +92,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({ currentUser, onO
   const [viewedMonth, setViewedMonth] = React.useState(new Date());
   const [calendarView, setCalendarView] = React.useState<'month' | 'week'>('month');
   const [selectedDateStr, setSelectedDateStr] = React.useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = React.useState(false);
 
   const eventsRaw = useQuery(api.events.list, { month: monthKey(viewedMonth) });
   const loading = eventsRaw === undefined;
@@ -356,12 +358,40 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({ currentUser, onO
           )}
         </ScrollView>
       )}
+
+      {isLeaderOrAdmin && (
+        <TouchableOpacity style={styles.fab} onPress={() => setShowCreateForm(true)} activeOpacity={0.85}>
+          <Plus size={22} color="#fff" />
+        </TouchableOpacity>
+      )}
+
+      {showCreateForm && (
+        <Modal visible animationType="slide" onRequestClose={() => setShowCreateForm(false)}>
+          <EventFormScreen
+            defaultDate={activeDateStr}
+            onClose={() => setShowCreateForm(false)}
+            onSaved={() => {}}
+          />
+        </Modal>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
+  fab: {
+    position: 'absolute',
+    right: 18,
+    bottom: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.shadow.hero
+  },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 8, gap: 8 },
   headerTitleBlock: { flex: 1, minWidth: 0 },
   headerTitle: { fontSize: 16, fontWeight: '900', color: theme.colors.text },
