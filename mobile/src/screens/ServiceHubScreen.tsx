@@ -1,16 +1,20 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
-import { Layers, CheckSquare, Clock, ChevronRight } from 'lucide-react-native';
+import { Layers, CheckSquare, Clock, Package, ChevronRight } from 'lucide-react-native';
 import { theme } from '../theme';
 
 // Landing page for the "Service" bottom-tab hub — mirrors
 // src/components/hubs/ServiceHubView.tsx / SERVICE_GROUP_PATHS in
-// src/lib/navigation.ts: Poles, Checklists, Unavailabilities.
+// src/lib/navigation.ts: Poles, Checklists, Unavailabilities. Equipment
+// isn't part of that web grouping (it's its own standalone module there),
+// but nested here for now since mobile has no dedicated tab for it yet —
+// see EquipmentScreen.tsx.
 export const ServiceHubScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const cards = [
     { key: 'Poles', title: 'Mes Pôles', subtitle: 'Équipes de service et adhésions', icon: Layers },
     { key: 'Checklists', title: 'Checklists', subtitle: 'Guides opérationnels de service', icon: CheckSquare },
-    { key: 'Unavailabilities', title: 'Indisponibilités', subtitle: 'Déclarer mes absences', icon: Clock }
+    { key: 'Unavailabilities', title: 'Indisponibilités', subtitle: 'Déclarer mes absences', icon: Clock },
+    { key: 'Equipment', title: 'Matériel', subtitle: "Répertoire du matériel de l'association", icon: Package }
   ];
 
   return (

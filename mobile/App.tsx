@@ -25,6 +25,7 @@ import { TrainingScreen } from './src/screens/TrainingScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { UnavailabilitiesScreen } from './src/screens/UnavailabilitiesScreen';
+import { EquipmentScreen } from './src/screens/EquipmentScreen';
 import { BirthdaysScreen } from './src/screens/BirthdaysScreen';
 import { StatisticsScreen } from './src/screens/StatisticsScreen';
 import { RequestsScreen } from './src/screens/RequestsScreen';
@@ -106,6 +107,9 @@ function ServiceStackScreen({ currentUser }: { currentUser: User }) {
       </ServiceStack.Screen>
       <ServiceStack.Screen name="Unavailabilities" options={backOnlyHeader}>
         {() => <UnavailabilitiesScreen currentUser={currentUser} />}
+      </ServiceStack.Screen>
+      <ServiceStack.Screen name="Equipment" options={{ ...backOnlyHeader, headerTitle: 'Matériel' }}>
+        {() => <EquipmentScreen />}
       </ServiceStack.Screen>
     </ServiceStack.Navigator>
   );
@@ -208,6 +212,7 @@ function MainTabs({ currentUser }: { currentUser: User }) {
               navigation.navigate('Formations');
             }}
             onOpenUnavailability={() => navigation.navigate('Service', { screen: 'Unavailabilities' })}
+            onOpenEquipment={() => navigation.navigate('Service', { screen: 'Equipment' })}
           />
         )}
       </Tab.Screen>

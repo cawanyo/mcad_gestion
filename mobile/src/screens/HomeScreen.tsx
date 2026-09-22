@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
-import { Calendar as CalendarIcon, Clock, ChevronRight, Layers, GraduationCap, Gift } from 'lucide-react-native';
+import { Calendar as CalendarIcon, Clock, ChevronRight, Layers, GraduationCap, Gift, Package } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../theme';
@@ -11,6 +11,7 @@ interface HomeScreenProps {
   onNavigateTab: (tab: 'accueil' | 'calendrier' | 'poles' | 'checklists' | 'formations') => void;
   onOpenTraining: (module: any) => void;
   onOpenUnavailability?: () => void;
+  onOpenEquipment?: () => void;
 }
 
 function formatDate(iso: string) {
@@ -19,8 +20,11 @@ function formatDate(iso: string) {
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
+function formatDay(ms: number) {
+  return new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigateTab, onOpenTraining, onOpenUnavailability }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigateTab, onOpenTraining, onOpenUnavailability, onOpenEquipment }) => {
   const data = useQuery(api.dashboard.get, {});
   const loading = data === undefined;
   const [refreshing, setRefreshing] = React.useState(false);
@@ -32,6 +36,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigateT
   const upcomingEvents = (data as any)?.upcomingEvents || [];
   const nextService = memberData?.nextService;
   const hasNoPoles = myPoles.length === 0;
+
+  const now = Date.now();
+  const myUpcomingUnavailabilities = (memberData?.myUnavailabilities || []).filter((u: any) => u.endsAt >= now);
 
   const openEventsForVolunteering = upcomingEvents.filter((ev: any) => {
     const isAssigned = (ev.assignments || []).some((a: any) => a.userId === currentUser.id);
@@ -47,12 +54,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigateT
       {/* Welcome banner */}
       <View style={[styles.banner, { backgroundColor: theme.colors.primaryDark }]}>
         <Text style={styles.bannerTitle}>Bonjour, {currentUser.firstName}</Text>
-        {onOpenUnavailability && (
-          <TouchableOpacity style={styles.bannerBtn} onPress={onOpenUnavailability}>
-            <Clock size={14} color="#fff" />
-            <Text style={styles.bannerBtnText}>Déclarer une absence</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.bannerBtnRow}>
+          {onOpenUnavailability && (
+            <TouchableOpacity style={styles.bannerBtn} onPress={onOpenUnavailability}>
+              <Clock size={14} color="#fff" />
+              <Text style={styles.bannerBtnText}>Déclarer une absence</Text>
+            </TouchableOpacity>
+          )}
+          {onOpenEquipment && (
+            <TouchableOpacity style={styles.bannerBtn} onPress={onOpenEquipment}>
+              <Package size={14} color="#fff" />
+              <Text style={styles.bannerBtnText}>Matériel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {hasNoPoles && !loading && (
@@ -144,6 +159,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigateT
         )}
       </View>
 
+      {/* Mes indisponibilités */}
+      <View style={styles.card}>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.cardTitle}>Mes indisponibilités</Text>
+          {onOpenUnavailability && (
+            <TouchableOpacity onPress={onOpenUnavailability}>
+              <Text style={styles.linkBtnText}>Gérer</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {myUpcomingUnavailabilities.length === 0 ? (
+          <TouchableOpacity style={styles.emptyBox} onPress={onOpenUnavailability} disabled={!onOpenUnavailability}>
+            <Text style={styles.muted}>Aucune absence déclarée à venir.</Text>
+          </TouchableOpacity>
+        ) : (
+          myUpcomingUnavailabilities.slice(0, 3).map((u: any) => (
+            <TouchableOpacity key={u._id} style={styles.poleRow} onPress={onOpenUnavailability}>
+              <Clock size={16} color={theme.colors.textMuted} />
+              <Text style={styles.poleRowText}>
+                {formatDay(u.startsAt)} – {formatDay(u.endsAt)}
+                {u.reason ? ` · ${u.reason}` : ''}
+              </Text>
+              <ChevronRight size={16} color={theme.colors.textMuted} />
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
       {/* Formation banner */}
       <TouchableOpacity style={styles.formationBanner} onPress={() => onNavigateTab('formations')}>
         <GraduationCap size={22} color="#c7d2fe" />
@@ -186,6 +229,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 16, paddingBottom: 40 },
   banner: { borderRadius: theme.borderRadius.xl, padding: 20, gap: 12 },
   bannerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  bannerBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   bannerBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: theme.borderRadius.round },
   bannerBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   noPoleBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.colors.primaryDark, borderRadius: theme.borderRadius.xl, padding: 16 },
