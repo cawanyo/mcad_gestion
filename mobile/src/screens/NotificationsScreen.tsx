@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -24,6 +24,11 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ visibl
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      {/* RN's Modal presents in its own native view hierarchy, separate from
+          the app root — the outer SafeAreaProvider's insets don't reliably
+          reach content in here (documented in react-native-safe-area-context's
+          own README), so this needs its own nested provider. */}
+      <SafeAreaProvider>
       <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Notifications</Text>
@@ -61,6 +66,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ visibl
           )}
         </ScrollView>
       </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };

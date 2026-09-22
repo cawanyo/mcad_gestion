@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { X, UserPlus, UserMinus, AlertTriangle } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -46,9 +46,11 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
 
   if (!event) {
     return (
-      <SafeAreaView style={styles.centerScreen} edges={['top', 'bottom']}>
-        <ActivityIndicator color={theme.colors.primary} />
-      </SafeAreaView>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.centerScreen} edges={['top', 'bottom']}>
+          <ActivityIndicator color={theme.colors.primary} />
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
@@ -90,6 +92,10 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
   };
 
   return (
+    // Presented via native-stack's presentation:'modal' (see App.tsx) — a
+    // separate native surface from the app root, same caveat as RN's JS
+    // <Modal>: nest a SafeAreaProvider so insets are measured here too.
+    <SafeAreaProvider>
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle} numberOfLines={1}>Affectations · {event.title}</Text>
@@ -162,6 +168,7 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
         </>
       )}
     </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 

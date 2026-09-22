@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Shield, X, Check, Trash2, ChevronRight } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -30,7 +31,8 @@ const MemberDetailModal: React.FC<{
 
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
-      <View style={styles.screen}>
+      <SafeAreaProvider>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={styles.headerTitle}>{member.firstName} {member.lastName}</Text>
@@ -133,7 +135,8 @@ const MemberDetailModal: React.FC<{
             </View>
           )}
         </ScrollView>
-      </View>
+      </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };

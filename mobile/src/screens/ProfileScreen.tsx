@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useMutation, useAction } from 'convex/react';
@@ -104,6 +104,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
   };
 
   return (
+    // Always shown inside App.tsx's <Modal> now (its only entry point) —
+    // Modal is a separate native view hierarchy, so the outer app-root
+    // SafeAreaProvider's insets don't reliably reach here; nest one.
+    // (react-native-safe-area-context's own README calls this out under
+    // "root of modals and routes when using react-native-screens".)
+    <SafeAreaProvider>
     <SafeAreaView style={styles.container} edges={onClose ? ['top', 'bottom'] : ['bottom']}>
       {onClose && (
         <View style={styles.closeBar}>
@@ -193,6 +199,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
 
       <NotificationsScreen visible={showNotifications} onClose={() => setShowNotifications(false)} />
     </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 

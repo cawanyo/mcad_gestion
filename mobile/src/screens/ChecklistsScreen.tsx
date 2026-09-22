@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Image } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, X, Plus, Trash2, ChevronUp, ChevronDown, Check, ImagePlus, Play } from 'lucide-react-native';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import * as ImagePicker from 'expo-image-picker';
@@ -181,7 +182,12 @@ const ChecklistRunnerScreen: React.FC<{
   };
 
   return (
-    <View style={styles.screen}>
+    // Shown inside a full-screen <Modal> (ChecklistsScreen below) — Modal is
+    // a separate native view hierarchy, so it needs its own SafeAreaProvider
+    // rather than relying on the app-root one (see react-native-safe-area-
+    // context's README, "root of modals").
+    <SafeAreaProvider>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{checklist.title}</Text>
@@ -223,7 +229,8 @@ const ChecklistRunnerScreen: React.FC<{
           </View>
         </>
       )}
-    </View>
+    </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 
@@ -315,7 +322,8 @@ const ChecklistFormScreen: React.FC<{ poleId: Id<'poles'>; editing: any; onClose
   };
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaProvider>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} style={styles.backBtn}><X size={18} color={theme.colors.text} /></TouchableOpacity>
         <Text style={styles.headerTitle}>{editing ? 'Modifier' : 'Nouvelle checklist'}</Text>
@@ -380,7 +388,8 @@ const ChecklistFormScreen: React.FC<{ poleId: Id<'poles'>; editing: any; onClose
           {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{editing ? 'Enregistrer' : 'Créer la checklist'}</Text>}
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 
