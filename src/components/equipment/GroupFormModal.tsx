@@ -14,12 +14,14 @@ interface GroupFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   isTemplate: boolean;
-  onCreated: (group: EquipmentGroup) => void;
+  editingGroup?: EquipmentGroup | null;
+  onSaved: (group: EquipmentGroup) => void;
 }
 
-export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose, isTemplate, onCreated }) => {
+export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose, isTemplate, editingGroup, onSaved }) => {
   const polesRaw = useQuery(api.poles.list, isOpen ? {} : 'skip');
   const createGroup = useMutation(api.equipmentGroups.create);
+  const updateGroup = useMutation(api.equipmentGroups.update);
 
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -27,14 +29,26 @@ export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose,
   const [loading, setLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
+  const wasOpenRef = React.useRef(false);
   React.useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return;
+    }
+    if (wasOpenRef.current) return;
+    wasOpenRef.current = true;
+    setErrorMessage(null);
+
+    if (editingGroup) {
+      setName(editingGroup.name);
+      setDescription(editingGroup.description || '');
+      setPoleId(editingGroup.poleId || '');
+    } else {
       setName('');
       setDescription('');
       setPoleId('');
-      setErrorMessage(null);
     }
-  }, [isOpen]);
+  }, [isOpen, editingGroup]);
 
   if (!isOpen) return null;
 
@@ -47,27 +61,44 @@ export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose,
     setLoading(true);
     setErrorMessage(null);
     try {
-      const result = await createGroup({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        isTemplate,
-        poleId: (poleId || undefined) as Id<'poles'> | undefined
-      });
-      onCreated(adaptEquipmentGroup(result));
+      const result = editingGroup
+        ? await updateGroup({
+            groupId: editingGroup.id as Id<'equipmentGroups'>,
+            name: name.trim(),
+            // null (not undefined) clears the field — see equipmentGroups.ts's
+            // update handler, same convention as EquipmentFormModal.
+            description: (description.trim() || null) as string | null,
+            poleId: (poleId || null) as Id<'poles'> | null
+          })
+        : await createGroup({
+            name: name.trim(),
+            description: description.trim() || undefined,
+            isTemplate,
+            poleId: (poleId || undefined) as Id<'poles'> | undefined
+          });
+      onSaved(adaptEquipmentGroup(result));
       onClose();
     } catch (err) {
-      setErrorMessage(convexErrorMessage(err, 'Erreur lors de la création'));
+      setErrorMessage(convexErrorMessage(err, editingGroup ? 'Erreur lors de la mise à jour' : 'Erreur lors de la création'));
     } finally {
       setLoading(false);
     }
   };
 
+  const label = isTemplate ? 'kit' : 'sortie';
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isTemplate ? 'Nouveau kit' : 'Nouvelle sortie'}
-      subtitle={isTemplate ? 'Un modèle réutilisable de matériel' : "Un lot de matériel qui part, à retourner ensuite"}
+      title={editingGroup ? `Modifier le ${label}` : isTemplate ? 'Nouveau kit' : 'Nouvelle sortie'}
+      subtitle={
+        editingGroup
+          ? undefined
+          : isTemplate
+          ? 'Un modèle réutilisable de matériel'
+          : "Un lot de matériel qui part, à retourner ensuite"
+      }
       icon={<Boxes className="w-4 h-4 text-white" />}
       maxWidth="md"
     >
@@ -133,7 +164,7 @@ export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose,
             className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 flex items-center gap-1.5"
           >
             {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            <span>Créer</span>
+            <span>{editingGroup ? 'Enregistrer' : 'Créer'}</span>
           </button>
         </div>
       </form>

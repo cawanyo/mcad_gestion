@@ -107,7 +107,7 @@ export const GroupsManagement: React.FC = () => {
           isOpen={showFormModal}
           onClose={() => setShowFormModal(false)}
           isTemplate={tab === 'kits'}
-          onCreated={(group) => router.push(`/equipment/groups/${group.id}`)}
+          onSaved={(group) => router.push(`/equipment/groups/${group.id}`)}
         />
       )}
     </div>

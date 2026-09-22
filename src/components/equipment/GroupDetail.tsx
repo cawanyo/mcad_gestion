@@ -10,6 +10,7 @@ import { Id } from '../../../convex/_generated/dataModel';
 import { adaptEquipmentGroup } from '@/lib/convexAdapters';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { ConfirmModal } from '@/components/ui';
+import { GroupFormModal } from './GroupFormModal';
 import {
   Boxes,
   Package,
@@ -20,6 +21,7 @@ import {
   PackageX,
   Layers,
   Copy,
+  Pencil,
   X,
   Loader2
 } from 'lucide-react';
@@ -43,6 +45,7 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
 
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [showReturnModal, setShowReturnModal] = React.useState(false);
+  const [showEditModal, setShowEditModal] = React.useState(false);
   const [confirmDeleteGroup, setConfirmDeleteGroup] = React.useState(false);
   const [confirmClose, setConfirmClose] = React.useState(false);
   const [removingItemId, setRemovingItemId] = React.useState<string | null>(null);
@@ -221,13 +224,22 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
               )
             )}
 
-            <button
-              onClick={() => setConfirmDeleteGroup(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold shadow-xs transition-colors ml-auto"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Supprimer
-            </button>
+            <div className="flex items-center gap-2.5 ml-auto">
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold shadow-xs transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Modifier
+              </button>
+              <button
+                onClick={() => setConfirmDeleteGroup(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold shadow-xs transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Supprimer
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -271,6 +283,14 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
       {showReturnModal && (
         <ReturnCheckModal isOpen={showReturnModal} onClose={() => setShowReturnModal(false)} groupId={group.id} items={items} />
       )}
+
+      <GroupFormModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        isTemplate={group.isTemplate}
+        editingGroup={group}
+        onSaved={() => {}}
+      />
 
       <ConfirmModal
         isOpen={confirmDeleteGroup}
