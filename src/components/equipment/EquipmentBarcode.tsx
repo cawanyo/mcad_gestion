@@ -22,6 +22,11 @@ interface EquipmentBarcodeProps {
  * code needs a third of the modules, so the bars here can be roughly twice
  * as thick while the overall label stays about the same size. Falls back
  * to the id for equipment created before shortCode existed.
+ *
+ * width/height/margin are tuned to land close to a 1:3 height:width ratio
+ * on the rendered canvas (bars + quiet zone + the printed code text below
+ * them) — short enough not to look stretched, without going back to bars
+ * thin enough to be hard to scan.
  */
 export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId, equipmentName, shortCode }) => {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -36,11 +41,11 @@ export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId,
       JsBarcode(canvasRef.current, value, {
         format: 'CODE128',
         width: 3,
-        height: 110,
+        height: 56,
         displayValue: true,
-        fontSize: 22,
-        textMargin: 6,
-        margin: 20,
+        fontSize: 20,
+        textMargin: 5,
+        margin: 15,
         background: '#ffffff',
         lineColor: '#0f172a',
       });
