@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Package, Layers } from 'lucide-react';
+import { Package, Layers, Tag } from 'lucide-react';
 import { Equipment } from '@/types';
 import { optimizedImageUrl } from '@/lib/image-url';
 
@@ -31,14 +31,23 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({ equipment }) => {
       <div className="p-4 flex-1 flex flex-col gap-1.5">
         <h3 className="text-sm font-bold text-slate-900 truncate">{equipment.name}</h3>
         <p className="text-xs text-slate-500 font-medium">Quantité : {equipment.quantity}</p>
-        {equipment.pole && (
-          <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold w-fit"
-            style={{ backgroundColor: `${equipment.pole.color}1A`, color: equipment.pole.color }}
-          >
-            <Layers className="w-2.5 h-2.5" />
-            {equipment.pole.name}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-1 mt-1">
+          {equipment.category && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 w-fit">
+              <Tag className="w-2.5 h-2.5" />
+              {equipment.category.name}
+            </span>
+          )}
+          {equipment.pole && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold w-fit"
+              style={{ backgroundColor: `${equipment.pole.color}1A`, color: equipment.pole.color }}
+            >
+              <Layers className="w-2.5 h-2.5" />
+              {equipment.pole.name}
+            </span>
+          )}
+        </div>
       </div>
     </Link>
   );

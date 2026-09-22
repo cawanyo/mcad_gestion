@@ -5,7 +5,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { Modal } from '@/components/ui';
-import { Package, Upload, X, Loader2, AlertCircle } from 'lucide-react';
+import { Package, Upload, X, Loader2, AlertCircle, Check } from 'lucide-react';
 import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { adaptEquipment } from '@/lib/convexAdapters';
@@ -25,12 +25,18 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
   onSaved
 }) => {
   const polesRaw = useQuery(api.poles.list, isOpen ? {} : 'skip');
+  const categoriesRaw = useQuery(api.equipmentCategories.list, isOpen ? {} : 'skip');
   const createEquipment = useMutation(api.equipment.create);
   const updateEquipment = useMutation(api.equipment.update);
+  const createCategory = useMutation(api.equipmentCategories.create);
 
   const [name, setName] = React.useState('');
   const [quantity, setQuantity] = React.useState('1');
   const [poleId, setPoleId] = React.useState('');
+  const [categoryId, setCategoryId] = React.useState('');
+  const [isAddingCategory, setIsAddingCategory] = React.useState(false);
+  const [newCategoryName, setNewCategoryName] = React.useState('');
+  const [creatingCategory, setCreatingCategory] = React.useState(false);
   const [description, setDescription] = React.useState('');
   const [photoUrl, setPhotoUrl] = React.useState('');
   const [uploadProgress, setUploadProgress] = React.useState<UploadProgressInfo | null>(null);
@@ -52,15 +58,19 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
       setName(editingEquipment.name);
       setQuantity(String(editingEquipment.quantity));
       setPoleId(editingEquipment.poleId || '');
+      setCategoryId(editingEquipment.categoryId || '');
       setDescription(editingEquipment.description || '');
       setPhotoUrl(editingEquipment.photoUrl || '');
     } else {
       setName('');
       setQuantity('1');
       setPoleId('');
+      setCategoryId('');
       setDescription('');
       setPhotoUrl('');
     }
+    setIsAddingCategory(false);
+    setNewCategoryName('');
   }, [isOpen, editingEquipment]);
 
   if (!isOpen) return null;
@@ -81,6 +91,23 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
     } finally {
       setUploadProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    setCreatingCategory(true);
+    setErrorMessage(null);
+    try {
+      const category = await createCategory({ name: trimmed });
+      if (category) setCategoryId(category._id);
+      setNewCategoryName('');
+      setIsAddingCategory(false);
+    } catch (err) {
+      setErrorMessage(convexErrorMessage(err, 'Erreur lors de la création de la catégorie'));
+    } finally {
+      setCreatingCategory(false);
     }
   };
 
@@ -109,6 +136,7 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
         quantity: parsedQuantity,
         photoUrl: (photoUrl || null) as string | null,
         poleId: (poleId || null) as Id<'poles'> | null,
+        categoryId: (categoryId || null) as Id<'equipmentCategories'> | null,
         description: (description.trim() || null) as string | null
       };
 
@@ -155,7 +183,7 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">Quantité *</label>
             <input
@@ -182,6 +210,66 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1">Catégorie</label>
+            {isAddingCategory ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  autoFocus
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreateCategory();
+                    }
+                  }}
+                  placeholder="Nom..."
+                  className="flex-1 min-w-0 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateCategory}
+                  disabled={creatingCategory || !newCategoryName.trim()}
+                  className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl flex-shrink-0"
+                >
+                  {creatingCategory ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingCategory(false);
+                    setNewCategoryName('');
+                  }}
+                  disabled={creatingCategory}
+                  className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl flex-shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <select
+                value={categoryId}
+                onChange={(e) => {
+                  if (e.target.value === '__new__') {
+                    setIsAddingCategory(true);
+                  } else {
+                    setCategoryId(e.target.value);
+                  }
+                }}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              >
+                <option value="">Aucune</option>
+                {(categoriesRaw || []).map((c: any) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+                <option value="__new__">+ Nouvelle catégorie...</option>
+              </select>
+            )}
           </div>
         </div>
 

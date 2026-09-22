@@ -309,6 +309,7 @@ export default defineSchema({
     quantity: v.number(),
     photoUrl: v.optional(v.string()),
     poleId: v.optional(v.id("poles")),
+    categoryId: v.optional(v.id("equipmentCategories")),
     description: v.optional(v.string()),
     status: v.union(v.literal("ACTIVE"), v.literal("DELETED")),
     createdBy: v.optional(v.id("users")),
@@ -318,5 +319,15 @@ export default defineSchema({
   })
     .index("status", ["status"])
     .index("poleId", ["poleId"])
+    .index("categoryId", ["categoryId"])
     .searchIndex("search_name", { searchField: "name", filterFields: ["status"] }),
+
+  // Free-form, user-grown tags for equipment ("Câbles", "Sonorisation", ...).
+  // Deliberately flat/uncategorized-by-department — equipment.ts dedups by
+  // trimmed, case-insensitive name on create instead of relying on a schema
+  // uniqueness constraint (Convex has none).
+  equipmentCategories: defineTable({
+    name: v.string(),
+    updatedAt: v.number(),
+  }),
 });

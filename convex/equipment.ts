@@ -5,17 +5,21 @@ import { requireAuth } from "./lib/auth";
 const POLE_CARD_FIELDS = (p: any) =>
   p ? { _id: p._id, name: p.name, color: p.color, icon: p.icon } : null;
 
+const CATEGORY_CARD_FIELDS = (c: any) => (c ? { _id: c._id, name: c.name } : null);
+
 const USER_CARD_FIELDS = (u: any) =>
   u ? { _id: u._id, firstName: u.firstName, lastName: u.lastName, avatar: u.avatar } : null;
 
 async function withRelations(ctx: any, item: any) {
-  const [pole, createdByUser] = await Promise.all([
+  const [pole, category, createdByUser] = await Promise.all([
     item.poleId ? ctx.db.get(item.poleId) : null,
+    item.categoryId ? ctx.db.get(item.categoryId) : null,
     item.createdBy ? ctx.db.get(item.createdBy) : null,
   ]);
   return {
     ...item,
     pole: POLE_CARD_FIELDS(pole),
+    category: CATEGORY_CARD_FIELDS(category),
     createdByUser: USER_CARD_FIELDS(createdByUser),
   };
 }
@@ -23,8 +27,12 @@ async function withRelations(ctx: any, item: any) {
 // Public: no auth required. The equipment list/detail pages are reachable
 // without being logged in (dashboard button, or a direct/QR link).
 export const list = query({
-  args: { search: v.optional(v.string()), poleId: v.optional(v.id("poles")) },
-  handler: async (ctx, { search, poleId }) => {
+  args: {
+    search: v.optional(v.string()),
+    poleId: v.optional(v.id("poles")),
+    categoryId: v.optional(v.id("equipmentCategories")),
+  },
+  handler: async (ctx, { search, poleId, categoryId }) => {
     const trimmed = search?.trim();
     let items = trimmed
       ? await ctx.db
@@ -38,6 +46,7 @@ export const list = query({
           .collect();
 
     if (poleId) items = items.filter((i) => i.poleId === poleId);
+    if (categoryId) items = items.filter((i) => i.categoryId === categoryId);
 
     return await Promise.all(items.map((item) => withRelations(ctx, item)));
   },
@@ -83,6 +92,7 @@ export const create = mutation({
     // the comment on update's args for why update needs it.
     photoUrl: v.optional(v.union(v.string(), v.null())),
     poleId: v.optional(v.union(v.id("poles"), v.null())),
+    categoryId: v.optional(v.union(v.id("equipmentCategories"), v.null())),
     description: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
@@ -99,6 +109,7 @@ export const create = mutation({
       quantity: Math.round(args.quantity),
       photoUrl: args.photoUrl || undefined,
       poleId: args.poleId || undefined,
+      categoryId: args.categoryId || undefined,
       description: args.description?.trim() || undefined,
       status: "ACTIVE",
       createdBy: user._id,
@@ -123,9 +134,10 @@ export const update = mutation({
     // below would never see an intentional clear, only ever "not sent".
     photoUrl: v.optional(v.union(v.string(), v.null())),
     poleId: v.optional(v.union(v.id("poles"), v.null())),
+    categoryId: v.optional(v.union(v.id("equipmentCategories"), v.null())),
     description: v.optional(v.union(v.string(), v.null())),
   },
-  handler: async (ctx, { equipmentId, name, quantity, photoUrl, poleId, description }) => {
+  handler: async (ctx, { equipmentId, name, quantity, photoUrl, poleId, categoryId, description }) => {
     const user = await requireAuth(ctx);
 
     const existing = await ctx.db.get(equipmentId);
@@ -147,6 +159,7 @@ export const update = mutation({
     }
     if (photoUrl !== undefined) patch.photoUrl = photoUrl || undefined;
     if (poleId !== undefined) patch.poleId = poleId || undefined;
+    if (categoryId !== undefined) patch.categoryId = categoryId || undefined;
     if (description !== undefined) patch.description = description?.trim() || undefined;
 
     await ctx.db.patch(equipmentId, patch);

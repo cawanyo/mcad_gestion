@@ -10,7 +10,7 @@ import { adaptEquipment } from '@/lib/convexAdapters';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { ConfirmModal } from '@/components/ui';
 import { EquipmentFormModal } from './EquipmentFormModal';
-import { EquipmentQrCode } from './EquipmentQrCode';
+import { EquipmentBarcode } from './EquipmentBarcode';
 import {
   Package,
   Layers,
@@ -19,7 +19,8 @@ import {
   ArrowLeft,
   AlertTriangle,
   User as UserIcon,
-  Clock
+  Clock,
+  Tag
 } from 'lucide-react';
 import { optimizedImageUrl } from '@/lib/image-url';
 
@@ -114,15 +115,23 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipmentId })
                 <h1 className="text-xl font-bold text-slate-900 break-words">{item.name}</h1>
                 <p className="text-sm text-slate-500 font-medium mt-0.5">Quantité : {item.quantity}</p>
               </div>
-              {item.pole && (
-                <span
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0"
-                  style={{ backgroundColor: `${item.pole.color}1A`, color: item.pole.color }}
-                >
-                  <Layers className="w-3 h-3" />
-                  {item.pole.name}
-                </span>
-              )}
+              <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0">
+                {item.category && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+                    <Tag className="w-3 h-3" />
+                    {item.category.name}
+                  </span>
+                )}
+                {item.pole && (
+                  <span
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+                    style={{ backgroundColor: `${item.pole.color}1A`, color: item.pole.color }}
+                  >
+                    <Layers className="w-3 h-3" />
+                    {item.pole.name}
+                  </span>
+                )}
+              </div>
             </div>
 
             {item.description && (
@@ -167,7 +176,7 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipmentId })
 
         {!isDeleted && (
           <div>
-            <EquipmentQrCode equipmentId={item.id} equipmentName={item.name} />
+            <EquipmentBarcode equipmentId={item.id} equipmentName={item.name} />
           </div>
         )}
       </div>

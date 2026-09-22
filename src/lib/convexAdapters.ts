@@ -5,7 +5,7 @@
 // adapters translate Convex query results into those existing shapes at the
 // point they're consumed, so migrated pages keep working with unmigrated
 // sibling components/types without a repo-wide rename.
-import type { Event, Pole, User, Assignment, EventRequirement, Checklist, ChecklistStep, Equipment } from '@/types';
+import type { Event, Pole, User, Assignment, EventRequirement, Checklist, ChecklistStep, Equipment, EquipmentCategory } from '@/types';
 
 const iso = (ms: number | null | undefined): string => (ms ? new Date(ms).toISOString() : '');
 
@@ -45,6 +45,11 @@ export function adaptPole(p: any): Pole {
   } as Pole;
 }
 
+export function adaptEquipmentCategory(c: any): EquipmentCategory {
+  if (!c) return c;
+  return { id: c._id, name: c.name } as EquipmentCategory;
+}
+
 export function adaptEquipment(e: any): Equipment {
   if (!e) return e;
   return {
@@ -58,6 +63,8 @@ export function adaptEquipment(e: any): Equipment {
     deletedAt: e.deletedAt ? iso(e.deletedAt) : null,
     poleId: e.poleId ?? null,
     pole: e.pole ? { id: e.pole._id, name: e.pole.name, color: e.pole.color, icon: e.pole.icon } : null,
+    categoryId: e.categoryId ?? null,
+    category: e.category ? adaptEquipmentCategory(e.category) : null,
     createdByUser: e.createdByUser
       ? {
           id: e.createdByUser._id,
