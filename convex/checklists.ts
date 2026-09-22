@@ -1,7 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { Doc } from "./_generated/dataModel";
-import { requireAuth, requireLeaderOrAdmin } from "./lib/auth";
+import { requireAuth, requirePoleLeaderOrAdmin } from "./lib/auth";
 
 const STEP_INPUT = v.object({
   title: v.string(),
@@ -80,7 +80,7 @@ export const create = mutation({
     steps: v.optional(v.array(STEP_INPUT)),
   },
   handler: async (ctx, { poleId, title, description, steps }) => {
-    await requireLeaderOrAdmin(ctx);
+    await requirePoleLeaderOrAdmin(ctx, poleId);
 
     const trimmedTitle = title.trim();
     if (!poleId || !trimmedTitle) throw new ConvexError("Pôle et titre requis");
@@ -127,8 +127,10 @@ export const update = mutation({
     dissociateEventId: v.optional(v.id("events")),
   },
   handler: async (ctx, args) => {
-    await requireLeaderOrAdmin(ctx);
     const { checklistId } = args;
+    const existingChecklist = await ctx.db.get(checklistId);
+    if (!existingChecklist) throw new ConvexError("Checklist introuvable");
+    await requirePoleLeaderOrAdmin(ctx, existingChecklist.poleId);
 
     if (args.associateEventId) {
       const existing = await ctx.db
@@ -181,10 +183,9 @@ export const update = mutation({
 export const remove = mutation({
   args: { checklistId: v.id("checklists") },
   handler: async (ctx, { checklistId }) => {
-    await requireLeaderOrAdmin(ctx);
-
     const checklist = await ctx.db.get(checklistId);
     if (!checklist) throw new ConvexError("Checklist introuvable");
+    await requirePoleLeaderOrAdmin(ctx, checklist.poleId);
 
     const [eventChecklists, steps, executions] = await Promise.all([
       ctx.db.query("eventChecklists").withIndex("checklistId", (q) => q.eq("checklistId", checklistId)).collect(),
