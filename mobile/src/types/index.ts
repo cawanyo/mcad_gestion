@@ -48,6 +48,8 @@ export interface Event {
   endsAt: string;
   location?: string;
   status: string;
+  organizerPoleId?: string;
+  organizerPole?: Pole;
   requirements?: {
     id: string;
     poleId: string;

@@ -61,6 +61,8 @@ export function adaptEvent(e: any): Event {
     endsAt: iso(e.endsAt),
     location: e.location,
     status: e.status,
+    organizerPoleId: e.organizerPoleId ?? undefined,
+    organizerPole: e.organizerPole ? adaptPole(e.organizerPole) : undefined,
     requirements: (e.requirements || []).map(adaptRequirement),
     assignments: (e.assignments || []).map(adaptAssignment),
   } as Event;
