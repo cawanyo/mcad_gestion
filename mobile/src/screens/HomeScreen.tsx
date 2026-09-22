@@ -8,7 +8,7 @@ import { User } from '../types';
 
 interface HomeScreenProps {
   currentUser: User;
-  onNavigateTab: (tab: 'accueil' | 'calendrier' | 'poles' | 'checklists' | 'formations' | 'profil') => void;
+  onNavigateTab: (tab: 'accueil' | 'calendrier' | 'poles' | 'checklists' | 'formations') => void;
   onOpenTraining: (module: any) => void;
   onOpenUnavailability?: () => void;
 }

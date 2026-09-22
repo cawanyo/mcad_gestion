@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -11,9 +12,10 @@ interface NotificationsScreenProps {
 }
 
 // Web has no dedicated hub for notifications either (a bell icon in the
-// shared header, not a nav item) — presented here as a modal reachable from
-// Profile/Settings rather than adding a 7th bottom tab or restructuring the
-// Accueil tab into a stack just for this.
+// shared header, not a nav item) — presented here the same way, as a modal:
+// opened from TopHeader's bell button (App.tsx) and, redundantly but
+// harmlessly, from Profile's own menu — rather than adding a bottom tab or
+// restructuring the Accueil tab into a stack just for this.
 export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ visible, onClose }) => {
   const data = useQuery(api.notifications.list, visible ? {} : 'skip');
   const loading = data === undefined;
@@ -22,7 +24,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ visibl
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Notifications</Text>
           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
@@ -58,14 +60,14 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ visibl
             ))
           )}
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 50, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   headerTitle: { fontSize: 18, fontWeight: '900', color: theme.colors.text },
   markAll: { fontSize: 11, fontWeight: '800', color: theme.colors.primary },
   close: { fontSize: 12, fontWeight: '800', color: theme.colors.textSecondary },

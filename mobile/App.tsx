@@ -1,10 +1,11 @@
 import React from 'react';
+import { Modal } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, Calendar, GraduationCap, HandHeart, Sparkles, ShieldCheck, User as UserIcon } from 'lucide-react-native';
+import { Home, Calendar, GraduationCap, HandHeart, Sparkles, ShieldCheck } from 'lucide-react-native';
 import { useConvexAuth, useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { ConvexClientProvider } from './src/convex/ConvexClientProvider';
@@ -12,6 +13,7 @@ import { api } from '../convex/_generated/api';
 import { theme } from './src/theme';
 import { User } from './src/types';
 import { derivePoleMemberships } from './src/lib/convexAdapters';
+import { TopHeader } from './src/components/TopHeader';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { CalendarScreen } from './src/screens/CalendarScreen';
@@ -21,6 +23,7 @@ import { PolesScreen } from './src/screens/PolesScreen';
 import { ChecklistsScreen } from './src/screens/ChecklistsScreen';
 import { TrainingScreen } from './src/screens/TrainingScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { UnavailabilitiesScreen } from './src/screens/UnavailabilitiesScreen';
 import { BirthdaysScreen } from './src/screens/BirthdaysScreen';
 import { StatisticsScreen } from './src/screens/StatisticsScreen';
@@ -153,12 +156,28 @@ function LeaderStackScreen({ currentUser }: { currentUser: User }) {
 function MainTabs({ currentUser }: { currentUser: User }) {
   const { signOut } = useAuthActions();
   const [trainingToOpen, setTrainingToOpen] = React.useState<any>(null);
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const [showProfile, setShowProfile] = React.useState(false);
   const leader = isLeaderOrAdmin(currentUser);
 
+  // Powers TopHeader's bell badge — matches how the web app's AppShellLayout
+  // sources unreadNotificationsCount from the same query.
+  const notificationsData = useQuery(api.notifications.list, {});
+  const unreadCount = (notificationsData as any)?.unreadCount ?? 0;
+
   return (
+    <>
     <Tab.Navigator
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        header: () => (
+          <TopHeader
+            currentUser={currentUser}
+            unreadCount={unreadCount}
+            onPressNotifications={() => setShowNotifications(true)}
+            onPressProfile={() => setShowProfile(true)}
+          />
+        ),
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: { borderTopColor: theme.colors.border, backgroundColor: theme.colors.card }
@@ -180,8 +199,7 @@ function MainTabs({ currentUser }: { currentUser: User }) {
               const routeByTab: Record<string, string> = {
                 accueil: 'Accueil',
                 calendrier: 'Calendrier',
-                formations: 'Formations',
-                profil: 'Profil'
+                formations: 'Formations'
               };
               navigation.navigate(routeByTab[tab] ?? 'Accueil');
             }}
@@ -236,14 +254,17 @@ function MainTabs({ currentUser }: { currentUser: User }) {
           {() => <LeaderStackScreen currentUser={currentUser} />}
         </Tab.Screen>
       )}
-
-      <Tab.Screen
-        name="Profil"
-        options={{ tabBarIcon: ({ color, size }) => <UserIcon color={color} size={size} /> }}
-      >
-        {() => <ProfileScreen currentUser={currentUser} onLogout={() => signOut()} />}
-      </Tab.Screen>
     </Tab.Navigator>
+
+    {/* Profile has no bottom tab of its own anymore — TopHeader's avatar
+        button is the only entry point, opened as a modal (same pattern as
+        NotificationsScreen below) rather than a hidden stack route. */}
+    <Modal visible={showProfile} animationType="slide" onRequestClose={() => setShowProfile(false)}>
+      <ProfileScreen currentUser={currentUser} onLogout={() => signOut()} onClose={() => setShowProfile(false)} />
+    </Modal>
+
+    <NotificationsScreen visible={showNotifications} onClose={() => setShowNotifications(false)} />
+    </>
   );
 }
 

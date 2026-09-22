@@ -1,5 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useMutation, useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -7,10 +9,16 @@ import { theme } from '../theme';
 import { User } from '../types';
 import { uploadPickedMedia } from '../lib/upload';
 import { NotificationsScreen } from './NotificationsScreen';
+import { Avatar } from '../components/Avatar';
 
 interface ProfileScreenProps {
   currentUser: User | null;
   onLogout: () => void;
+  // Set when shown as a modal from TopHeader's avatar button (its only
+  // entry point now — Profile no longer has its own bottom tab) — renders
+  // a close button up top. Left optional in case something ever renders
+  // this screen without a dismiss affordance of its own.
+  onClose?: () => void;
 }
 
 const roleLabel = (role?: string) => {
@@ -26,7 +34,7 @@ const roleLabel = (role?: string) => {
 // Settings/Profile — mirrors src/components/settings/SettingsView.tsx.
 // Unavailabilities/Poles/Birthdays moved out into their own screens
 // (reachable from the Service/Vie MCAD hubs) rather than being modals here.
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLogout }) => {
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLogout, onClose }) => {
   const updateProfile = useMutation(api.members.updateProfile);
   const changePassword = useAction(api.members.changePassword);
   const getUploadSignature = useAction(api.media.getUploadSignature);
@@ -96,16 +104,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.container} edges={onClose ? ['top', 'bottom'] : ['bottom']}>
+      {onClose && (
+        <View style={styles.closeBar}>
+          <Text style={styles.closeBarTitle}>Profil</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <X size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
+      <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.profileCard}>
-        {currentUser?.avatar ? (
-          <Image source={{ uri: currentUser.avatar }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{currentUser?.firstName?.[0] || ''}{currentUser?.lastName?.[0] || ''}</Text>
-          </View>
-        )}
-        <View style={styles.roleBadge}>
+        <Avatar uri={currentUser?.avatar} firstName={currentUser?.firstName} lastName={currentUser?.lastName} size={64} />
+        <View style={[styles.roleBadge, { marginTop: 10 }]}>
           <Text style={styles.roleBadgeText}>{roleLabel(currentUser?.role)}</Text>
         </View>
         <Text style={styles.userName}>{currentUser?.firstName} {currentUser?.lastName}</Text>
@@ -178,19 +189,28 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ currentUser, onLog
           </View>
         </View>
       </Modal>
+      </ScrollView>
 
       <NotificationsScreen visible={showNotifications} onClose={() => setShowNotifications(false)} />
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
+  closeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border
+  },
+  closeBarTitle: { fontSize: 15, fontWeight: '900', color: theme.colors.text },
   content: { padding: 16, paddingBottom: 40 },
   profileCard: { backgroundColor: theme.colors.card, borderRadius: 24, padding: 20, alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: theme.colors.borderDark },
-  avatarCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  avatarImage: { width: 64, height: 64, borderRadius: 32, marginBottom: 10 },
-  avatarText: { color: '#fff', fontSize: 22, fontWeight: '900' },
   roleBadge: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10, marginBottom: 6 },
   roleBadgeText: { color: theme.colors.primaryDark, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   userName: { fontSize: 18, fontWeight: '900', color: theme.colors.text },
