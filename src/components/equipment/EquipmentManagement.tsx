@@ -6,21 +6,21 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useConvexAuth } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
-import { Search, ScanBarcode, Plus, Package, LogIn, X } from 'lucide-react';
+import { Search, ScanLine, Plus, Package, LogIn, X } from 'lucide-react';
 import { EmptyState } from '@/components/ui';
 import { EquipmentCard } from './EquipmentCard';
 import { EquipmentFormModal } from './EquipmentFormModal';
 import { adaptEquipment } from '@/lib/convexAdapters';
 import Link from 'next/link';
 
-const BarcodeScannerModal = dynamic(
-  () => import('./BarcodeScannerModal').then((m) => m.BarcodeScannerModal),
+const CodeScannerModal = dynamic(
+  () => import('./CodeScannerModal').then((m) => m.CodeScannerModal),
   { ssr: false }
 );
 
 // Accepts either an already-scanned bare equipment id, or a full URL
-// pointing at /equipment/<id> (what the printed barcode encodes — see
-// EquipmentBarcode.tsx).
+// pointing at /equipment/<id> (what a printed QR code or barcode encodes —
+// see EquipmentQrCode.tsx / EquipmentBarcode.tsx).
 function extractEquipmentId(scanned: string): string | null {
   const trimmed = scanned.trim();
   const match = trimmed.match(/\/equipment\/([a-zA-Z0-9]+)\/?$/);
@@ -61,7 +61,7 @@ export const EquipmentManagement: React.FC = () => {
       setShowScanner(false);
       router.push(`/equipment/${id}`);
     } else {
-      setScanError("Code-barres non reconnu. Réessayez ou utilisez la recherche par nom.");
+      setScanError("Code non reconnu. Réessayez ou utilisez la recherche par nom.");
     }
   };
 
@@ -115,8 +115,8 @@ export const EquipmentManagement: React.FC = () => {
           }}
           className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold shadow-xs transition-colors flex-shrink-0"
         >
-          <ScanBarcode className="w-4 h-4 text-indigo-600" />
-          <span>Scanner un code-barres</span>
+          <ScanLine className="w-4 h-4 text-indigo-600" />
+          <span>Scanner un code</span>
         </button>
       </div>
 
@@ -186,7 +186,7 @@ export const EquipmentManagement: React.FC = () => {
         </div>
       )}
 
-      <BarcodeScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} onDecode={handleDecode} />
+      <CodeScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} onDecode={handleDecode} />
 
       {isAuthenticated && (
         <EquipmentFormModal

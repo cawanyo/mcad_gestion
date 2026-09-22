@@ -2,23 +2,26 @@
 
 import React from 'react';
 import { Modal } from '@/components/ui';
-import { ScanBarcode, AlertCircle } from 'lucide-react';
+import { ScanLine, AlertCircle } from 'lucide-react';
 
-interface BarcodeScannerModalProps {
+interface CodeScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDecode: (data: string) => void;
 }
 
 /**
- * Camera-based CODE128 barcode scanner (ZXing), matching what
- * EquipmentBarcode.tsx prints. @zxing/browser (and the getUserMedia API it
- * wraps) only work in the browser, so it's dynamically imported inside the
- * effect rather than at module scope — this component itself is also
- * loaded via next/dynamic({ ssr: false }) by its callers as a second layer
- * of safety against SSR evaluation.
+ * Camera-based scanner (ZXing) that reads either format equipment labels
+ * can be printed with: the QR code (EquipmentQrCode.tsx) or the CODE128
+ * barcode (EquipmentBarcode.tsx) — both encode the same /equipment/[id]
+ * URL, so one scanner covers whichever a given label happens to use.
+ * @zxing/browser (and the getUserMedia API it wraps) only work in the
+ * browser, so it's dynamically imported inside the effect rather than at
+ * module scope — this component itself is also loaded via
+ * next/dynamic({ ssr: false }) by its callers as a second layer of safety
+ * against SSR evaluation.
  */
-export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen, onClose, onDecode }) => {
+export const CodeScannerModal: React.FC<CodeScannerModalProps> = ({ isOpen, onClose, onDecode }) => {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const controlsRef = React.useRef<{ stop: () => void } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -34,7 +37,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen
         if (cancelled || !videoRef.current) return;
 
         const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128]);
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE]);
         const reader = new BrowserMultiFormatReader(hints);
 
         const controls = await reader.decodeFromConstraints(
@@ -76,9 +79,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Scanner un code-barres"
-      subtitle="Visez l'étiquette du matériel avec la caméra"
-      icon={<ScanBarcode className="w-4 h-4 text-white" />}
+      title="Scanner un code"
+      subtitle="QR code ou code-barres — visez l'étiquette avec la caméra"
+      icon={<ScanLine className="w-4 h-4 text-white" />}
       maxWidth="md"
     >
       {error ? (
@@ -90,7 +93,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen
         <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950">
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
-          <div className="pointer-events-none absolute inset-x-8 top-1/2 -translate-y-1/2 h-16 border-2 border-white/70 rounded-lg" />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="w-40 h-40 max-w-[60%] max-h-[60%] border-2 border-white/70 rounded-2xl" />
+          </div>
         </div>
       )}
     </Modal>

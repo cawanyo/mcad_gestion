@@ -11,6 +11,7 @@ import { convexErrorMessage } from '@/lib/convexErrors';
 import { ConfirmModal } from '@/components/ui';
 import { EquipmentFormModal } from './EquipmentFormModal';
 import { EquipmentBarcode } from './EquipmentBarcode';
+import { EquipmentQrCode } from './EquipmentQrCode';
 import {
   Package,
   Layers,
@@ -175,7 +176,8 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipmentId })
         </div>
 
         {!isDeleted && (
-          <div>
+          <div className="space-y-4">
+            <EquipmentQrCode equipmentId={item.id} equipmentName={item.name} />
             <EquipmentBarcode equipmentId={item.id} equipmentName={item.name} />
           </div>
         )}
