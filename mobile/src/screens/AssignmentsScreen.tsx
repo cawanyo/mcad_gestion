@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, UserPlus, UserMinus, AlertTriangle } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -45,9 +46,9 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
 
   if (!event) {
     return (
-      <View style={styles.centerScreen}>
+      <SafeAreaView style={styles.centerScreen} edges={['top', 'bottom']}>
         <ActivityIndicator color={theme.colors.primary} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -89,7 +90,7 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
   };
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle} numberOfLines={1}>Affectations · {event.title}</Text>
         <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -160,14 +161,14 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
           )}
         </>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
   centerScreen: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 8 },
   headerTitle: { flex: 1, fontSize: 14, fontWeight: '800', color: theme.colors.text, marginRight: 12 },
   closeBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.card, alignItems: 'center', justifyContent: 'center' },
   poleTabs: { flexGrow: 0, marginBottom: 8 },
