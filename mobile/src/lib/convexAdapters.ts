@@ -112,3 +112,18 @@ export function derivePoleMemberships(polesRaw: any[] | undefined, viewerId: str
       .map((m: any) => ({ id: m._id, poleId: p._id, pole: adaptPole(p), status: m.status }))
   );
 }
+
+// Same derivation as (app)/layout.tsx's myPoleLeaderships on the web side.
+// Was missing entirely on mobile — isLeaderOrAdmin checks in
+// EventDetailScreen/CalendarScreen fall back to
+// `(currentUser.poleLeaderships?.length ?? 0) > 0` for pole leaders whose
+// `role` field is still "MEMBER" (leadership granted via the poleLeaders
+// table without a role sync), so without this a pole leader saw no
+// "Gérer les affectations" button at all.
+export function derivePoleLeaderships(polesRaw: any[] | undefined, viewerId: string) {
+  return (polesRaw || []).flatMap((p: any) =>
+    (p.leaders || [])
+      .filter((l: any) => l.userId === viewerId)
+      .map((l: any) => ({ id: l._id, poleId: p._id, pole: adaptPole(p), roleTitle: l.roleTitle }))
+  );
+}

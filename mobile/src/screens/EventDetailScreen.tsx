@@ -16,12 +16,16 @@ interface EventDetailScreenProps {
   onManageAssignments: (eventId: Id<'events'>) => void;
 }
 
-// Mirrors src/components/calendar/EventDetailPage.tsx on the web side —
-// same single isLeaderOrAdmin gate (no finer POLE_LEADER vs
-// DEPARTMENT_LEADER/SUPER_ADMIN split exists there either), same
-// pole-membership-only self-assign eligibility (a leader gets no
-// exception — they place other people via "Gérer les affectations"
-// instead), same "everyone sees every pole's requirements" breakdown.
+// Mirrors src/components/calendar/EventDetailPage.tsx on the web side:
+// pole-membership-only self-assign eligibility (a leader gets no exception
+// — they place other people via "Gérer les affectations" instead), same
+// "everyone sees every pole's requirements" breakdown.
+//
+// One deliberate improvement over web here: "Gérer" is gated per-event by
+// canManageThisEvent (below) rather than web's blanket isLeaderOrAdmin —
+// a pole leader can only manage poles they actually lead (department
+// leaders/admins/calendar managers manage all), enforced for real in
+// convex/assignments.ts now, not just hidden in the UI.
 export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({ currentUser, eventId, onBack, onManageAssignments }) => {
   // Reactive: re-renders on its own once a mutation (self-assign, a
   // leader's change via Assignments) lands, no manual refresh needed.
@@ -34,17 +38,19 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({ currentUse
   const [showConfirm, setShowConfirm] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const isLeaderOrAdmin =
-    currentUser.role === 'SUPER_ADMIN' ||
-    currentUser.role === 'DEPARTMENT_LEADER' ||
-    currentUser.role === 'POLE_LEADER' ||
-    currentUser.role === 'CALENDAR_MANAGER' ||
-    ((currentUser.poleLeaderships?.length ?? 0) > 0);
-
   const userPoles = (currentUser.poleMemberships || []).map((pm) => pm.pole).filter(Boolean) as NonNullable<
     User['poleMemberships']
   >[number]['pole'][];
   const requiredPoleIds = (currentEvent?.requirements || []).map((r) => r.poleId);
+
+  // "Gérer" opens a screen scoped to poles the actor can actually act on
+  // (see AssignmentsScreen.tsx) — only show it when that wouldn't just be
+  // an empty screen: full-access roles always, a pole leader only when
+  // they lead at least one of *this* event's requested poles.
+  const hasFullAccess =
+    currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'DEPARTMENT_LEADER' || currentUser.role === 'CALENDAR_MANAGER';
+  const ledPoleIds = new Set((currentUser.poleLeaderships || []).map((l) => l.poleId));
+  const canManageThisEvent = hasFullAccess || requiredPoleIds.some((id) => ledPoleIds.has(id));
 
   // All hooks must run unconditionally on every render — currentEvent
   // starts null while the reactive query is loading, so this effect can't
@@ -194,7 +200,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({ currentUse
             <Users size={14} color={theme.colors.text} />
             <Text style={styles.cardTitle}>Besoins & effectifs par pôle</Text>
           </View>
-          {isLeaderOrAdmin && (
+          {canManageThisEvent && (
             <TouchableOpacity style={styles.manageBtn} onPress={() => onManageAssignments(eventId)}>
               <SlidersHorizontal size={12} color={theme.colors.primary} />
               <Text style={styles.manageBtnText}>Gérer</Text>

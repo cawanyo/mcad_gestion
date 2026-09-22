@@ -12,7 +12,7 @@ import { ConvexClientProvider } from './src/convex/ConvexClientProvider';
 import { api } from '../convex/_generated/api';
 import { theme } from './src/theme';
 import { User } from './src/types';
-import { derivePoleMemberships } from './src/lib/convexAdapters';
+import { derivePoleMemberships, derivePoleLeaderships } from './src/lib/convexAdapters';
 import { TopHeader } from './src/components/TopHeader';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -84,7 +84,7 @@ function CalendarStackScreen({ currentUser }: { currentUser: User }) {
       </CalendarStack.Screen>
       <CalendarStack.Screen name="Assignments" options={{ presentation: 'modal' }}>
         {({ navigation, route }: any) => (
-          <AssignmentsScreen eventId={route.params.eventId} onClose={() => navigation.goBack()} />
+          <AssignmentsScreen eventId={route.params.eventId} currentUser={currentUser} onClose={() => navigation.goBack()} />
         )}
       </CalendarStack.Screen>
     </CalendarStack.Navigator>
@@ -308,7 +308,8 @@ function RootNavigator() {
     status: (viewer.status as User['status']) ?? 'ACTIVE',
     sex: viewer.gender as User['sex'],
     avatar: viewer.avatar,
-    poleMemberships: derivePoleMemberships(polesRaw, viewer._id)
+    poleMemberships: derivePoleMemberships(polesRaw, viewer._id),
+    poleLeaderships: derivePoleLeaderships(polesRaw, viewer._id)
   };
 
   return <MainTabs currentUser={currentUser} />;

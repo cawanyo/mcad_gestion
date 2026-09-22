@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
-import { requireAuth } from "./lib/auth";
+import { requireAuth, requirePoleLeaderOrAdmin } from "./lib/auth";
 import { Doc } from "./_generated/dataModel";
 import { isUnavailabilityOverlapping } from "./lib/unavailability";
 
@@ -49,6 +49,15 @@ export const create = mutation({
   },
   handler: async (ctx, { eventId, poleId, userId, roleTag, force }) => {
     const actor = await requireAuth(ctx);
+
+    // Self-assign (member positioning themselves) only needs the pole
+    // membership check below. Assigning someone ELSE requires being a
+    // leader of *this* pole specifically, or department leader/admin —
+    // previously this mutation had no such check at all, so any signed-in
+    // user could place any other member on any pole.
+    if (userId !== actor._id) {
+      await requirePoleLeaderOrAdmin(ctx, poleId);
+    }
 
     const event = await ctx.db.get(eventId);
     if (!event) throw new ConvexError("Événement non trouvé");
@@ -143,10 +152,17 @@ export const create = mutation({
 export const remove = mutation({
   args: { assignmentId: v.id("assignments") },
   handler: async (ctx, { assignmentId }) => {
-    await requireAuth(ctx);
+    const actor = await requireAuth(ctx);
 
     const assignment = await ctx.db.get(assignmentId);
     if (!assignment) throw new ConvexError("Assignment not found");
+
+    // Same rule as create: removing your own assignment is always allowed,
+    // removing someone else's requires leading that pole (or dept
+    // leader/admin) — previously unchecked entirely.
+    if (actor._id !== assignment.userId) {
+      await requirePoleLeaderOrAdmin(ctx, assignment.poleId);
+    }
 
     await ctx.db.delete(assignmentId);
 

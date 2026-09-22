@@ -8,9 +8,11 @@ import { Id } from '../../../convex/_generated/dataModel';
 import { adaptEvent } from '../lib/convexAdapters';
 import { isUnavailabilityOverlapping } from '../lib/unavailability';
 import { theme } from '../theme';
+import { User } from '../types';
 
 interface AssignmentsScreenProps {
   eventId: Id<'events'>;
+  currentUser: User;
   onClose: () => void;
 }
 
@@ -18,7 +20,13 @@ interface AssignmentsScreenProps {
 // poles the event actually requires volunteers from, and per-pole member
 // eligibility excludes anyone already serving another pole for this event
 // or unavailable during the event window (unless already assigned here).
-export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, onClose }) => {
+//
+// Pole-scoped permission (not on web's drawer, which has no internal role
+// re-check at all and relies entirely on the parent only rendering the
+// trigger for isLeaderOrAdmin users — the backend now enforces this too,
+// see convex/assignments.ts): a pole leader only manages poles they
+// actually lead; SUPER_ADMIN/DEPARTMENT_LEADER/CALENDAR_MANAGER manage all.
+export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, currentUser, onClose }) => {
   const rawEvent = useQuery(api.events.get, { eventId });
   const event = rawEvent ? adaptEvent(rawEvent) : null;
   const createAssignment = useMutation(api.assignments.create);
@@ -27,6 +35,10 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
   const [selectedPoleId, setSelectedPoleId] = React.useState('');
   const [busyUserId, setBusyUserId] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+
+  const hasFullAccess =
+    currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'DEPARTMENT_LEADER' || currentUser.role === 'CALENDAR_MANAGER';
+  const ledPoleIds = new Set((currentUser.poleLeaderships || []).map((l) => l.poleId));
 
   const requestedPoles = React.useMemo(() => {
     const requiredIds = new Set((event?.requirements || []).map((r) => r.poleId));
@@ -37,9 +49,14 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
     return Array.from(seen.values());
   }, [event]);
 
+  const manageablePoles = React.useMemo(
+    () => (hasFullAccess ? requestedPoles : requestedPoles.filter((p) => ledPoleIds.has(p.id))),
+    [requestedPoles, hasFullAccess, ledPoleIds]
+  );
+
   React.useEffect(() => {
-    if (!selectedPoleId && requestedPoles.length > 0) setSelectedPoleId(requestedPoles[0].id);
-  }, [requestedPoles, selectedPoleId]);
+    if (!selectedPoleId && manageablePoles.length > 0) setSelectedPoleId(manageablePoles[0].id);
+  }, [manageablePoles, selectedPoleId]);
 
   const poleMembersRaw = useQuery(api.members.list, selectedPoleId ? { poleId: selectedPoleId as Id<'poles'> } : 'skip');
   const loadingMembers = Boolean(selectedPoleId) && poleMembersRaw === undefined;
@@ -108,10 +125,14 @@ export const AssignmentsScreen: React.FC<AssignmentsScreenProps> = ({ eventId, o
         <View style={styles.centerScreen}>
           <Text style={styles.muted}>Aucun pôle sollicité pour ce culte.</Text>
         </View>
+      ) : manageablePoles.length === 0 ? (
+        <View style={styles.centerScreen}>
+          <Text style={styles.muted}>Vous ne gérez aucun des pôles sollicités sur ce culte.</Text>
+        </View>
       ) : (
         <>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.poleTabs} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
-            {requestedPoles.map((p) => (
+            {manageablePoles.map((p) => (
               <TouchableOpacity
                 key={p.id}
                 style={[styles.poleTab, selectedPoleId === p.id && styles.poleTabActive]}
