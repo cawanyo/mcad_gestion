@@ -23,10 +23,17 @@ interface EquipmentBarcodeProps {
  * as thick while the overall label stays about the same size. Falls back
  * to the id for equipment created before shortCode existed.
  *
- * width/height/margin are tuned to land close to a 1:3 height:width ratio
- * on the rendered canvas (bars + quiet zone + the printed code text below
- * them) — short enough not to look stretched, without going back to bars
- * thin enough to be hard to scan.
+ * width/height/margin are tuned (verified by rendering with node-canvas,
+ * not just estimated) to land exactly on a 1:3 height:width ratio for the
+ * rendered canvas (bars + quiet zone + the printed code text below them).
+ *
+ * format is 'CODE128B' rather than plain 'CODE128' to force Code B and
+ * disable CODE128's automatic switch into Code C for digit runs — with
+ * auto mode, a shortCode that happened to contain 4+ consecutive digits
+ * would render narrower (Code C packs 2 digits/module) and throw off both
+ * the bar count and the 1:3 ratio for that one code. Fixed at Code B, a
+ * 6-char shortCode always renders as exactly 28 bars (comfortably under
+ * the "no more than ~40 bars" look being aimed for here).
  */
 export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId, equipmentName, shortCode }) => {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -39,7 +46,7 @@ export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId,
 
     try {
       JsBarcode(canvasRef.current, value, {
-        format: 'CODE128',
+        format: 'CODE128B',
         width: 3,
         height: 56,
         displayValue: true,
