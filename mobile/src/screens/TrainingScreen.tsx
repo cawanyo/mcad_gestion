@@ -1071,7 +1071,7 @@ const styles = StyleSheet.create({
   exploreBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.primaryLight, paddingHorizontal: 12, paddingVertical: 10, borderRadius: theme.borderRadius.round },
   exploreBtnText: { fontSize: 12, fontWeight: '800', color: theme.colors.primary },
 
-  filtersWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  filtersWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border, zIndex: 30, elevation: 30 },
   filtersRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   selectField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderDark, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11 },
   selectFieldText: { flex: 1, fontSize: 12, fontWeight: '700', color: theme.colors.text },
