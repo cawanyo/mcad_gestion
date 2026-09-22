@@ -487,6 +487,49 @@ const TrainingManagementScreen: React.FC<{
 const EXPLORE_PAGE_SIZE = 6;
 const LEVEL_FILTERS = ['ALL', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
 
+const SelectField: React.FC<{ label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }> = ({
+  label,
+  value,
+  options,
+  onChange
+}) => {
+  const [open, setOpen] = React.useState(false);
+  const current = options.find((o) => o.value === value);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={styles.microLabel}>{label}</Text>
+      <TouchableOpacity style={styles.selectField} onPress={() => setOpen(true)} activeOpacity={0.7}>
+        <Text style={styles.selectFieldText} numberOfLines={1}>{current?.label || 'Sélectionner'}</Text>
+        <ChevronDown size={14} color={theme.colors.textSecondary} />
+      </TouchableOpacity>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
+          <View style={styles.selectModalCard}>
+            <Text style={styles.selectModalTitle}>{label}</Text>
+            <ScrollView style={{ maxHeight: 340 }}>
+              {options.map((o) => (
+                <TouchableOpacity
+                  key={o.value}
+                  style={[styles.selectOption, o.value === value && styles.selectOptionActive]}
+                  onPress={() => {
+                    onChange(o.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Text style={[styles.selectOptionText, o.value === value && styles.selectOptionTextActive]}>{o.label}</Text>
+                  {o.value === value && <Check size={15} color={theme.colors.primary} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+};
+
 const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack: () => void; onOpen: (id: any) => void }> = ({
   modules,
   loading,
@@ -502,12 +545,19 @@ const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack
     setPage(1);
   }, [poleFilter, levelFilter]);
 
-  const filtered = modules.filter(
+  // Explorer sert à découvrir de nouvelles formations : celles déjà
+  // commencées ou terminées vivent dans le sélecteur En cours/Terminé de
+  // la page principale, pas ici.
+  const notStarted = modules.filter((m: any) => !m.userProgressStatus || m.userProgressStatus === 'NOT_STARTED');
+  const filtered = notStarted.filter(
     (m: any) => (poleFilter === 'ALL' || m.poleId === poleFilter) && (levelFilter === 'ALL' || m.level === levelFilter)
   );
   const pageCount = Math.max(1, Math.ceil(filtered.length / EXPLORE_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const paged = filtered.slice((currentPage - 1) * EXPLORE_PAGE_SIZE, currentPage * EXPLORE_PAGE_SIZE);
+
+  const poleOptions = [{ value: 'ALL', label: 'Tous les pôles' }, ...(polesRaw || []).map((p: any) => ({ value: p._id, label: p.name }))];
+  const levelOptions = LEVEL_FILTERS.map((lv) => ({ value: lv, label: lv === 'ALL' ? 'Tous les niveaux' : LEVEL_LABEL[lv] }));
 
   return (
     <View style={styles.screen}>
@@ -517,24 +567,9 @@ const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack
       </View>
 
       <View style={styles.filtersWrap}>
-        <Text style={styles.microLabel}>Pôle</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 8 }}>
-          <TouchableOpacity style={[styles.poleTab, poleFilter === 'ALL' && styles.poleTabActive]} onPress={() => setPoleFilter('ALL')}>
-            <Text style={[styles.poleTabText, poleFilter === 'ALL' && styles.poleTabTextActive]}>Tous</Text>
-          </TouchableOpacity>
-          {(polesRaw || []).map((p: any) => (
-            <TouchableOpacity key={p._id} style={[styles.poleTab, poleFilter === p._id && styles.poleTabActive]} onPress={() => setPoleFilter(p._id)}>
-              <Text style={[styles.poleTabText, poleFilter === p._id && styles.poleTabTextActive]}>{p.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <Text style={styles.microLabel}>Niveau</Text>
-        <View style={styles.row}>
-          {LEVEL_FILTERS.map((lv) => (
-            <TouchableOpacity key={lv} style={[styles.levelBtn, levelFilter === lv && styles.levelBtnActive]} onPress={() => setLevelFilter(lv)}>
-              <Text style={[styles.poleTabText, levelFilter === lv && styles.poleTabTextActive]}>{lv === 'ALL' ? 'Tous' : LEVEL_LABEL[lv]}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.filtersRow}>
+          <SelectField label="Pôle" value={poleFilter} options={poleOptions} onChange={setPoleFilter} />
+          <SelectField label="Niveau" value={levelFilter} options={levelOptions} onChange={(v) => setLevelFilter(v as (typeof LEVEL_FILTERS)[number])} />
         </View>
       </View>
 
@@ -542,7 +577,9 @@ const TrainingExploreScreen: React.FC<{ modules: any[]; loading: boolean; onBack
         {loading ? (
           <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 40 }} />
         ) : filtered.length === 0 ? (
-          <Text style={[styles.muted, { textAlign: 'center', marginTop: 30 }]}>Aucune formation ne correspond à ces filtres.</Text>
+          <Text style={[styles.muted, { textAlign: 'center', marginTop: 30 }]}>
+            {notStarted.length === 0 ? 'Vous avez déjà commencé ou terminé toutes les formations disponibles.' : 'Aucune formation disponible ne correspond à ces filtres.'}
+          </Text>
         ) : (
           <View style={{ gap: 10 }}>
             {paged.map((m: any) => (
@@ -1018,7 +1055,16 @@ const styles = StyleSheet.create({
   exploreBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.primaryLight, paddingHorizontal: 12, paddingVertical: 10, borderRadius: theme.borderRadius.round },
   exploreBtnText: { fontSize: 12, fontWeight: '800', color: theme.colors.primary },
 
-  filtersWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 6, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  filtersWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  filtersRow: { flexDirection: 'row', gap: 10 },
+  selectField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderDark, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11 },
+  selectFieldText: { flex: 1, fontSize: 12, fontWeight: '700', color: theme.colors.text },
+  selectModalCard: { width: '100%', maxWidth: 340, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.xl, padding: 16 },
+  selectModalTitle: { fontSize: 14, fontWeight: '900', color: theme.colors.text, marginBottom: 10 },
+  selectOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 10, borderRadius: 12 },
+  selectOptionActive: { backgroundColor: theme.colors.primaryLight },
+  selectOptionText: { fontSize: 13, fontWeight: '700', color: theme.colors.text },
+  selectOptionTextActive: { color: theme.colors.primaryDark, fontWeight: '900' },
 
   sectionBlock: { marginTop: 18 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
