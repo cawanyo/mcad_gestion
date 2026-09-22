@@ -6,6 +6,10 @@ import {
   X,
   Plus,
   Trash2,
+  Pencil,
+  Settings2,
+  ChevronLeft,
+  ChevronRight,
   Check,
   GraduationCap,
   Clock,
@@ -71,6 +75,7 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
   const canManage = isLeaderOrAdmin(currentUser);
 
   const [openModuleId, setOpenModuleId] = React.useState<Id<'trainingModules'> | null>(selectedModuleFromHome?._id ?? null);
+  const [showManagement, setShowManagement] = React.useState(false);
   const [editingModule, setEditingModule] = React.useState<any>(null);
   const [showCreate, setShowCreate] = React.useState(false);
 
@@ -81,10 +86,15 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
     }
   }, [selectedModuleFromHome]);
 
-  const openModule = (modulesRaw || []).find((m: any) => m._id === openModuleId) || null;
+  const modules = modulesRaw || [];
+  const openModule = modules.find((m: any) => m._id === openModuleId) || null;
 
+  // Tracking (play a module) is a fully separate space from management
+  // (create/edit/delete): opening the player never fires from a save, and
+  // saving never opens the player — that coupling was the bug ("creating a
+  // module marks it as started").
   if (openModule) {
-    return <ModulePlayerScreen module={openModule} onClose={() => setOpenModuleId(null)} onEdit={canManage ? () => setEditingModule(openModule) : undefined} />;
+    return <ModulePlayerScreen module={openModule} onClose={() => setOpenModuleId(null)} />;
   }
 
   if (editingModule || showCreate) {
@@ -95,24 +105,42 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
           setEditingModule(null);
           setShowCreate(false);
         }}
-        onSaved={(m) => {
+        onSaved={() => {
           setEditingModule(null);
           setShowCreate(false);
-          setOpenModuleId(m._id);
         }}
       />
     );
   }
 
-  const modules = modulesRaw || [];
+  if (showManagement) {
+    return (
+      <TrainingManagementScreen
+        modules={modules}
+        loading={loading}
+        onBack={() => setShowManagement(false)}
+        onCreate={() => setShowCreate(true)}
+        onEdit={(m) => setEditingModule(m)}
+      />
+    );
+  }
+
+  const availableModules = modules.filter((m: any) => !m.userProgressStatus || m.userProgressStatus === 'NOT_STARTED');
   const inProgressModules = modules.filter((m: any) => m.userProgressStatus === 'IN_PROGRESS');
-  const completedCount = modules.filter((m: any) => m.userProgressStatus === 'COMPLETED').length;
+  const completedModules = modules.filter((m: any) => m.userProgressStatus === 'COMPLETED');
+  const completedCount = completedModules.length;
   const overallPct = modules.length > 0 ? Math.round(modules.reduce((sum: number, m: any) => sum + (m.progressPercent || 0), 0) / modules.length) : 0;
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Formations</Text>
+        {canManage && modules.length > 0 && (
+          <TouchableOpacity style={styles.manageLinkBtn} onPress={() => setShowManagement(true)}>
+            <Settings2 size={13} color={theme.colors.primary} />
+            <Text style={styles.manageLinkText}>Gérer les modules</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -171,70 +199,27 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
               )}
             </View>
 
-            {modules.map((m: any) => {
-              const levelColors = LEVEL_COLORS[m.level] || LEVEL_COLORS.BEGINNER;
-              const isCompleted = m.userProgressStatus === 'COMPLETED';
-              const isInProgress = m.userProgressStatus === 'IN_PROGRESS';
-              return (
-                <TouchableOpacity
-                  key={m._id}
-                  style={[styles.moduleCard, isInProgress && styles.moduleCardActive]}
-                  onPress={() => setOpenModuleId(m._id)}
-                  activeOpacity={0.85}
-                >
-                  <View style={[styles.moduleCover, { backgroundColor: m.pole?.color || theme.colors.primary }]}>
-                    {m.coverImage ? (
-                      <Image source={{ uri: m.coverImage }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                    ) : (
-                      <BookOpen size={30} color="rgba(255,255,255,0.4)" />
-                    )}
-                    <View style={styles.moduleCoverTopRow}>
-                      {m.pole?.name && (
-                        <View style={styles.glassPill}>
-                          <Text style={styles.glassPillText} numberOfLines={1}>{m.pole.name}</Text>
-                        </View>
-                      )}
-                      <View style={[styles.levelPill, { backgroundColor: levelColors.bg }]}>
-                        <Text style={[styles.levelPillText, { color: levelColors.text }]}>{LEVEL_LABEL[m.level] || m.level}</Text>
-                      </View>
-                    </View>
-                    {m.estimatedDuration && (
-                      <View style={styles.durationPill}>
-                        <Clock size={10} color="#fff" />
-                        <Text style={styles.durationPillText}>{m.estimatedDuration}</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.moduleBody}>
-                    {(isInProgress || isCompleted) && (
-                      <View style={[styles.statusPill, isCompleted ? styles.statusPillDone : styles.statusPillProgress]}>
-                        <Text style={[styles.statusPillText, { color: isCompleted ? theme.colors.statusSuccessText : theme.colors.statusWarningText }]}>
-                          {isCompleted ? 'Validé 🎓' : 'En cours'}
-                        </Text>
-                      </View>
-                    )}
-                    <Text style={styles.moduleTitle}>{m.title}</Text>
-                    {m.description ? <Text style={styles.moduleDescription} numberOfLines={2}>{m.description}</Text> : null}
-                    <Text style={styles.mutedSm}>{m.lessonsCount} leçon{m.lessonsCount > 1 ? 's' : ''} · {m.progressPercent || 0}%</Text>
-                    <View style={styles.progressTrack}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          { width: `${m.progressPercent || 0}%`, backgroundColor: isCompleted ? theme.colors.statusSuccessText : theme.colors.primary }
-                        ]}
-                      />
-                    </View>
-                    <View style={[styles.ctaRow, isCompleted ? styles.ctaRowDone : isInProgress ? styles.ctaRowProgress : styles.ctaRowStart]}>
-                      {isCompleted ? <Check size={13} color={theme.colors.statusSuccessText} /> : <Play size={13} color={isInProgress ? theme.colors.primaryDark : '#fff'} />}
-                      <Text style={[styles.ctaRowText, isCompleted ? { color: theme.colors.statusSuccessText } : isInProgress ? { color: theme.colors.primaryDark } : { color: '#fff' }]}>
-                        {isCompleted ? 'Revoir la formation' : isInProgress ? `Continuer (${m.progressPercent || 0}%)` : 'Commencer'}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+            <ModuleSection
+              title="À faire"
+              icon={<BookOpen size={14} color={theme.colors.text} />}
+              items={availableModules}
+              onOpen={setOpenModuleId}
+              emptyText="Aucun module à commencer pour l'instant."
+            />
+            <ModuleSection
+              title="Commencées"
+              icon={<Play size={14} color={theme.colors.text} />}
+              items={inProgressModules}
+              onOpen={setOpenModuleId}
+              emptyText="Aucune formation en cours."
+            />
+            <ModuleSection
+              title="Terminées"
+              icon={<Award size={14} color={theme.colors.text} />}
+              items={completedModules}
+              onOpen={setOpenModuleId}
+              emptyText="Aucune formation terminée."
+            />
           </>
         )}
       </ScrollView>
@@ -250,7 +235,225 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ currentUser, sel
 
 // ---------------------------------------------------------------------------
 
-const ModulePlayerScreen: React.FC<{ module: any; onClose: () => void; onEdit?: () => void }> = ({ module: mod, onClose, onEdit }) => {
+const SECTION_PAGE_SIZE = 4;
+
+const ModuleSection: React.FC<{ title: string; icon: React.ReactNode; items: any[]; onOpen: (id: any) => void; emptyText: string }> = ({
+  title,
+  icon,
+  items,
+  onOpen,
+  emptyText
+}) => {
+  const [page, setPage] = React.useState(1);
+  const pageCount = Math.max(1, Math.ceil(items.length / SECTION_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = items.slice((currentPage - 1) * SECTION_PAGE_SIZE, currentPage * SECTION_PAGE_SIZE);
+
+  return (
+    <View style={styles.sectionBlock}>
+      <View style={styles.sectionHeaderRow}>
+        {icon}
+        <Text style={styles.sectionHeaderTitle}>{title}</Text>
+        <View style={styles.sectionCountPill}>
+          <Text style={styles.sectionCountText}>{items.length}</Text>
+        </View>
+      </View>
+
+      {items.length === 0 ? (
+        <Text style={styles.mutedSm}>{emptyText}</Text>
+      ) : (
+        <>
+          <View style={{ gap: 10 }}>
+            {paged.map((m: any) => (
+              <ModuleCard key={m._id} module={m} onPress={() => onOpen(m._id)} />
+            ))}
+          </View>
+          {pageCount > 1 && (
+            <View style={styles.paginationRow}>
+              <TouchableOpacity
+                style={[styles.pageBtn, currentPage <= 1 && styles.pageBtnDisabled]}
+                disabled={currentPage <= 1}
+                onPress={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft size={15} color={currentPage <= 1 ? theme.colors.textMuted : theme.colors.text} />
+              </TouchableOpacity>
+              <Text style={styles.pageIndicatorText}>Page {currentPage}/{pageCount}</Text>
+              <TouchableOpacity
+                style={[styles.pageBtn, currentPage >= pageCount && styles.pageBtnDisabled]}
+                disabled={currentPage >= pageCount}
+                onPress={() => setPage((p) => Math.min(pageCount, p + 1))}
+              >
+                <ChevronRight size={15} color={currentPage >= pageCount ? theme.colors.textMuted : theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+};
+
+const ModuleCard: React.FC<{ module: any; onPress: () => void }> = ({ module: m, onPress }) => {
+  const levelColors = LEVEL_COLORS[m.level] || LEVEL_COLORS.BEGINNER;
+  const isCompleted = m.userProgressStatus === 'COMPLETED';
+  const isInProgress = m.userProgressStatus === 'IN_PROGRESS';
+  return (
+    <TouchableOpacity
+      style={[styles.moduleCard, isInProgress && styles.moduleCardActive]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={[styles.moduleCover, { backgroundColor: m.pole?.color || theme.colors.primary }]}>
+        {m.coverImage ? (
+          <Image source={{ uri: m.coverImage }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : (
+          <BookOpen size={30} color="rgba(255,255,255,0.4)" />
+        )}
+        <View style={styles.moduleCoverTopRow}>
+          {m.pole?.name && (
+            <View style={styles.glassPill}>
+              <Text style={styles.glassPillText} numberOfLines={1}>{m.pole.name}</Text>
+            </View>
+          )}
+          <View style={[styles.levelPill, { backgroundColor: levelColors.bg }]}>
+            <Text style={[styles.levelPillText, { color: levelColors.text }]}>{LEVEL_LABEL[m.level] || m.level}</Text>
+          </View>
+        </View>
+        {m.estimatedDuration && (
+          <View style={styles.durationPill}>
+            <Clock size={10} color="#fff" />
+            <Text style={styles.durationPillText}>{m.estimatedDuration}</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.moduleBody}>
+        {(isInProgress || isCompleted) && (
+          <View style={[styles.statusPill, isCompleted ? styles.statusPillDone : styles.statusPillProgress]}>
+            <Text style={[styles.statusPillText, { color: isCompleted ? theme.colors.statusSuccessText : theme.colors.statusWarningText }]}>
+              {isCompleted ? 'Validé 🎓' : 'En cours'}
+            </Text>
+          </View>
+        )}
+        <Text style={styles.moduleTitle}>{m.title}</Text>
+        {m.description ? <Text style={styles.moduleDescription} numberOfLines={2}>{m.description}</Text> : null}
+        <Text style={styles.mutedSm}>{m.lessonsCount} leçon{m.lessonsCount > 1 ? 's' : ''} · {m.progressPercent || 0}%</Text>
+        <View style={styles.progressTrack}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${m.progressPercent || 0}%`, backgroundColor: isCompleted ? theme.colors.statusSuccessText : theme.colors.primary }
+            ]}
+          />
+        </View>
+        <View style={[styles.ctaRow, isCompleted ? styles.ctaRowDone : isInProgress ? styles.ctaRowProgress : styles.ctaRowStart]}>
+          {isCompleted ? <Check size={13} color={theme.colors.statusSuccessText} /> : <Play size={13} color={isInProgress ? theme.colors.primaryDark : '#fff'} />}
+          <Text style={[styles.ctaRowText, isCompleted ? { color: theme.colors.statusSuccessText } : isInProgress ? { color: theme.colors.primaryDark } : { color: '#fff' }]}>
+            {isCompleted ? 'Revoir la formation' : isInProgress ? `Continuer (${m.progressPercent || 0}%)` : 'Commencer'}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// ---------------------------------------------------------------------------
+
+const TrainingManagementScreen: React.FC<{
+  modules: any[];
+  loading: boolean;
+  onBack: () => void;
+  onCreate: () => void;
+  onEdit: (m: any) => void;
+}> = ({ modules, loading, onBack, onCreate, onEdit }) => {
+  const removeModule = useMutation(api.training.remove);
+  const [confirmDelete, setConfirmDelete] = React.useState<any>(null);
+  const [deleting, setDeleting] = React.useState(false);
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await removeModule({ moduleId: confirmDelete._id });
+      setConfirmDelete(null);
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message || 'Suppression impossible.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+        <Text style={styles.headerTitle}>Gérer les modules</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+        {loading ? (
+          <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 40 }} />
+        ) : modules.length === 0 ? (
+          <View style={styles.emptyState}>
+            <BookOpen size={28} color={theme.colors.textMuted} />
+            <Text style={styles.muted}>Aucun module de formation pour l'instant.</Text>
+          </View>
+        ) : (
+          modules.map((m: any) => (
+            <View key={m._id} style={styles.manageRow}>
+              <View style={[styles.manageRowCover, { backgroundColor: m.pole?.color || theme.colors.primary }]}>
+                {m.coverImage ? (
+                  <Image source={{ uri: m.coverImage }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                ) : (
+                  <BookOpen size={18} color="rgba(255,255,255,0.5)" />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.manageRowTitle} numberOfLines={1}>{m.title}</Text>
+                <Text style={styles.mutedSm}>
+                  {m.pole?.name ? `${m.pole.name} · ` : ''}{m.lessonsCount} leçon{m.lessonsCount > 1 ? 's' : ''}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => onEdit(m)} style={styles.iconBtnGhost}>
+                <Pencil size={14} color={theme.colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setConfirmDelete(m)} style={styles.iconBtnReject}>
+                <Trash2 size={14} color={theme.colors.statusDangerText} />
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
+      </ScrollView>
+
+      <TouchableOpacity style={styles.fab} onPress={onCreate}>
+        <Plus size={20} color="#fff" />
+      </TouchableOpacity>
+
+      <Modal visible={!!confirmDelete} transparent animationType="fade" onRequestClose={() => setConfirmDelete(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.celebrationCard}>
+            <Text style={styles.celebrationTitle}>Supprimer ce module ?</Text>
+            <Text style={styles.celebrationBody}>
+              « {confirmDelete?.title} » sera définitivement supprimé, avec ses leçons et la progression des membres.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity style={[styles.navBtn, { flex: 1 }]} onPress={() => setConfirmDelete(null)} disabled={deleting}>
+                <Text style={styles.navBtnText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.primaryBtn, { flex: 1, backgroundColor: theme.colors.statusDangerText }]} onPress={handleDelete} disabled={deleting}>
+                {deleting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Supprimer</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+// ---------------------------------------------------------------------------
+
+const ModulePlayerScreen: React.FC<{ module: any; onClose: () => void }> = ({ module: mod, onClose }) => {
   const updateProgress = useMutation(api.training.updateProgress);
   const [lessonIdx, setLessonIdx] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
@@ -295,11 +498,6 @@ const ModulePlayerScreen: React.FC<{ module: any; onClose: () => void; onEdit?: 
         {mod.coverImage && <Image source={{ uri: mod.coverImage }} style={[StyleSheet.absoluteFill, { opacity: 0.2 }]} resizeMode="cover" />}
         <View style={styles.heroTopRow}>
           <TouchableOpacity onPress={onClose} style={styles.heroBackBtn}><ArrowLeft size={18} color="#fff" /></TouchableOpacity>
-          {onEdit && (
-            <TouchableOpacity onPress={onEdit} style={styles.heroEditBtn}>
-              <Text style={styles.heroEditText}>Modifier</Text>
-            </TouchableOpacity>
-          )}
         </View>
         <View style={styles.heroBadgesRow}>
           {mod.pole?.name && (
@@ -685,6 +883,22 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '900', color: theme.colors.text, flex: 1 },
   backBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.card, alignItems: 'center', justifyContent: 'center' },
   editLink: { fontSize: 12, fontWeight: '800', color: theme.colors.primary },
+  manageLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.primaryLight, paddingHorizontal: 10, paddingVertical: 7, borderRadius: theme.borderRadius.round },
+  manageLinkText: { fontSize: 11, fontWeight: '800', color: theme.colors.primary },
+
+  sectionBlock: { marginTop: 18 },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  sectionHeaderTitle: { fontSize: 13, fontWeight: '900', color: theme.colors.text, flex: 1 },
+  sectionCountPill: { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.borderDark, borderRadius: theme.borderRadius.round, paddingHorizontal: 8, paddingVertical: 2 },
+  sectionCountText: { fontSize: 10, fontWeight: '800', color: theme.colors.textSecondary },
+  paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 10 },
+  pageBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.borderDark, alignItems: 'center', justifyContent: 'center' },
+  pageBtnDisabled: { opacity: 0.4 },
+  pageIndicatorText: { fontSize: 11, fontWeight: '700', color: theme.colors.textSecondary },
+
+  manageRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.borderDark },
+  manageRowCover: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  manageRowTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text },
   content: { padding: 16, paddingTop: 4, gap: 10, paddingBottom: 100 },
   muted: { fontSize: 12, color: theme.colors.textMuted },
   mutedSm: { fontSize: 11, color: theme.colors.textMuted, marginTop: 6 },
@@ -742,8 +956,6 @@ const styles = StyleSheet.create({
   hero: { backgroundColor: '#0f172a', padding: 16, paddingTop: 8, gap: 8, overflow: 'hidden' },
   heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heroBackBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  heroEditBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.round, backgroundColor: 'rgba(255,255,255,0.12)' },
-  heroEditText: { fontSize: 11, fontWeight: '800', color: '#fff' },
   heroBadgesRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
   heroTitle: { fontSize: 18, fontWeight: '900', color: '#fff', marginTop: 4 },
   heroProgressRow: { marginTop: 4 },
