@@ -50,6 +50,28 @@ export interface Equipment {
   createdByUser?: { id: string; firstName: string; lastName: string; avatar?: string | null } | null;
 }
 
+export interface EquipmentGroupItem {
+  id: string;
+  equipmentId: string;
+  quantityOut: number;
+  quantityReturned: number;
+  equipment?: { id: string; name: string; photoUrl?: string | null; quantity: number } | null;
+}
+
+export interface EquipmentGroup {
+  id: string;
+  name: string;
+  description?: string | null;
+  isTemplate: boolean;
+  status?: 'OUT' | 'RETURNED' | null;
+  poleId?: string | null;
+  updatedAt: string;
+  itemCount?: number;
+  quantityOutTotal?: number;
+  quantityReturnedTotal?: number;
+  items?: EquipmentGroupItem[];
+}
+
 export interface MembershipRequest {
   id: string;
   userId: string;

@@ -5,7 +5,7 @@
 // adapters translate Convex query results into those existing shapes at the
 // point they're consumed, so migrated pages keep working with unmigrated
 // sibling components/types without a repo-wide rename.
-import type { Event, Pole, User, Assignment, EventRequirement, Checklist, ChecklistStep, Equipment, EquipmentCategory } from '@/types';
+import type { Event, Pole, User, Assignment, EventRequirement, Checklist, ChecklistStep, Equipment, EquipmentCategory, EquipmentGroup, EquipmentGroupItem } from '@/types';
 
 const iso = (ms: number | null | undefined): string => (ms ? new Date(ms).toISOString() : '');
 
@@ -74,6 +74,35 @@ export function adaptEquipment(e: any): Equipment {
         }
       : null,
   } as Equipment;
+}
+
+function adaptEquipmentGroupItem(i: any): EquipmentGroupItem {
+  return {
+    id: i._id,
+    equipmentId: i.equipmentId,
+    quantityOut: i.quantityOut,
+    quantityReturned: i.quantityReturned,
+    equipment: i.equipment
+      ? { id: i.equipment._id, name: i.equipment.name, photoUrl: i.equipment.photoUrl ?? null, quantity: i.equipment.quantity }
+      : null,
+  } as EquipmentGroupItem;
+}
+
+export function adaptEquipmentGroup(g: any): EquipmentGroup {
+  if (!g) return g;
+  return {
+    id: g._id,
+    name: g.name,
+    description: g.description ?? null,
+    isTemplate: g.isTemplate,
+    status: g.status ?? null,
+    poleId: g.poleId ?? null,
+    updatedAt: iso(g.updatedAt),
+    itemCount: g.itemCount,
+    quantityOutTotal: g.quantityOutTotal,
+    quantityReturnedTotal: g.quantityReturnedTotal,
+    items: g.items ? g.items.map(adaptEquipmentGroupItem) : undefined,
+  } as EquipmentGroup;
 }
 
 export function adaptRequirement(r: any): EventRequirement {

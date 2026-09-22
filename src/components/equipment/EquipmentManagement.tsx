@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useConvexAuth } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
-import { Search, ScanLine, Plus, Package, LogIn, X } from 'lucide-react';
+import { Search, ScanLine, Plus, Package, LogIn, X, Boxes, ChevronLeft, ChevronRight } from 'lucide-react';
 import { EmptyState } from '@/components/ui';
 import { EquipmentCard } from './EquipmentCard';
 import { EquipmentFormModal } from './EquipmentFormModal';
 import { adaptEquipment } from '@/lib/convexAdapters';
+import { extractEquipmentId } from '@/lib/equipmentCode';
 import Link from 'next/link';
 
 const CodeScannerModal = dynamic(
@@ -18,16 +19,7 @@ const CodeScannerModal = dynamic(
   { ssr: false }
 );
 
-// Accepts either an already-scanned bare equipment id, or a full URL
-// pointing at /equipment/<id> (what a printed QR code or barcode encodes —
-// see EquipmentQrCode.tsx / EquipmentBarcode.tsx).
-function extractEquipmentId(scanned: string): string | null {
-  const trimmed = scanned.trim();
-  const match = trimmed.match(/\/equipment\/([a-zA-Z0-9]+)\/?$/);
-  if (match) return match[1];
-  if (/^[a-zA-Z0-9]+$/.test(trimmed)) return trimmed;
-  return null;
-}
+const PAGE_SIZE = 15;
 
 export const EquipmentManagement: React.FC = () => {
   const router = useRouter();
@@ -39,11 +31,19 @@ export const EquipmentManagement: React.FC = () => {
   const [showScanner, setShowScanner] = React.useState(false);
   const [showFormModal, setShowFormModal] = React.useState(false);
   const [scanError, setScanError] = React.useState<string | null>(null);
+  const [page, setPage] = React.useState(1);
 
   React.useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 250);
     return () => clearTimeout(t);
   }, [search]);
+
+  // Any change to what's being filtered/searched invalidates the current
+  // page number — jumping back to page 1 avoids landing on an empty page
+  // when the result set just got shorter than where the user was browsing.
+  React.useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, poleFilter, categoryFilter]);
 
   const polesRaw = useQuery(api.poles.list, {});
   const categoriesRaw = useQuery(api.equipmentCategories.list, {});
@@ -54,6 +54,13 @@ export const EquipmentManagement: React.FC = () => {
   });
   const items = React.useMemo(() => (itemsRaw || []).map(adaptEquipment), [itemsRaw]);
   const hasActiveFilters = !!debouncedSearch || !!poleFilter || !!categoryFilter;
+
+  const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pagedItems = React.useMemo(
+    () => items.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [items, currentPage]
+  );
 
   const handleDecode = (data: string) => {
     const id = extractEquipmentId(data);
@@ -78,23 +85,32 @@ export const EquipmentManagement: React.FC = () => {
           </p>
         </div>
 
-        {isAuthenticated ? (
-          <button
-            onClick={() => setShowFormModal(true)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Ajouter un matériel</span>
-          </button>
-        ) : (
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Link
-            href="/login"
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-colors"
+            href="/equipment/groups"
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold shadow-xs transition-colors"
           >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Se connecter pour ajouter</span>
+            <Boxes className="w-4 h-4 text-indigo-600" />
+            <span>Groupes</span>
           </Link>
-        )}
+          {isAuthenticated ? (
+            <button
+              onClick={() => setShowFormModal(true)}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Ajouter un matériel</span>
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Se connecter pour ajouter</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2.5">
@@ -179,11 +195,37 @@ export const EquipmentManagement: React.FC = () => {
           }
         />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {items.map((item) => (
-            <EquipmentCard key={item.id} equipment={item} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {pagedItems.map((item) => (
+              <EquipmentCard key={item.id} equipment={item} />
+            ))}
+          </div>
+
+          {pageCount > 1 && (
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="flex items-center gap-1 px-3 py-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white rounded-xl text-xs font-bold transition-colors"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Précédent</span>
+              </button>
+              <span className="text-xs font-bold text-slate-500">
+                Page {currentPage} / {pageCount}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                disabled={currentPage >= pageCount}
+                className="flex items-center gap-1 px-3 py-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white rounded-xl text-xs font-bold transition-colors"
+              >
+                <span className="hidden sm:inline">Suivant</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       <CodeScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} onDecode={handleDecode} />

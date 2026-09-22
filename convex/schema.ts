@@ -330,4 +330,35 @@ export default defineSchema({
     name: v.string(),
     updatedAt: v.number(),
   }),
+
+  // A group is either a one-off checkout ("sortie", isTemplate: false — has
+  // a status and goes through the return-check flow) or a reusable kit
+  // template (isTemplate: true — just a saved list of equipment/quantities
+  // with no status; "create a group from this kit" duplicates its items
+  // into a brand new one-off group). status is only meaningful for
+  // non-template groups; templates leave it unset.
+  equipmentGroups: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    isTemplate: v.boolean(),
+    status: v.optional(v.union(v.literal("OUT"), v.literal("RETURNED"))),
+    poleId: v.optional(v.id("poles")),
+    createdBy: v.optional(v.id("users")),
+    updatedAt: v.number(),
+  })
+    .index("isTemplate", ["isTemplate"])
+    .index("status", ["status"]),
+
+  // One line per equipment type in a group. quantityOut/quantityReturned
+  // track return progress per-quantity (not per physical unit) — e.g. 10
+  // chairs taken out, 6 scanned back in so far. For a template's items,
+  // quantityReturned stays 0 and is meaningless (never read).
+  equipmentGroupItems: defineTable({
+    groupId: v.id("equipmentGroups"),
+    equipmentId: v.id("equipment"),
+    quantityOut: v.number(),
+    quantityReturned: v.number(),
+  })
+    .index("groupId", ["groupId"])
+    .index("groupAndEquipment", ["groupId", "equipmentId"]), // @@unique([groupId, equipmentId])
 });
