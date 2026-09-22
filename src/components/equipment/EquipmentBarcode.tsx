@@ -13,9 +13,16 @@ interface EquipmentBarcodeProps {
  * CODE128 barcode (not a QR code): easier to read at an angle, at a
  * distance, or printed small on a sticker wrapped around a cable — which is
  * the actual use case here, per the pole leaders who'll be printing these.
- * Still encodes the absolute /equipment/[id] URL (not just the bare id) so
- * a barcode scanner app that supports link-detection can still open the
- * page directly, matching how the QR version behaved.
+ *
+ * Encodes the bare equipment id rather than the full /equipment/[id] URL
+ * (unlike the QR code, which keeps the full URL for third-party
+ * link-detection): a CODE128 of the whole URL comes out extremely wide
+ * relative to its height, which is what made it look stretched. The id
+ * alone is short enough to print at a sane ~1:3 height:width ratio, and
+ * CodeScannerModal's own decoder already accepts a bare id (see
+ * extractEquipmentId in EquipmentManagement.tsx), so nothing in-app
+ * changes — only a generic barcode-scanning app loses the "opens the page
+ * directly" convenience, which the QR code alongside it still covers.
  */
 export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId, equipmentName }) => {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -23,16 +30,15 @@ export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId,
   const [renderError, setRenderError] = React.useState(false);
 
   React.useEffect(() => {
-    const url = `${window.location.origin}/equipment/${equipmentId}`;
     if (!canvasRef.current) return;
 
     try {
-      JsBarcode(canvasRef.current, url, {
+      JsBarcode(canvasRef.current, equipmentId, {
         format: 'CODE128',
-        width: 2,
-        height: 80,
+        width: 1.5,
+        height: 160,
         displayValue: false,
-        margin: 10,
+        margin: 8,
         background: '#ffffff',
         lineColor: '#0f172a',
       });
@@ -40,8 +46,7 @@ export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId,
       setRenderError(false);
     } catch {
       // CODE128 can encode any ASCII text so this shouldn't happen in
-      // practice, but the origin URL is still attacker/environment
-      // controlled input — fail soft instead of leaving a blank canvas.
+      // practice, but fail soft instead of leaving a blank canvas.
       setRenderError(true);
     }
   }, [equipmentId]);
