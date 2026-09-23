@@ -1,6 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Image, Linking } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { Video, ResizeMode } from 'expo-av';
+import { WebView } from 'react-native-webview';
 import {
   ArrowLeft,
   X,
@@ -15,11 +17,7 @@ import {
   Circle,
   ImagePlus,
   Play,
-  Search,
-  MessageSquare,
-  FileText,
-  ExternalLink,
-  Clock
+  Search
 } from 'lucide-react-native';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import * as ImagePicker from 'expo-image-picker';
@@ -48,6 +46,30 @@ type Step = { id?: string; title: string; description: string; mediaType: 'NONE'
 const EMPTY_STEP: Step = { title: '', description: '', mediaType: 'NONE', mediaUrl: '' };
 
 const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+
+// Plays inline (native controls) instead of handing off to the OS browser —
+// used everywhere a step's video shows up: running a checklist, previewing
+// it, and while creating/editing steps.
+// expo-av's <Video> only plays direct media files (mp4/webm/mov, incl. our
+// Cloudinary uploads) — it can't load a youtube.com/vimeo.com page URL, so
+// those go through an embedded WebView player instead.
+const toEmbedUrl = (uri: string) => {
+  const yt = uri.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vimeo = uri.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return uri;
+};
+const isEmbedVideo = (uri: string) => /youtube\.com|youtu\.be|vimeo\.com/i.test(uri);
+
+const InlineVideoPlayer: React.FC<{ uri: string; style?: any }> = ({ uri, style }) =>
+  isEmbedVideo(uri) ? (
+    <View style={[style, { overflow: 'hidden', backgroundColor: '#000' }]}>
+      <WebView source={{ uri: toEmbedUrl(uri) }} style={{ flex: 1 }} allowsFullscreenVideo javaScriptEnabled domStorageEnabled />
+    </View>
+  ) : (
+    <Video source={{ uri }} style={style} useNativeControls resizeMode={ResizeMode.CONTAIN} isLooping={false} />
+  );
 
 // Simple inline dropdown (anchored under the field, not a modal popup) —
 // same pattern as TrainingScreen's Explorer filters.
@@ -280,9 +302,7 @@ const ChecklistDetailScreen: React.FC<{
                 <Text style={styles.stepTitle}>{s.title}</Text>
                 {s.description ? <Text style={styles.muted}>{s.description}</Text> : null}
                 {s.mediaType === 'PHOTO' && s.mediaUrl && <Image source={{ uri: s.mediaUrl }} style={styles.stepImageSm} resizeMode="cover" />}
-                {s.mediaType === 'VIDEO' && s.mediaUrl && (
-                  <View style={styles.mediaHintRow}><Play size={11} color={theme.colors.primary} /><Text style={styles.mediaHintText}>Vidéo jointe</Text></View>
-                )}
+                {s.mediaType === 'VIDEO' && s.mediaUrl && <InlineVideoPlayer uri={s.mediaUrl} style={styles.stepVideoSm} />}
               </View>
             </View>
           ))}
@@ -411,11 +431,7 @@ const ChecklistRunnerScreen: React.FC<{
             {step.mediaType === 'PHOTO' && step.mediaUrl ? (
               <Image source={{ uri: step.mediaUrl }} style={styles.stepImage} resizeMode="cover" />
             ) : step.mediaType === 'VIDEO' && step.mediaUrl ? (
-              <TouchableOpacity style={styles.mediaLinkBtn} onPress={() => Linking.openURL(step.mediaUrl)}>
-                <Play size={16} color={theme.colors.primary} />
-                <Text style={styles.mediaLinkText}>Voir la vidéo</Text>
-                <ExternalLink size={13} color={theme.colors.primary} />
-              </TouchableOpacity>
+              <InlineVideoPlayer uri={step.mediaUrl} style={styles.stepVideo} />
             ) : null}
 
             <TouchableOpacity
@@ -631,6 +647,7 @@ const ChecklistFormScreen: React.FC<{
                 placeholder="Lien photo/vidéo, ou importez ci-dessous"
               />
               {s.mediaUrl && s.mediaType === 'PHOTO' && <Image source={{ uri: s.mediaUrl }} style={styles.stepImage} />}
+              {s.mediaUrl && s.mediaType === 'VIDEO' && <InlineVideoPlayer uri={s.mediaUrl} style={styles.stepVideo} />}
               <TouchableOpacity style={styles.uploadBtn} disabled={uploadingIdx === idx} onPress={() => pickMedia(idx)}>
                 {uploadingIdx === idx ? <ActivityIndicator color={theme.colors.primary} size="small" /> : <ImagePlus size={14} color={theme.colors.primary} />}
                 <Text style={styles.uploadBtnText}>{uploadingIdx === idx ? 'Envoi...' : 'Importer depuis la galerie'}</Text>
@@ -696,8 +713,7 @@ const styles = StyleSheet.create({
   previewStepNumText: { fontSize: 11, fontWeight: '900', color: theme.colors.primaryDark },
   stepTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.text },
   stepImageSm: { width: '100%', height: 100, borderRadius: 10, marginTop: 8, backgroundColor: theme.colors.background },
-  mediaHintRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 },
-  mediaHintText: { fontSize: 11, fontWeight: '700', color: theme.colors.primary },
+  stepVideoSm: { width: '100%', height: 140, borderRadius: 10, marginTop: 8, backgroundColor: '#000' },
 
   sectionTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.text, textTransform: 'uppercase', marginTop: 10 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -723,8 +739,7 @@ const styles = StyleSheet.create({
 
   lessonOfText: { fontSize: 10, fontWeight: '800', color: theme.colors.primary, textTransform: 'uppercase' },
   stepImage: { width: '100%', height: 180, borderRadius: theme.borderRadius.md, marginTop: 10, backgroundColor: theme.colors.background },
-  mediaLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.primaryLight, borderRadius: theme.borderRadius.md, padding: 12, marginTop: 10 },
-  mediaLinkText: { flex: 1, fontSize: 12, fontWeight: '700', color: theme.colors.primaryDark },
+  stepVideo: { width: '100%', height: 200, borderRadius: theme.borderRadius.md, marginTop: 10, backgroundColor: '#000' },
 
   markDoneBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.colors.background, borderRadius: theme.borderRadius.md, padding: 12, marginTop: 12, borderWidth: 1, borderColor: theme.colors.border },
   markDoneBtnActive: { backgroundColor: theme.colors.statusSuccessBg, borderColor: theme.colors.statusSuccessText },
