@@ -912,8 +912,8 @@ const styles = StyleSheet.create({
   metaRow: { gap: 4, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.colors.border },
   rowActions: { flexDirection: 'row', gap: 10 },
 
-  codesRow: { flexDirection: 'row', gap: 10 },
-  codeCard: { flex: 1, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, padding: 12, alignItems: 'center', gap: 8, borderWidth: 1, borderColor: theme.colors.borderDark },
+  codesRow: { flexDirection: 'column', gap: 10 },
+  codeCard: { backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, padding: 12, alignItems: 'center', gap: 8, borderWidth: 1, borderColor: theme.colors.borderDark },
   codeCardLabel: { fontSize: 10, fontWeight: '800', color: theme.colors.textSecondary, textTransform: 'uppercase' },
   codeCardBox: { backgroundColor: '#fff', borderRadius: 12, padding: 10, alignItems: 'center', justifyContent: 'center' },
   codeText: { fontSize: 11, fontWeight: '800', color: theme.colors.text, marginTop: 4, letterSpacing: 1 },

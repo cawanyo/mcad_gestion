@@ -108,7 +108,7 @@ function ServiceStackScreen({ currentUser }: { currentUser: User }) {
       <ServiceStack.Screen name="Unavailabilities" options={backOnlyHeader}>
         {() => <UnavailabilitiesScreen currentUser={currentUser} />}
       </ServiceStack.Screen>
-      <ServiceStack.Screen name="Equipment" options={{ ...backOnlyHeader, headerTitle: 'Matériel' }}>
+      <ServiceStack.Screen name="Equipment" options={{ headerShown: false }}>
         {() => <EquipmentScreen />}
       </ServiceStack.Screen>
     </ServiceStack.Navigator>
@@ -213,6 +213,7 @@ function MainTabs({ currentUser }: { currentUser: User }) {
             }}
             onOpenUnavailability={() => navigation.navigate('Service', { screen: 'Unavailabilities' })}
             onOpenEquipment={() => navigation.navigate('Service', { screen: 'Equipment' })}
+            onOpenResponsable={leader ? () => navigation.navigate('Responsable', { screen: 'LeaderHub' }) : undefined}
           />
         )}
       </Tab.Screen>
@@ -251,10 +252,18 @@ function MainTabs({ currentUser }: { currentUser: User }) {
         {() => <LifeStackScreen currentUser={currentUser} />}
       </Tab.Screen>
 
+      {/* Reachable via the "Responsable" button on the Accueil banner (next
+          to Matériel) instead of its own bottom-tab entry now — kept
+          registered here (with tabBarButton hidden) so LeaderStackScreen's
+          nested routes still exist for navigation.navigate('Responsable',
+          { screen: ... }) to target. */}
       {leader && (
         <Tab.Screen
           name="Responsable"
-          options={{ tabBarIcon: ({ color, size }) => <ShieldCheck color={color} size={size} /> }}
+          options={{
+            tabBarIcon: ({ color, size }) => <ShieldCheck color={color} size={size} />,
+            tabBarButton: () => null
+          }}
         >
           {() => <LeaderStackScreen currentUser={currentUser} />}
         </Tab.Screen>

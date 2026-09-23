@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
-import { Calendar as CalendarIcon, Clock, ChevronRight, Layers, GraduationCap, Gift, Package } from 'lucide-react-native';
+import { Calendar as CalendarIcon, Clock, ChevronRight, Layers, GraduationCap, Gift, Package, ShieldCheck } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../theme';
@@ -12,6 +12,7 @@ interface HomeScreenProps {
   onOpenTraining: (module: any) => void;
   onOpenUnavailability?: () => void;
   onOpenEquipment?: () => void;
+  onOpenResponsable?: () => void;
 }
 
 function formatDate(iso: string) {
@@ -24,7 +25,7 @@ function formatDay(ms: number) {
   return new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigateTab, onOpenTraining, onOpenUnavailability, onOpenEquipment }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigateTab, onOpenTraining, onOpenUnavailability, onOpenEquipment, onOpenResponsable }) => {
   const data = useQuery(api.dashboard.get, {});
   const loading = data === undefined;
   const [refreshing, setRefreshing] = React.useState(false);
@@ -65,6 +66,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigateT
             <TouchableOpacity style={styles.bannerBtn} onPress={onOpenEquipment}>
               <Package size={14} color="#fff" />
               <Text style={styles.bannerBtnText}>Matériel</Text>
+            </TouchableOpacity>
+          )}
+          {onOpenResponsable && (
+            <TouchableOpacity style={styles.bannerBtn} onPress={onOpenResponsable}>
+              <ShieldCheck size={14} color="#fff" />
+              <Text style={styles.bannerBtnText}>Responsable</Text>
             </TouchableOpacity>
           )}
         </View>
