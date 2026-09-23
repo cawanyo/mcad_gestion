@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Pencil,
   Tag,
+  Gauge,
   Layers,
   User as UserIcon,
   Clock,
@@ -38,6 +39,7 @@ import { Id } from '../../../convex/_generated/dataModel';
 import { theme } from '../theme';
 import { uploadPickedMedia } from '../lib/upload';
 import { resolveScannedEquipment, EQUIPMENT_WEB_BASE_URL } from '../lib/equipmentCode';
+import { EQUIPMENT_CONDITIONS, EQUIPMENT_CONDITION_LABELS, EQUIPMENT_CONDITION_COLORS, DEFAULT_EQUIPMENT_CONDITION, equipmentConditionLabel, EquipmentCondition } from '../lib/equipmentCondition';
 import { CodeScannerView } from '../components/CodeScannerView';
 import { EquipmentGroupsScreen } from './EquipmentGroupsScreen';
 
@@ -85,6 +87,16 @@ const SelectField: React.FC<{
   );
 };
 
+const ConditionPill: React.FC<{ condition?: string | null; size?: number }> = ({ condition, size = 10 }) => {
+  const colors = EQUIPMENT_CONDITION_COLORS[(condition as EquipmentCondition) || DEFAULT_EQUIPMENT_CONDITION];
+  return (
+    <View style={[styles.tagPill, { backgroundColor: colors.bg }]}>
+      <Gauge size={size} color={colors.text} />
+      <Text style={[styles.tagPillText, { color: colors.text }]} numberOfLines={1}>{equipmentConditionLabel(condition)}</Text>
+    </View>
+  );
+};
+
 // Mirrors src/components/equipment/* on the web (EquipmentManagement,
 // EquipmentDetail, EquipmentFormModal, EquipmentTrash) collapsed into one
 // screen with local view-swaps, same convention as every other mobile
@@ -101,7 +113,8 @@ export const EquipmentScreen: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [poleFilter, setPoleFilter] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState('');
-  const [openFilter, setOpenFilter] = React.useState<'pole' | 'category' | null>(null);
+  const [conditionFilter, setConditionFilter] = React.useState('');
+  const [openFilter, setOpenFilter] = React.useState<'pole' | 'category' | 'condition' | null>(null);
   const [page, setPage] = React.useState(1);
   const [showScanner, setShowScanner] = React.useState(false);
   const [scanError, setScanError] = React.useState<string | null>(null);
@@ -113,18 +126,19 @@ export const EquipmentScreen: React.FC = () => {
 
   React.useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, poleFilter, categoryFilter]);
+  }, [debouncedSearch, poleFilter, categoryFilter, conditionFilter]);
 
   const polesRaw = useQuery(api.poles.list, {});
   const categoriesRaw = useQuery(api.equipmentCategories.list, {});
   const itemsRaw = useQuery(api.equipment.list, {
     search: debouncedSearch || undefined,
     poleId: (poleFilter || undefined) as Id<'poles'> | undefined,
-    categoryId: (categoryFilter || undefined) as Id<'equipmentCategories'> | undefined
+    categoryId: (categoryFilter || undefined) as Id<'equipmentCategories'> | undefined,
+    condition: (conditionFilter || undefined) as EquipmentCondition | undefined
   });
   const loading = itemsRaw === undefined;
   const items = itemsRaw || [];
-  const hasActiveFilters = !!debouncedSearch || !!poleFilter || !!categoryFilter;
+  const hasActiveFilters = !!debouncedSearch || !!poleFilter || !!categoryFilter || !!conditionFilter;
 
   const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -132,6 +146,7 @@ export const EquipmentScreen: React.FC = () => {
 
   const poleOptions = [{ value: '', label: 'Tous les pôles' }, ...(polesRaw || []).map((p: any) => ({ value: p._id, label: p.name }))];
   const categoryOptions = [{ value: '', label: 'Toutes les catégories' }, ...(categoriesRaw || []).map((c: any) => ({ value: c._id, label: c.name }))];
+  const conditionOptions = [{ value: '', label: 'Tous les états' }, ...EQUIPMENT_CONDITIONS.map((c) => ({ value: c, label: EQUIPMENT_CONDITION_LABELS[c] }))];
 
   const handleScanDecode = async (data: string) => {
     const resolved = await resolveScannedEquipment(data);
@@ -182,11 +197,6 @@ export const EquipmentScreen: React.FC = () => {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Matériel</Text>
-        <Text style={styles.headerSubtitle}>{items.length} référence{items.length > 1 ? 's' : ''}</Text>
-      </View>
-
       <View style={styles.topActionsRow}>
         <TouchableOpacity style={styles.secondaryBtn} onPress={() => setView('groups')}>
           <Boxes size={14} color={theme.colors.primary} />
@@ -241,6 +251,14 @@ export const EquipmentScreen: React.FC = () => {
             open={openFilter === 'category'}
             onToggle={() => setOpenFilter((f) => (f === 'category' ? null : 'category'))}
           />
+          <SelectField
+            label="État"
+            value={conditionFilter}
+            options={conditionOptions}
+            onChange={setConditionFilter}
+            open={openFilter === 'condition'}
+            onToggle={() => setOpenFilter((f) => (f === 'condition' ? null : 'condition'))}
+          />
         </View>
       </View>
 
@@ -268,6 +286,7 @@ export const EquipmentScreen: React.FC = () => {
                     <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
                     <Text style={styles.mutedSm}>Quantité : {item.quantity}</Text>
                     <View style={styles.cardTagsRow}>
+                      <ConditionPill condition={item.condition} size={9} />
                       {item.category && (
                         <View style={styles.tagPill}>
                           <Tag size={9} color={theme.colors.textSecondary} />
@@ -404,6 +423,7 @@ const EquipmentDetailScreen: React.FC<{
             </View>
           </View>
           <View style={styles.cardTagsRow}>
+            <ConditionPill condition={item.condition} size={10} />
             {item.category && (
               <View style={styles.tagPill}>
                 <Tag size={10} color={theme.colors.textSecondary} />
@@ -553,17 +573,19 @@ const EquipmentFormScreen: React.FC<{ editing: any; onClose: () => void; onSaved
   const [poleId, setPoleId] = React.useState(editing?.poleId || '');
   const [categoryId, setCategoryId] = React.useState(editing?.categoryId || '');
   const [description, setDescription] = React.useState(editing?.description || '');
+  const [condition, setCondition] = React.useState<EquipmentCondition>((editing?.condition as EquipmentCondition) || DEFAULT_EQUIPMENT_CONDITION);
   const [photoUrl, setPhotoUrl] = React.useState(editing?.photoUrl || '');
   const [uploading, setUploading] = React.useState(false);
   const [isAddingCategory, setIsAddingCategory] = React.useState(false);
   const [newCategoryName, setNewCategoryName] = React.useState('');
   const [creatingCategory, setCreatingCategory] = React.useState(false);
-  const [openFilter, setOpenFilter] = React.useState<'pole' | 'category' | null>(null);
+  const [openFilter, setOpenFilter] = React.useState<'pole' | 'category' | 'condition' | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const poleOptions = [{ value: '', label: 'Aucun' }, ...(polesRaw || []).map((p: any) => ({ value: p._id, label: p.name }))];
   const categoryOptions = [{ value: '', label: 'Aucune' }, ...(categoriesRaw || []).map((c: any) => ({ value: c._id, label: c.name }))];
+  const conditionOptions = EQUIPMENT_CONDITIONS.map((c) => ({ value: c, label: EQUIPMENT_CONDITION_LABELS[c] }));
 
   const handlePickPhoto = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -617,7 +639,8 @@ const EquipmentFormScreen: React.FC<{ editing: any; onClose: () => void; onSaved
         photoUrl: (photoUrl || null) as string | null,
         poleId: (poleId || null) as Id<'poles'> | null,
         categoryId: (categoryId || null) as Id<'equipmentCategories'> | null,
-        description: (description.trim() || null) as string | null
+        description: (description.trim() || null) as string | null,
+        condition
       };
       const result = editing ? await updateEquipment({ equipmentId: editing._id, ...payload }) : await createEquipment(payload);
       onSaved(result);
@@ -685,8 +708,19 @@ const EquipmentFormScreen: React.FC<{ editing: any; onClose: () => void; onSaved
           )}
         </View>
 
+        <View style={{ marginTop: 10 }}>
+          <SelectField
+            label="État"
+            value={condition}
+            options={conditionOptions}
+            onChange={(v) => setCondition(v as EquipmentCondition)}
+            open={openFilter === 'condition'}
+            onToggle={() => setOpenFilter((f) => (f === 'condition' ? null : 'condition'))}
+          />
+        </View>
+
         <Text style={styles.inputLabel}>Description</Text>
-        <TextInput style={[styles.input, styles.textAreaSmall]} value={description} onChangeText={setDescription} placeholder="Détails, état, emplacement..." multiline />
+        <TextInput style={[styles.input, styles.textAreaSmall]} value={description} onChangeText={setDescription} placeholder="Détails, emplacement..." multiline />
 
         <Text style={styles.inputLabel}>Photo</Text>
         {photoUrl ? (

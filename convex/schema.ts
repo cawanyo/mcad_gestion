@@ -319,6 +319,19 @@ export default defineSchema({
     // this field existed has none — EquipmentBarcode.tsx falls back to
     // encoding the raw id for those.
     shortCode: v.optional(v.string()),
+    // État physique du matériel, du meilleur au pire. Optional so equipment
+    // created before this field existed reads as undefined rather than
+    // throwing — equipment.ts's create defaults new rows to TRES_BON, and
+    // the UI treats a missing value the same way for older rows.
+    condition: v.optional(
+      v.union(
+        v.literal("TRES_BON"),
+        v.literal("BON"),
+        v.literal("MOYEN"),
+        v.literal("MAUVAIS"),
+        v.literal("HORS_SERVICE")
+      )
+    ),
     createdBy: v.optional(v.id("users")),
     updatedBy: v.optional(v.id("users")),
     updatedAt: v.number(),
@@ -328,6 +341,7 @@ export default defineSchema({
     .index("poleId", ["poleId"])
     .index("categoryId", ["categoryId"])
     .index("shortCode", ["shortCode"])
+    .index("condition", ["condition"])
     .searchIndex("search_name", { searchField: "name", filterFields: ["status"] }),
 
   // Free-form, user-grown tags for equipment ("Câbles", "Sonorisation", ...).

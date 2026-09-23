@@ -12,6 +12,7 @@ import { EquipmentCard } from './EquipmentCard';
 import { EquipmentFormModal } from './EquipmentFormModal';
 import { adaptEquipment } from '@/lib/convexAdapters';
 import { resolveScannedEquipment } from '@/lib/equipmentCode';
+import { EQUIPMENT_CONDITIONS, EQUIPMENT_CONDITION_LABELS, EquipmentCondition } from '@/lib/equipmentCondition';
 import Link from 'next/link';
 
 const CodeScannerModal = dynamic(
@@ -29,6 +30,7 @@ export const EquipmentManagement: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [poleFilter, setPoleFilter] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState('');
+  const [conditionFilter, setConditionFilter] = React.useState('');
   const [showScanner, setShowScanner] = React.useState(false);
   const [showFormModal, setShowFormModal] = React.useState(false);
   const [scanError, setScanError] = React.useState<string | null>(null);
@@ -44,17 +46,18 @@ export const EquipmentManagement: React.FC = () => {
   // when the result set just got shorter than where the user was browsing.
   React.useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, poleFilter, categoryFilter]);
+  }, [debouncedSearch, poleFilter, categoryFilter, conditionFilter]);
 
   const polesRaw = useQuery(api.poles.list, {});
   const categoriesRaw = useQuery(api.equipmentCategories.list, {});
   const itemsRaw = useQuery(api.equipment.list, {
     search: debouncedSearch || undefined,
     poleId: (poleFilter || undefined) as Id<'poles'> | undefined,
-    categoryId: (categoryFilter || undefined) as Id<'equipmentCategories'> | undefined
+    categoryId: (categoryFilter || undefined) as Id<'equipmentCategories'> | undefined,
+    condition: (conditionFilter || undefined) as EquipmentCondition | undefined
   });
   const items = React.useMemo(() => (itemsRaw || []).map(adaptEquipment), [itemsRaw]);
-  const hasActiveFilters = !!debouncedSearch || !!poleFilter || !!categoryFilter;
+  const hasActiveFilters = !!debouncedSearch || !!poleFilter || !!categoryFilter || !!conditionFilter;
 
   const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -162,11 +165,24 @@ export const EquipmentManagement: React.FC = () => {
             </option>
           ))}
         </select>
-        {(poleFilter || categoryFilter) && (
+        <select
+          value={conditionFilter}
+          onChange={(e) => setConditionFilter(e.target.value)}
+          className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+        >
+          <option value="">Tous les états</option>
+          {EQUIPMENT_CONDITIONS.map((c) => (
+            <option key={c} value={c}>
+              {EQUIPMENT_CONDITION_LABELS[c]}
+            </option>
+          ))}
+        </select>
+        {(poleFilter || categoryFilter || conditionFilter) && (
           <button
             onClick={() => {
               setPoleFilter('');
               setCategoryFilter('');
+              setConditionFilter('');
             }}
             className="flex items-center justify-center gap-1 px-3 py-2.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition-colors flex-shrink-0"
           >

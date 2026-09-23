@@ -2,6 +2,16 @@ import { query, mutation, MutationCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
 
+// État physique du matériel, du meilleur au pire — voir schema.ts.
+const CONDITION = v.union(
+  v.literal("TRES_BON"),
+  v.literal("BON"),
+  v.literal("MOYEN"),
+  v.literal("MAUVAIS"),
+  v.literal("HORS_SERVICE")
+);
+const DEFAULT_CONDITION = "TRES_BON" as const;
+
 // Excludes 0/O and 1/I — the code is meant to be printed small and
 // occasionally read by eye as a scan fallback, so ambiguous characters are
 // worth avoiding even though nothing here parses it by hand normally.
@@ -54,8 +64,9 @@ export const list = query({
     search: v.optional(v.string()),
     poleId: v.optional(v.id("poles")),
     categoryId: v.optional(v.id("equipmentCategories")),
+    condition: v.optional(CONDITION),
   },
-  handler: async (ctx, { search, poleId, categoryId }) => {
+  handler: async (ctx, { search, poleId, categoryId, condition }) => {
     const trimmed = search?.trim();
     let items = trimmed
       ? await ctx.db
@@ -70,6 +81,7 @@ export const list = query({
 
     if (poleId) items = items.filter((i) => i.poleId === poleId);
     if (categoryId) items = items.filter((i) => i.categoryId === categoryId);
+    if (condition) items = items.filter((i) => (i.condition || DEFAULT_CONDITION) === condition);
 
     return await Promise.all(items.map((item) => withRelations(ctx, item)));
   },
@@ -144,6 +156,7 @@ export const create = mutation({
     poleId: v.optional(v.union(v.id("poles"), v.null())),
     categoryId: v.optional(v.union(v.id("equipmentCategories"), v.null())),
     description: v.optional(v.union(v.string(), v.null())),
+    condition: v.optional(CONDITION),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
@@ -163,6 +176,7 @@ export const create = mutation({
       poleId: args.poleId || undefined,
       categoryId: args.categoryId || undefined,
       description: args.description?.trim() || undefined,
+      condition: args.condition || DEFAULT_CONDITION,
       status: "ACTIVE",
       shortCode,
       createdBy: user._id,
@@ -189,8 +203,9 @@ export const update = mutation({
     poleId: v.optional(v.union(v.id("poles"), v.null())),
     categoryId: v.optional(v.union(v.id("equipmentCategories"), v.null())),
     description: v.optional(v.union(v.string(), v.null())),
+    condition: v.optional(CONDITION),
   },
-  handler: async (ctx, { equipmentId, name, quantity, photoUrl, poleId, categoryId, description }) => {
+  handler: async (ctx, { equipmentId, name, quantity, photoUrl, poleId, categoryId, description, condition }) => {
     const user = await requireAuth(ctx);
 
     const existing = await ctx.db.get(equipmentId);
@@ -213,6 +228,7 @@ export const update = mutation({
     if (photoUrl !== undefined) patch.photoUrl = photoUrl || undefined;
     if (poleId !== undefined) patch.poleId = poleId || undefined;
     if (categoryId !== undefined) patch.categoryId = categoryId || undefined;
+    if (condition !== undefined) patch.condition = condition;
     if (description !== undefined) patch.description = description?.trim() || undefined;
 
     await ctx.db.patch(equipmentId, patch);

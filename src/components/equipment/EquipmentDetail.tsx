@@ -21,9 +21,11 @@ import {
   AlertTriangle,
   User as UserIcon,
   Clock,
-  Tag
+  Tag,
+  Gauge
 } from 'lucide-react';
 import { optimizedImageUrl } from '@/lib/image-url';
+import { equipmentConditionLabel, EQUIPMENT_CONDITION_COLORS, DEFAULT_EQUIPMENT_CONDITION, EquipmentCondition } from '@/lib/equipmentCondition';
 
 interface EquipmentDetailProps {
   equipmentId: string;
@@ -117,6 +119,15 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipmentId })
                 <p className="text-sm text-slate-500 font-medium mt-0.5">Quantité : {item.quantity}</p>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0">
+                {(() => {
+                  const conditionColors = EQUIPMENT_CONDITION_COLORS[(item.condition as EquipmentCondition) || DEFAULT_EQUIPMENT_CONDITION];
+                  return (
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${conditionColors.bg} ${conditionColors.text}`}>
+                      <Gauge className="w-3 h-3" />
+                      {equipmentConditionLabel(item.condition)}
+                    </span>
+                  );
+                })()}
                 {item.category && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
                     <Tag className="w-3 h-3" />

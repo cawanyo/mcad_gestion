@@ -41,6 +41,7 @@ export interface Equipment {
   shortCode?: string | null;
   photoUrl?: string | null;
   description?: string | null;
+  condition?: 'TRES_BON' | 'BON' | 'MOYEN' | 'MAUVAIS' | 'HORS_SERVICE' | null;
   status: 'ACTIVE' | 'DELETED';
   updatedAt: string;
   deletedAt?: string | null;

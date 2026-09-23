@@ -59,6 +59,7 @@ export function adaptEquipment(e: any): Equipment {
     shortCode: e.shortCode ?? null,
     photoUrl: e.photoUrl ?? null,
     description: e.description ?? null,
+    condition: e.condition ?? null,
     status: e.status,
     updatedAt: iso(e.updatedAt),
     deletedAt: e.deletedAt ? iso(e.deletedAt) : null,

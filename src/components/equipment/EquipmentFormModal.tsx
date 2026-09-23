@@ -10,6 +10,7 @@ import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { adaptEquipment } from '@/lib/convexAdapters';
 import { Equipment } from '@/types';
+import { EQUIPMENT_CONDITIONS, EQUIPMENT_CONDITION_LABELS, DEFAULT_EQUIPMENT_CONDITION, EquipmentCondition } from '@/lib/equipmentCondition';
 
 interface EquipmentFormModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
   const [newCategoryName, setNewCategoryName] = React.useState('');
   const [creatingCategory, setCreatingCategory] = React.useState(false);
   const [description, setDescription] = React.useState('');
+  const [condition, setCondition] = React.useState<EquipmentCondition>(DEFAULT_EQUIPMENT_CONDITION);
   const [photoUrl, setPhotoUrl] = React.useState('');
   const [uploadProgress, setUploadProgress] = React.useState<UploadProgressInfo | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -60,6 +62,7 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
       setPoleId(editingEquipment.poleId || '');
       setCategoryId(editingEquipment.categoryId || '');
       setDescription(editingEquipment.description || '');
+      setCondition((editingEquipment.condition as EquipmentCondition) || DEFAULT_EQUIPMENT_CONDITION);
       setPhotoUrl(editingEquipment.photoUrl || '');
     } else {
       setName('');
@@ -67,6 +70,7 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
       setPoleId('');
       setCategoryId('');
       setDescription('');
+      setCondition(DEFAULT_EQUIPMENT_CONDITION);
       setPhotoUrl('');
     }
     setIsAddingCategory(false);
@@ -137,7 +141,8 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
         photoUrl: (photoUrl || null) as string | null,
         poleId: (poleId || null) as Id<'poles'> | null,
         categoryId: (categoryId || null) as Id<'equipmentCategories'> | null,
-        description: (description.trim() || null) as string | null
+        description: (description.trim() || null) as string | null,
+        condition
       };
 
       const result = editingEquipment
@@ -271,6 +276,21 @@ export const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
               </select>
             )}
           </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-slate-700 block mb-1">État</label>
+          <select
+            value={condition}
+            onChange={(e) => setCondition(e.target.value as EquipmentCondition)}
+            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          >
+            {EQUIPMENT_CONDITIONS.map((c) => (
+              <option key={c} value={c}>
+                {EQUIPMENT_CONDITION_LABELS[c]}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
