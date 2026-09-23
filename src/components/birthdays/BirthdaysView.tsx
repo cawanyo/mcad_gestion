@@ -67,7 +67,8 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
     currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER' ||
     currentUser?.role === 'POLE_LEADER' ||
-    currentUser?.role === 'CALENDAR_MANAGER';
+    currentUser?.role === 'CALENDAR_MANAGER' ||
+    ((currentUser?.poleLeaderships?.length ?? 0) > 0);
 
   const handleSendWish = async (e: React.FormEvent) => {
     e.preventDefault();

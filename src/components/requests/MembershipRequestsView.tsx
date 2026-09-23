@@ -50,7 +50,25 @@ export const MembershipRequestsView: React.FC<MembershipRequestsViewProps> = ({
     poleId: selectedPoleId !== 'ALL' ? (selectedPoleId as Id<'poles'>) : undefined
   });
   const loading = requestsRaw === undefined;
-  const requests = React.useMemo(() => (requestsRaw || []).map(adaptMembershipRequestListItem), [requestsRaw]);
+
+  // membershipRequests.list is a blanket "any leader" read (matches
+  // requireLeaderOrAdmin), but .review is pole-scoped
+  // (requirePoleLeaderOrAdmin — only SUPER_ADMIN/DEPARTMENT_LEADER bypass
+  // the "must actually lead this pole" check, same model as poles.ts and
+  // this session's assignments.ts fix). A pole leader must not see, let
+  // alone get Accepter/Refuser buttons for, requests on poles they don't
+  // lead — filter client-side to match what the mutation actually allows.
+  const isDeptLeaderOrAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'DEPARTMENT_LEADER';
+  const myPoleIds = React.useMemo(
+    () => new Set((currentUser?.poleLeaderships || []).map((l) => l.poleId)),
+    [currentUser]
+  );
+  const visiblePoles = isDeptLeaderOrAdmin ? poles : poles.filter((p) => myPoleIds.has(p.id));
+
+  const requests = React.useMemo(() => {
+    const adapted = (requestsRaw || []).map(adaptMembershipRequestListItem);
+    return isDeptLeaderOrAdmin ? adapted : adapted.filter((r: any) => myPoleIds.has(r.poleId));
+  }, [requestsRaw, isDeptLeaderOrAdmin, myPoleIds]);
 
   const handleUpdateStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
     try {
@@ -155,7 +173,7 @@ export const MembershipRequestsView: React.FC<MembershipRequestsViewProps> = ({
               className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500"
             >
               <option value="ALL">Tous les pôles</option>
-              {poles.map((p) => (
+              {visiblePoles.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>

@@ -78,7 +78,8 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
     currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER' ||
     currentUser?.role === 'POLE_LEADER' ||
-    currentUser?.role === 'CALENDAR_MANAGER';
+    currentUser?.role === 'CALENDAR_MANAGER' ||
+    ((currentUser?.poleLeaderships?.length ?? 0) > 0);
 
   React.useEffect(() => {
     setCurrentPage(1);

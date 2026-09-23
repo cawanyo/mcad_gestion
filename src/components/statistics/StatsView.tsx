@@ -31,7 +31,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
     currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER' ||
     currentUser?.role === 'POLE_LEADER' ||
-    currentUser?.role === 'CALENDAR_MANAGER';
+    currentUser?.role === 'CALENDAR_MANAGER' ||
+    ((currentUser?.poleLeaderships?.length ?? 0) > 0);
 
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = React.useState<number>(currentYear);

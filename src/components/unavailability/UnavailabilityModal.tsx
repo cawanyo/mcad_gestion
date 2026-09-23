@@ -40,7 +40,8 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
     currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER' ||
     currentUser?.role === 'POLE_LEADER' ||
-    currentUser?.role === 'CALENDAR_MANAGER';
+    currentUser?.role === 'CALENDAR_MANAGER' ||
+    ((currentUser?.poleLeaderships?.length ?? 0) > 0);
 
   const getTodayStr = () => {
     const d = new Date();
