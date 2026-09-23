@@ -14,6 +14,7 @@ import {
   Shield,
   Crown,
   KeyRound,
+  Lock,
   Trash2,
   AlertCircle,
   RefreshCw,
@@ -21,7 +22,7 @@ import {
   Sparkles,
   ChevronRight
 } from 'lucide-react';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { User, Pole, UserRole } from '@/types';
@@ -89,6 +90,10 @@ export const MemberDetailView: React.FC<MemberDetailViewProps> = ({
   const [savingRole, setSavingRole] = React.useState(false);
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = React.useState(false);
+  const [newPassword, setNewPassword] = React.useState('');
+  const [resettingPassword, setResettingPassword] = React.useState(false);
+  const [resetPasswordError, setResetPasswordError] = React.useState<string | null>(null);
 
   // Queries
   const membersRaw = useQuery(api.members.list, {});
@@ -103,9 +108,11 @@ export const MemberDetailView: React.FC<MemberDetailViewProps> = ({
 
   const updateRoleMutation = useMutation(api.members.updateRole);
   const removeMemberMutation = useMutation(api.members.remove);
+  const resetPasswordAction = useAction(api.auth.adminResetPassword);
 
   const isDeptLeaderOrAdmin =
     currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'DEPARTMENT_LEADER';
+  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
   const isSelf = currentUser?.id === memberId;
 
   const effectiveRole =
@@ -159,6 +166,23 @@ export const MemberDetailView: React.FC<MemberDetailViewProps> = ({
       setToast({ message: convexErrorMessage(err, 'Erreur lors de la suppression'), type: 'error' });
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!member) return;
+    setResetPasswordError(null);
+    try {
+      setResettingPassword(true);
+      await resetPasswordAction({ targetUserId: member._id as Id<'users'>, newPassword });
+      setToast({ message: `Mot de passe de ${member.firstName} ${member.lastName} réinitialisé.`, type: 'success' });
+      setShowResetPasswordModal(false);
+      setNewPassword('');
+    } catch (err) {
+      setResetPasswordError(convexErrorMessage(err, 'Erreur lors de la réinitialisation du mot de passe'));
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -282,6 +306,20 @@ export const MemberDetailView: React.FC<MemberDetailViewProps> = ({
                 <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Modifier le rôle</span>
               </button>
+
+              {isSuperAdmin && (
+                <button
+                  onClick={() => {
+                    setNewPassword('');
+                    setResetPasswordError(null);
+                    setShowResetPasswordModal(true);
+                  }}
+                  className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Réinitialiser le mot de passe</span>
+                </button>
+              )}
 
               {!isSelf && (
                 <button
@@ -685,6 +723,64 @@ export const MemberDetailView: React.FC<MemberDetailViewProps> = ({
               >
                 {savingRole ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Shield className="w-3.5 h-3.5" />}
                 <span>Enregistrer le rôle</span>
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Réinitialisation du mot de passe */}
+      {showResetPasswordModal && (
+        <Modal
+          isOpen={showResetPasswordModal}
+          onClose={() => setShowResetPasswordModal(false)}
+          title="Réinitialiser le mot de passe"
+          subtitle={`${member.firstName} ${member.lastName}`}
+          icon={<Lock className="w-5 h-5 text-white" />}
+          headerGradient="from-amber-500 to-orange-600"
+          maxWidth="sm"
+        >
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+              Définissez un nouveau mot de passe pour ce membre. Il devra l'utiliser dès sa prochaine connexion — pensez à le lui communiquer.
+            </p>
+
+            {resetPasswordError && (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{resetPasswordError}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Nouveau mot de passe *</label>
+              <input
+                type="text"
+                required
+                minLength={4}
+                autoFocus
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Au moins 4 caractères"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowResetPasswordModal(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={resettingPassword || newPassword.trim().length < 4}
+                className="px-5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5"
+              >
+                {resettingPassword ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
+                <span>Réinitialiser</span>
               </button>
             </div>
           </form>

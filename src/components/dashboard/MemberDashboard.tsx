@@ -120,7 +120,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
-            {currentUser && currentUser.role !== 'MEMBER' && (
+            {currentUser && (currentUser.role !== 'MEMBER' || (currentUser.poleLeaderships?.length ?? 0) > 0) && (
               <button
                 onClick={() => onNavigateTab('leader_hub')}
                 className="relative flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-900 font-extrabold rounded-2xl text-xs shadow-md transition-all"
