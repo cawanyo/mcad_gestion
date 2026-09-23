@@ -45,9 +45,17 @@ import { EquipmentGroupsScreen } from './EquipmentGroupsScreen';
 
 const PAGE_SIZE = 15;
 
-// Simple inline dropdown (anchored under the field, not a modal popup) —
-// same pattern as TrainingScreen's Explorer filters and ChecklistsScreen's
-// pole select.
+// Anchored dropdown rendered through a transparent Modal instead of an
+// absolutely-positioned sibling View. The previous sibling+elevation
+// approach got the stacking order right visually, but on Android touch
+// dispatch between overlapping siblings follows view-tree add order, not
+// elevation — so a drag starting over the "floating" dropdown was still
+// captured by the page's own ScrollView underneath it (reported: can't
+// scroll the Pôle/Catégorie/État option lists, the page scrolls instead).
+// A Modal renders in its own native window, always on top for touch
+// purposes regardless of sibling order, which is the reliable fix. The
+// field's on-screen position is measured so the dropdown still reads as an
+// inline anchored select, not a full popup sheet.
 const SelectField: React.FC<{
   label: string;
   value: string;
@@ -57,32 +65,49 @@ const SelectField: React.FC<{
   onToggle: () => void;
 }> = ({ label, value, options, onChange, open, onToggle }) => {
   const current = options.find((o) => o.value === value);
+  const fieldRef = React.useRef<View>(null);
+  const [anchor, setAnchor] = React.useState<{ x: number; y: number; width: number } | null>(null);
+
+  const handleOpen = () => {
+    fieldRef.current?.measureInWindow((x, y, width, height) => {
+      setAnchor({ x, y: y + height + 4, width });
+      onToggle();
+    });
+  };
+
   return (
-    <View style={{ flex: 1, zIndex: open ? 30 : 1 }}>
+    <View style={{ flex: 1 }}>
       <Text style={styles.inputLabel}>{label}</Text>
-      <TouchableOpacity style={styles.selectField} onPress={onToggle} activeOpacity={0.7}>
-        <Text style={styles.selectFieldText} numberOfLines={1}>{current?.label || 'Sélectionner'}</Text>
-        {open ? <ChevronUp size={14} color={theme.colors.textSecondary} /> : <ChevronDown size={14} color={theme.colors.textSecondary} />}
-      </TouchableOpacity>
-      {open && (
-        <View style={styles.selectDropdown}>
-          <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
-            {options.map((o) => (
-              <TouchableOpacity
-                key={o.value}
-                style={[styles.selectOption, o.value === value && styles.selectOptionActive]}
-                onPress={() => {
-                  onChange(o.value);
-                  onToggle();
-                }}
-              >
-                <Text style={[styles.selectOptionText, o.value === value && styles.selectOptionTextActive]} numberOfLines={1}>{o.label}</Text>
-                {o.value === value && <Check size={13} color={theme.colors.primary} />}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+      <View ref={fieldRef} collapsable={false}>
+        <TouchableOpacity style={styles.selectField} onPress={open ? onToggle : handleOpen} activeOpacity={0.7}>
+          <Text style={styles.selectFieldText} numberOfLines={1}>{current?.label || 'Sélectionner'}</Text>
+          {open ? <ChevronUp size={14} color={theme.colors.textSecondary} /> : <ChevronDown size={14} color={theme.colors.textSecondary} />}
+        </TouchableOpacity>
+      </View>
+
+      <Modal visible={open} transparent statusBarTranslucent animationType="fade" onRequestClose={onToggle}>
+        <TouchableOpacity style={styles.selectBackdrop} activeOpacity={1} onPress={onToggle}>
+          {anchor && (
+            <View style={[styles.selectDropdownFloating, { top: anchor.y, left: anchor.x, width: anchor.width }]}>
+              <ScrollView style={{ maxHeight: 260 }}>
+                {options.map((o) => (
+                  <TouchableOpacity
+                    key={o.value}
+                    style={[styles.selectOption, o.value === value && styles.selectOptionActive]}
+                    onPress={() => {
+                      onChange(o.value);
+                      onToggle();
+                    }}
+                  >
+                    <Text style={[styles.selectOptionText, o.value === value && styles.selectOptionTextActive]} numberOfLines={1}>{o.label}</Text>
+                    {o.value === value && <Check size={13} color={theme.colors.primary} />}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -861,12 +886,9 @@ const styles = StyleSheet.create({
 
   selectField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderDark, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11 },
   selectFieldText: { flex: 1, fontSize: 12, fontWeight: '700', color: theme.colors.text },
-  selectDropdown: {
+  selectBackdrop: { flex: 1 },
+  selectDropdownFloating: {
     position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    marginTop: 4,
     backgroundColor: theme.colors.card,
     borderRadius: 12,
     borderWidth: 1,
