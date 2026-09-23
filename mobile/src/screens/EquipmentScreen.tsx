@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Image } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   X,
@@ -313,16 +314,18 @@ export const EquipmentScreen: React.FC = () => {
       </TouchableOpacity>
 
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
-        <View style={styles.screen}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => setShowScanner(false)} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
-            <Text style={styles.headerTitle}>Scanner un code</Text>
-          </View>
-          <ScrollView contentContainerStyle={styles.content}>
-            <CodeScannerView key={showScanner ? 'open' : 'closed'} mode="once" onDecode={handleScanDecode} hint="Visez le QR code ou le code-barres du matériel." />
-            {scanError && <Text style={styles.errorText}>{scanError}</Text>}
-          </ScrollView>
-        </View>
+        <SafeAreaProvider>
+          <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => setShowScanner(false)} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+              <Text style={styles.headerTitle}>Scanner un code</Text>
+            </View>
+            <ScrollView contentContainerStyle={styles.content}>
+              <CodeScannerView key={showScanner ? 'open' : 'closed'} mode="once" onDecode={handleScanDecode} hint="Visez le QR code ou le code-barres du matériel." />
+              {scanError && <Text style={styles.errorText}>{scanError}</Text>}
+            </ScrollView>
+          </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
     </View>
   );

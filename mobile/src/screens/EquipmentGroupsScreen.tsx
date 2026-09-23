@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Image } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   X,
@@ -546,7 +547,8 @@ const AddItemToGroupModal: React.FC<{ groupId: Id<'equipmentGroups'>; onClose: (
 
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
-      <View style={styles.screen}>
+      <SafeAreaProvider>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.backBtn}><X size={18} color={theme.colors.text} /></TouchableOpacity>
           <Text style={styles.headerTitle}>Ajouter du matériel</Text>
@@ -628,7 +630,8 @@ const AddItemToGroupModal: React.FC<{ groupId: Id<'equipmentGroups'>; onClose: (
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };
@@ -676,7 +679,8 @@ const ReturnCheckModal: React.FC<{ groupId: Id<'equipmentGroups'>; items: any[];
 
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
-      <View style={styles.screen}>
+      <SafeAreaProvider>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.backBtn}><X size={18} color={theme.colors.text} /></TouchableOpacity>
           <Text style={styles.headerTitle}>Vérifier le retour</Text>
@@ -757,7 +761,8 @@ const ReturnCheckModal: React.FC<{ groupId: Id<'equipmentGroups'>; items: any[];
             <Text style={styles.primaryBtnText}>Terminer</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };
