@@ -15,6 +15,14 @@
     },
     "android": {
       "package": "org.mcad.benevolat"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "MCAD a besoin d'accéder à l'appareil photo pour scanner les codes du matériel."
+        }
+      ]
+    ]
   }
 }
