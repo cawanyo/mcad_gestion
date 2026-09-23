@@ -1,12 +1,10 @@
-import 'react-native-gesture-handler';
 import React from 'react';
 import { Modal, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 import { Home, Calendar, GraduationCap, HandHeart, Sparkles, ShieldCheck } from 'lucide-react-native';
 import { useConvexAuth, useQuery, useMutation } from 'convex/react';
@@ -40,15 +38,10 @@ import { LifeHubScreen } from './src/screens/LifeHubScreen';
 import { LeaderHubScreen } from './src/screens/LeaderHubScreen';
 
 const Tab = createBottomTabNavigator();
-// The classic JS Stack Navigator (not native-stack) on purpose: react-native-screens'
-// native-stack only supports dismissing a screen via the hardware/system back
-// button on Android, not a swipe gesture — this one reimplements its own
-// gesture-driven transitions via react-native-gesture-handler, so swipe-back
-// works on both platforms, matching what users expect from other Android apps.
-const CalendarStack = createStackNavigator();
-const ServiceStack = createStackNavigator();
-const LifeStack = createStackNavigator();
-const LeaderStack = createStackNavigator();
+const CalendarStack = createNativeStackNavigator();
+const ServiceStack = createNativeStackNavigator();
+const LifeStack = createNativeStackNavigator();
+const LeaderStack = createNativeStackNavigator();
 
 const isLeaderOrAdmin = (u: User) =>
   u.role === 'SUPER_ADMIN' ||
@@ -377,18 +370,13 @@ function RootNavigator() {
 
 export default function App() {
   return (
-    // Required root wrapper for react-native-gesture-handler, which the
-    // classic Stack Navigator (CalendarStack/ServiceStack/LifeStack/
-    // LeaderStack above) needs for its swipe-back gesture to work.
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ConvexClientProvider>
-        <SafeAreaProvider>
-          <StatusBar style="dark" />
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </ConvexClientProvider>
-    </GestureHandlerRootView>
+    <ConvexClientProvider>
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </ConvexClientProvider>
   );
 }
