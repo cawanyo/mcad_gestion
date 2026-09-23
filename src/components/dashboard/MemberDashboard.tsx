@@ -2,7 +2,7 @@
 
 import React from 'react';
 import {
-  LayoutDashboard,
+  ShieldCheck,
   Calendar,
   Clock,
   Layers,
@@ -56,6 +56,8 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
   const birthdays = data?.birthdays || [];
   const upcomingEvents = data?.upcomingEvents || [];
   const nextService = memberData?.nextService;
+
+  const pendingRequestsCount = data?.pendingRequests?.length || 0;
 
   const hasNoPoles = myPoles.length === 0;
   const myPoleIds = myPoles.map((p: any) => p.id);
@@ -120,11 +122,16 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
           <div className="flex items-center gap-2.5 flex-wrap">
             {currentUser && currentUser.role !== 'MEMBER' && (
               <button
-                onClick={() => onNavigateTab('leader_dashboard')}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-900 font-extrabold rounded-2xl text-xs shadow-md transition-all"
+                onClick={() => onNavigateTab('leader_hub')}
+                className="relative flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-900 font-extrabold rounded-2xl text-xs shadow-md transition-all"
               >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Tableau de bord</span>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Responsable</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white">
+                    {pendingRequestsCount}
+                  </span>
+                )}
               </button>
             )}
             <button

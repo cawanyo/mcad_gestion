@@ -58,3 +58,8 @@ next-env.d.ts
 *.db-journal
 dev.db
 .env
+
+# Local EAS build output (eas build --local)
+*.apk
+*.aab
+*.ipa

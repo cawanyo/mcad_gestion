@@ -4,12 +4,10 @@ import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Home,
-  LayoutDashboard,
   CalendarDays,
   GraduationCap,
   HandHeart,
   Sparkles,
-  ShieldCheck,
   Loader2
 } from 'lucide-react';
 import { User } from '@/types';
@@ -25,16 +23,13 @@ export interface TabItem {
 
 interface BottomTabBarProps {
   currentUser: User | null;
-  pendingRequestsCount?: number;
 }
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   currentUser,
-  pendingRequestsCount = 0,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const isLeader = currentUser?.role && currentUser.role !== 'MEMBER';
 
   const currentParentTab = getBottomTabForPath(pathname);
 
@@ -80,17 +75,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       label: 'Vie MCAD',
       icon: Sparkles,
     },
-    ...(isLeader
-      ? [
-          {
-            id: 'leader_hub',
-            label: 'Responsable',
-            icon: ShieldCheck,
-            badge: pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
-            leaderOnly: true,
-          },
-        ]
-      : []),
   ];
 
   return (

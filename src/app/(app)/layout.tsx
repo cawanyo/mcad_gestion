@@ -367,10 +367,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
         </div>
 
         {/* Fixed Bottom Tab Bar Navigation (ONLY on screens < lg) */}
-        <BottomTabBar
-          currentUser={currentUser}
-          pendingRequestsCount={dashboardData?.pendingRequests?.length || 0}
-        />
+        <BottomTabBar currentUser={currentUser} />
 
         {/* Shared Modals */}
         {showEventModal && (
