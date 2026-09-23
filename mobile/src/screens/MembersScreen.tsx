@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Shield, X, Check, Trash2, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Search, Shield, X, Check, Trash2, ChevronRight } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -10,6 +10,7 @@ import { User } from '../types';
 
 interface MembersScreenProps {
   currentUser: User;
+  onBack?: () => void;
 }
 
 const MemberDetailModal: React.FC<{
@@ -158,7 +159,7 @@ const ROLE_LABELS: Record<string, string> = {
 // but isn't itself an access boundary. api.members.updateRole/remove ARE
 // gated server-side (requireDepartmentLeaderOrAdmin), so role-change/delete
 // stay safe even if this screen were reached another way.
-export const MembersScreen: React.FC<MembersScreenProps> = ({ currentUser }) => {
+export const MembersScreen: React.FC<MembersScreenProps> = ({ currentUser, onBack }) => {
   const [search, setSearch] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   React.useEffect(() => {
@@ -207,7 +208,12 @@ export const MembersScreen: React.FC<MembersScreenProps> = ({ currentUser }) => 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Membres ({members.length})</Text>
+        <View style={styles.headerTitleRow}>
+          {onBack && (
+            <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>Membres ({members.length})</Text>
+        </View>
         <View style={styles.searchBox}>
           <Search color={theme.colors.textMuted} size={14} />
           <TextInput
@@ -305,7 +311,9 @@ export const MembersScreen: React.FC<MembersScreenProps> = ({ currentUser }) => 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
   header: { padding: 16, paddingTop: 8, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border, gap: 10 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.text },
+  backBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center' },
   searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.background, borderRadius: theme.borderRadius.md, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: theme.colors.border },
   searchInput: { flex: 1, fontSize: 12, color: theme.colors.text },
   content: { padding: 16, gap: 10, paddingBottom: 40 },

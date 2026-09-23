@@ -48,19 +48,6 @@ const isLeaderOrAdmin = (u: User) =>
   u.role === 'CALENDAR_MANAGER' ||
   ((u.poleLeaderships?.length ?? 0) > 0);
 
-// A bare back button, no title — lets Poles/Checklists/Unavailabilities/etc.
-// keep rendering their own in-content header (built as standalone tab
-// screens originally) while still getting a working native back affordance
-// on Android once nested under a hub stack, without having to edit those
-// screens themselves.
-const backOnlyHeader = {
-  headerShown: true,
-  headerTitle: '',
-  headerTintColor: theme.colors.primary,
-  headerStyle: { backgroundColor: theme.colors.card },
-  headerShadowVisible: false
-} as const;
-
 function CalendarStackScreen({ currentUser }: { currentUser: User }) {
   return (
     <CalendarStack.Navigator screenOptions={{ headerShown: false }}>
@@ -125,11 +112,11 @@ function LifeStackScreen({ currentUser }: { currentUser: User }) {
       <LifeStack.Screen name="LifeHub">
         {({ navigation }) => <LifeHubScreen navigation={navigation} />}
       </LifeStack.Screen>
-      <LifeStack.Screen name="Birthdays" options={backOnlyHeader}>
-        {() => <BirthdaysScreen />}
+      <LifeStack.Screen name="Birthdays">
+        {({ navigation }) => <BirthdaysScreen onBack={() => navigation.goBack()} />}
       </LifeStack.Screen>
-      <LifeStack.Screen name="Statistics" options={backOnlyHeader}>
-        {() => <StatisticsScreen currentUser={currentUser} />}
+      <LifeStack.Screen name="Statistics">
+        {({ navigation }) => <StatisticsScreen currentUser={currentUser} onBack={() => navigation.goBack()} />}
       </LifeStack.Screen>
     </LifeStack.Navigator>
   );
@@ -144,14 +131,14 @@ function LeaderStackScreen({ currentUser }: { currentUser: User }) {
       <LeaderStack.Screen name="LeaderHub">
         {({ navigation }) => <LeaderHubScreen navigation={navigation} currentUser={currentUser} />}
       </LeaderStack.Screen>
-      <LeaderStack.Screen name="LeaderDashboard" options={backOnlyHeader}>
-        {({ navigation }) => <LeaderDashboardScreen onOpenRequests={() => navigation.navigate('Requests')} />}
+      <LeaderStack.Screen name="LeaderDashboard">
+        {({ navigation }) => <LeaderDashboardScreen onOpenRequests={() => navigation.navigate('Requests')} onBack={() => navigation.goBack()} />}
       </LeaderStack.Screen>
-      <LeaderStack.Screen name="Requests" options={backOnlyHeader}>
-        {() => <RequestsScreen />}
+      <LeaderStack.Screen name="Requests">
+        {({ navigation }) => <RequestsScreen onBack={() => navigation.goBack()} />}
       </LeaderStack.Screen>
-      <LeaderStack.Screen name="Members" options={backOnlyHeader}>
-        {() => <MembersScreen currentUser={currentUser} />}
+      <LeaderStack.Screen name="Members">
+        {({ navigation }) => <MembersScreen currentUser={currentUser} onBack={() => navigation.goBack()} />}
       </LeaderStack.Screen>
     </LeaderStack.Navigator>
   );

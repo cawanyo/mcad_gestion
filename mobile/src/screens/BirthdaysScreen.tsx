@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { Cake, CalendarDays } from 'lucide-react-native';
+import { ArrowLeft, Cake, CalendarDays } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../theme';
@@ -33,7 +33,7 @@ const BirthdayRow: React.FC<{ b: any }> = ({ b }) => (
 // current month picked by default), then the selected month's list below —
 // the backend (convex/birthdays.ts) already groups everyone by month and
 // computes birthdaysThisWeek, nothing new needed server-side.
-export const BirthdaysScreen: React.FC = () => {
+export const BirthdaysScreen: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
   const data = useQuery(api.birthdays.list, {});
   const loading = data === undefined;
   const [selectedMonth, setSelectedMonth] = React.useState<number | null>(null);
@@ -52,6 +52,9 @@ export const BirthdaysScreen: React.FC = () => {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+        )}
         <Cake size={18} color={theme.colors.primary} />
         <Text style={styles.headerTitle}>Anniversaires</Text>
       </View>
@@ -121,6 +124,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 16, paddingTop: 8, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   headerTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.text },
+  backBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, paddingBottom: 40 },
 
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },

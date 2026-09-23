@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Calendar, Gift, Check, X } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Gift, Check, X } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -25,7 +25,7 @@ function StatTile({ label, value }: { label: string; value: string | number }) {
 // restraint, this trims to 3 tiles + plain lists, consistent with the rest
 // of this app and with StatisticsScreen's plain-View bar approach — no new
 // charting dependency added.
-export const LeaderDashboardScreen: React.FC<{ onOpenRequests: () => void }> = ({ onOpenRequests }) => {
+export const LeaderDashboardScreen: React.FC<{ onOpenRequests: () => void; onBack?: () => void }> = ({ onOpenRequests, onBack }) => {
   const data = useQuery(api.dashboard.get, {});
   const loading = data === undefined;
   const review = useMutation(api.membershipRequests.review);
@@ -43,6 +43,9 @@ export const LeaderDashboardScreen: React.FC<{ onOpenRequests: () => void }> = (
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Tableau de bord</Text>
       </View>
 
@@ -158,8 +161,9 @@ export const LeaderDashboardScreen: React.FC<{ onOpenRequests: () => void }> = (
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
-  header: { padding: 16, paddingTop: 8, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 8, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   headerTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.text },
+  backBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, paddingBottom: 40 },
   tilesGrid: { flexDirection: 'row', gap: 10, marginBottom: 8 },
   tile: { flex: 1, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.md, padding: 12, borderWidth: 1, borderColor: theme.colors.border },

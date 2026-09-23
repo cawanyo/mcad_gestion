@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Clock, CheckCircle2, XCircle } from 'lucide-react-native';
+import { ArrowLeft, Clock, CheckCircle2, XCircle } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -20,7 +20,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleDateString('fr-FR', { day: 'num
 // gated here for UX only — api.membershipRequests.list already enforces
 // leader/admin server-side (a real gap fixed this session), so a non-leader
 // calling this screen's query would just get rejected, not leak data.
-export const RequestsScreen: React.FC = () => {
+export const RequestsScreen: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
   const [tab, setTab] = React.useState<StatusTab>('PENDING');
   const requestsRaw = useQuery(api.membershipRequests.list, { status: tab });
   const loading = requestsRaw === undefined;
@@ -43,6 +43,9 @@ export const RequestsScreen: React.FC = () => {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Demandes d'adhésion</Text>
       </View>
 
@@ -121,8 +124,9 @@ export const RequestsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
-  header: { padding: 16, paddingTop: 8, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 8, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   headerTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.text },
+  backBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center' },
 
   tabsWrap: { padding: 16, paddingBottom: 12, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   segmentedControl: { flexDirection: 'row', backgroundColor: theme.colors.background, borderRadius: theme.borderRadius.round, padding: 3, borderWidth: 1, borderColor: theme.colors.borderDark },

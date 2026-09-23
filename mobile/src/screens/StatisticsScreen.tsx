@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -8,6 +9,7 @@ import { User } from '../types';
 
 interface StatisticsScreenProps {
   currentUser: User;
+  onBack?: () => void;
 }
 
 const isLeaderOrAdmin = (u: User) =>
@@ -46,7 +48,7 @@ function MonthlyBars({ data, valueKey }: { data: any[]; valueKey: string }) {
 // this session, no rainbow of colors. The age-group breakdown backend now
 // returns a sequential indigo scale (light -> dark by bracket); reuse those
 // colors as-is rather than reintroducing distinct hues.
-export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ currentUser }) => {
+export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ currentUser, onBack }) => {
   const leaderView = isLeaderOrAdmin(currentUser);
   const [year] = React.useState(new Date().getFullYear());
   const stats = useQuery(
@@ -58,6 +60,9 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ currentUser 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Statistiques</Text>
       </View>
 
@@ -162,8 +167,9 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = ({ currentUser 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
-  header: { padding: 16, paddingTop: 8, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingTop: 8, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   headerTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.text },
+  backBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, paddingBottom: 40 },
   empty: { textAlign: 'center', color: theme.colors.textMuted, fontSize: 12, paddingVertical: 12 },
   tilesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
