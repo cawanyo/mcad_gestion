@@ -29,6 +29,7 @@ import { uploadPickedMedia } from '../lib/upload';
 
 interface ChecklistsScreenProps {
   currentUser: User;
+  onBack?: () => void;
 }
 
 const isDeptLeaderOrAdmin = (u: User) => u.role === 'SUPER_ADMIN' || u.role === 'DEPARTMENT_LEADER';
@@ -118,7 +119,7 @@ const SelectField: React.FC<{
   );
 };
 
-export const ChecklistsScreen: React.FC<ChecklistsScreenProps> = ({ currentUser }) => {
+export const ChecklistsScreen: React.FC<ChecklistsScreenProps> = ({ currentUser, onBack }) => {
   const polesRaw = useQuery(api.poles.list, {});
   const [selectedPoleId, setSelectedPoleId] = React.useState<Id<'poles'> | null>(null);
   const [search, setSearch] = React.useState('');
@@ -160,6 +161,9 @@ export const ChecklistsScreen: React.FC<ChecklistsScreenProps> = ({ currentUser 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Checklists</Text>
       </View>
 

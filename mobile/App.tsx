@@ -92,24 +92,24 @@ function CalendarStackScreen({ currentUser }: { currentUser: User }) {
 }
 
 // Groups Poles/Checklists/Unavailabilities under one bottom tab, matching
-// SERVICE_GROUP_PATHS in src/lib/navigation.ts on the web side.
+// SERVICE_GROUP_PATHS in src/lib/navigation.ts on the web side. No native
+// header on any of these three (headerShown: false from screenOptions) —
+// each screen renders its own in-content header with a back button next
+// to the title instead, wired to navigation.goBack() here.
 function ServiceStackScreen({ currentUser }: { currentUser: User }) {
   return (
     <ServiceStack.Navigator screenOptions={{ headerShown: false }}>
       <ServiceStack.Screen name="ServiceHub">
         {({ navigation }) => <ServiceHubScreen navigation={navigation} />}
       </ServiceStack.Screen>
-      <ServiceStack.Screen name="Poles" options={backOnlyHeader}>
-        {() => <PolesScreen currentUser={currentUser} />}
+      <ServiceStack.Screen name="Poles">
+        {({ navigation }) => <PolesScreen currentUser={currentUser} onBack={() => navigation.goBack()} />}
       </ServiceStack.Screen>
-      <ServiceStack.Screen name="Checklists" options={backOnlyHeader}>
-        {() => <ChecklistsScreen currentUser={currentUser} />}
+      <ServiceStack.Screen name="Checklists">
+        {({ navigation }) => <ChecklistsScreen currentUser={currentUser} onBack={() => navigation.goBack()} />}
       </ServiceStack.Screen>
-      <ServiceStack.Screen name="Unavailabilities" options={backOnlyHeader}>
-        {() => <UnavailabilitiesScreen currentUser={currentUser} />}
-      </ServiceStack.Screen>
-      <ServiceStack.Screen name="Equipment" options={{ headerShown: false }}>
-        {() => <EquipmentScreen />}
+      <ServiceStack.Screen name="Unavailabilities">
+        {({ navigation }) => <UnavailabilitiesScreen currentUser={currentUser} onBack={() => navigation.goBack()} />}
       </ServiceStack.Screen>
     </ServiceStack.Navigator>
   );
@@ -212,7 +212,7 @@ function MainTabs({ currentUser }: { currentUser: User }) {
               navigation.navigate('Formations');
             }}
             onOpenUnavailability={() => navigation.navigate('Service', { screen: 'Unavailabilities' })}
-            onOpenEquipment={() => navigation.navigate('Service', { screen: 'Equipment' })}
+            onOpenEquipment={() => navigation.navigate('Equipment')}
             onOpenResponsable={leader ? () => navigation.navigate('Responsable', { screen: 'LeaderHub' }) : undefined}
           />
         )}
@@ -250,6 +250,18 @@ function MainTabs({ currentUser }: { currentUser: User }) {
         options={{ tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} /> }}
       >
         {() => <LifeStackScreen currentUser={currentUser} />}
+      </Tab.Screen>
+
+      {/* Reachable via the "Matériel" button on the Accueil banner, not its
+          own bottom-tab entry (tabBarButton hidden) — kept as a top-level
+          tab (not nested in ServiceStack) precisely so opening it doesn't
+          light up "Service" as the active tab, now that it's no longer
+          listed on the Service hub either. */}
+      <Tab.Screen
+        name="Equipment"
+        options={{ tabBarIcon: () => null, tabBarButton: () => null }}
+      >
+        {() => <EquipmentScreen />}
       </Tab.Screen>
 
       {/* Reachable via the "Responsable" button on the Accueil banner (next

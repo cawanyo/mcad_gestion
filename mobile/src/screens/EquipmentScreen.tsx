@@ -845,14 +845,14 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 11, color: theme.colors.textMuted, fontWeight: '700' },
   backBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.card, alignItems: 'center', justifyContent: 'center' },
 
-  topActionsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 12 },
-  secondaryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.primaryLight, paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.borderRadius.round },
+  topActionsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 12, marginTop: 6},
+  secondaryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.primaryLight, paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.borderRadius.sm },
   secondaryBtnText: { fontSize: 11, fontWeight: '800', color: theme.colors.primary },
   secondaryBtnTextDark: { fontSize: 11, fontWeight: '800', color: theme.colors.text },
   dangerBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.statusDangerBg, paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.borderRadius.round },
   dangerBtnText: { fontSize: 11, fontWeight: '800', color: theme.colors.statusDangerText },
 
-  filtersWrap: { paddingHorizontal: 16, paddingBottom: 12, gap: 10, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border, zIndex: 30, elevation: 30 },
+  filtersWrap: { paddingHorizontal: 16, paddingTop: 10 ,paddingBottom: 12, gap: 10, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border, zIndex: 30, elevation: 30 },
   searchRow: { flexDirection: 'row', gap: 8 },
   searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.background, borderRadius: theme.borderRadius.md, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: theme.colors.border },
   searchInput: { flex: 1, fontSize: 12, color: theme.colors.text },
@@ -891,7 +891,7 @@ const styles = StyleSheet.create({
   cardBody: { padding: 10, gap: 3 },
   cardTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text },
   cardTagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-  tagPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: theme.colors.background, paddingHorizontal: 6, paddingVertical: 2, borderRadius: theme.borderRadius.round, maxWidth: 110 },
+  tagPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: theme.colors.background, paddingHorizontal: 6, paddingVertical: 6, borderRadius: theme.borderRadius.sm,  },
   tagPillText: { fontSize: 9, fontWeight: '800', color: theme.colors.textSecondary },
 
   paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 6 },

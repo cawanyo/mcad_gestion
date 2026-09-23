@@ -29,6 +29,7 @@ import { User } from '../types';
 
 interface PolesScreenProps {
   currentUser: User;
+  onBack?: () => void;
 }
 
 const COLOR_SWATCHES = ['#4f46e5', '#7c3aed', '#ec4899', '#f43f5e', '#f59e0b', '#16a34a', '#0891b2', '#64748b'];
@@ -40,7 +41,7 @@ const isMineOf = (p: any, currentUser: User) =>
 // collapsed to what the small-screen web layout shows: a Mes pôles/Autres
 // pôles split on the list, and the detail hero/stats/sections condensed
 // into one scroll on the phone.
-export const PolesScreen: React.FC<PolesScreenProps> = ({ currentUser }) => {
+export const PolesScreen: React.FC<PolesScreenProps> = ({ currentUser, onBack }) => {
   const polesRaw = useQuery(api.poles.list, {});
   const loading = polesRaw === undefined;
   const [selectedPoleId, setSelectedPoleId] = React.useState<Id<'poles'> | null>(null);
@@ -117,6 +118,9 @@ export const PolesScreen: React.FC<PolesScreenProps> = ({ currentUser }) => {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Pôles</Text>
       </View>
 

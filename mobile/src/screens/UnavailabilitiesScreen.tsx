@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert } from 'react-native';
-import { Plus, X, Clock, CalendarClock, CalendarCheck, History } from 'lucide-react-native';
+import { ArrowLeft, Plus, X, Clock, CalendarClock, CalendarCheck, History } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -9,6 +9,7 @@ import { User } from '../types';
 
 interface UnavailabilitiesScreenProps {
   currentUser: User;
+  onBack?: () => void;
 }
 
 const isLeaderOrAdmin = (u: User) =>
@@ -31,7 +32,7 @@ const SCOPE_TABS: { value: Scope; label: string; icon: any }[] = [
 
 // Mirrors src/components/unavailability/UnavailabilitiesView.tsx (sobered to
 // indigo/slate/rose this session on web — same restraint here).
-export const UnavailabilitiesScreen: React.FC<UnavailabilitiesScreenProps> = ({ currentUser }) => {
+export const UnavailabilitiesScreen: React.FC<UnavailabilitiesScreenProps> = ({ currentUser, onBack }) => {
   const canSeeAll = isLeaderOrAdmin(currentUser);
   const [owner, setOwner] = React.useState<'MINE' | 'OTHERS'>('MINE');
   const [scope, setScope] = React.useState<Scope>('active');
@@ -89,7 +90,12 @@ export const UnavailabilitiesScreen: React.FC<UnavailabilitiesScreenProps> = ({ 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Indisponibilités</Text>
+        <View style={styles.headerLeft}>
+          {onBack && (
+            <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={18} color={theme.colors.text} /></TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>Indisponibilités</Text>
+        </View>
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowModal(true)}>
           <Plus color="#fff" size={16} />
         </TouchableOpacity>
@@ -208,7 +214,9 @@ export const UnavailabilitiesScreen: React.FC<UnavailabilitiesScreenProps> = ({ 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.text },
+  backBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center' },
   addBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center' },
 
   filtersWrap: { padding: 16, paddingBottom: 12, gap: 10, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
