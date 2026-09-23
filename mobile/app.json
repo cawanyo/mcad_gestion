@@ -3,6 +3,7 @@
     "name": "MCAD Bénévolat",
     "slug": "mcad-mobile",
     "version": "1.0.0",
+    "privacy": "unlisted",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
@@ -32,6 +33,12 @@
       "eas": {
         "projectId": "1e48a01c-8424-441a-8f21-593b071e8206"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/1e48a01c-8424-441a-8f21-593b071e8206"
     }
   }
 }
