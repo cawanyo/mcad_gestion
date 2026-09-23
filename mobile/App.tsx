@@ -180,11 +180,18 @@ function MainTabs({ currentUser }: { currentUser: User }) {
   // Tapping a push notification (app backgrounded/killed) opens the same
   // in-app notifications modal the bell icon does — there's no per-type
   // deep link target yet, just getting the user to the list is the win.
+  // Guarded like src/lib/pushNotifications.ts: on a binary built before
+  // expo-notifications was added, the native module isn't linked and this
+  // would otherwise throw on every mount.
   React.useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(() => {
-      setShowNotifications(true);
-    });
-    return () => sub.remove();
+    try {
+      const sub = Notifications.addNotificationResponseReceivedListener(() => {
+        setShowNotifications(true);
+      });
+      return () => sub.remove();
+    } catch {
+      return undefined;
+    }
   }, []);
 
   return (
