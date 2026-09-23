@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, Image, Linking } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
+import { WebView } from 'react-native-webview';
 import {
   ArrowLeft,
   X,
@@ -57,6 +59,28 @@ const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
   INTERMEDIATE: { bg: theme.colors.primaryLight, text: theme.colors.primaryDark },
   ADVANCED: { bg: theme.colors.statusWarningBg, text: theme.colors.statusWarningText }
 };
+
+// expo-av's <Video> only plays direct media files (mp4/webm/mov, incl. our
+// Cloudinary uploads) — it can't load a youtube.com/vimeo.com page URL, so
+// those go through an embedded WebView player instead. Same helper as
+// ChecklistsScreen's.
+const toEmbedUrl = (uri: string) => {
+  const yt = uri.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vimeo = uri.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return uri;
+};
+const isEmbedVideo = (uri: string) => /youtube\.com|youtu\.be|vimeo\.com/i.test(uri);
+
+const InlineVideoPlayer: React.FC<{ uri: string; style?: any }> = ({ uri, style }) =>
+  isEmbedVideo(uri) ? (
+    <View style={[style, { overflow: 'hidden', backgroundColor: '#000' }]}>
+      <WebView source={{ uri: toEmbedUrl(uri) }} style={{ flex: 1 }} allowsFullscreenVideo javaScriptEnabled domStorageEnabled />
+    </View>
+  ) : (
+    <Video source={{ uri }} style={style} useNativeControls resizeMode={ResizeMode.CONTAIN} isLooping={false} />
+  );
 
 // Restyled catalog/player/editor — mirrors what web's TrainingWeb.tsx /
 // TrainingCoursePage.tsx / TrainingModuleEditorPage.tsx collapse to on a
@@ -743,10 +767,12 @@ const ModulePlayerScreen: React.FC<{ module: any; onClose: () => void }> = ({ mo
 
           {lesson.mediaType === 'PHOTO' && lesson.mediaUrl ? (
             <Image source={{ uri: lesson.mediaUrl }} style={styles.lessonMediaImage} resizeMode="cover" />
-          ) : (lesson.mediaType === 'VIDEO' || lesson.mediaType === 'DOCUMENT') && lesson.mediaUrl ? (
+          ) : lesson.mediaType === 'VIDEO' && lesson.mediaUrl ? (
+            <InlineVideoPlayer uri={lesson.mediaUrl} style={styles.lessonMediaVideo} />
+          ) : lesson.mediaType === 'DOCUMENT' && lesson.mediaUrl ? (
             <TouchableOpacity style={styles.mediaLinkBtn} onPress={() => Linking.openURL(lesson.mediaUrl)}>
-              {lesson.mediaType === 'VIDEO' ? <Play size={16} color={theme.colors.primary} /> : <FileText size={16} color={theme.colors.primary} />}
-              <Text style={styles.mediaLinkText}>{lesson.mediaType === 'VIDEO' ? 'Voir la vidéo' : 'Ouvrir le document'}</Text>
+              <FileText size={16} color={theme.colors.primary} />
+              <Text style={styles.mediaLinkText}>Ouvrir le document</Text>
               <ExternalLink size={13} color={theme.colors.primary} />
             </TouchableOpacity>
           ) : null}
@@ -1046,6 +1072,8 @@ const ModuleFormScreen: React.FC<{ editing: any; onClose: () => void; onSaved: (
                   onChangeText={(t) => updateLesson(idx, { mediaUrl: t })}
                   placeholder="Lien (ou téléverser ci-dessous)"
                 />
+                {l.mediaUrl && l.mediaType === 'PHOTO' && <Image source={{ uri: l.mediaUrl }} style={styles.lessonMediaImage} resizeMode="cover" />}
+                {l.mediaUrl && l.mediaType === 'VIDEO' && <InlineVideoPlayer uri={l.mediaUrl} style={styles.lessonMediaVideo} />}
                 {l.mediaType !== 'DOCUMENT' && (
                   <TouchableOpacity style={styles.uploadBtn} onPress={() => handlePickLessonMedia(idx)} disabled={uploadingLessonIdx === idx}>
                     {uploadingLessonIdx === idx ? <ActivityIndicator color={theme.colors.primary} size="small" /> : <ImagePlus size={14} color={theme.colors.primary} />}
@@ -1206,6 +1234,7 @@ const styles = StyleSheet.create({
   lessonPillActive: { backgroundColor: theme.colors.primary },
 
   lessonMediaImage: { width: '100%', height: 180, borderRadius: theme.borderRadius.md, marginTop: 10, backgroundColor: theme.colors.background },
+  lessonMediaVideo: { width: '100%', height: 200, borderRadius: theme.borderRadius.md, marginTop: 10, backgroundColor: '#000' },
   mediaLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.primaryLight, borderRadius: theme.borderRadius.md, padding: 12, marginTop: 10 },
   mediaLinkText: { flex: 1, fontSize: 12, fontWeight: '700', color: theme.colors.primaryDark },
   contentBox: { backgroundColor: theme.colors.background, borderRadius: theme.borderRadius.md, padding: 12, marginTop: 10, borderWidth: 1, borderColor: theme.colors.border },
