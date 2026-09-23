@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth, requireLeaderOrAdmin, requirePoleLeaderOrAdmin } from "./lib/auth";
+import { notifyUser } from "./lib/notify";
 import { Doc } from "./_generated/dataModel";
 
 export const list = query({
@@ -131,21 +132,19 @@ export const review = mutation({
         });
       }
 
-      await ctx.db.insert("notifications", {
+      await notifyUser(ctx, {
         userId: request.userId,
         title: "Adhésion approuvée !",
         message: `Votre demande pour rejoindre le pôle ${pole?.name} a été acceptée par ${reviewer.firstName} ${reviewer.lastName}.`,
         type: "MEMBERSHIP_APPROVED",
-        isRead: false,
         linkUrl: "/poles",
       });
     } else {
-      await ctx.db.insert("notifications", {
+      await notifyUser(ctx, {
         userId: request.userId,
         title: "Demande d'adhésion",
         message: `Votre demande pour rejoindre le pôle ${pole?.name} n'a pas été retenue.`,
         type: "MEMBERSHIP_REJECTED",
-        isRead: false,
         linkUrl: "/poles",
       });
     }

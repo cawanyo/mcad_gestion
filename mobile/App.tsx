@@ -1,18 +1,20 @@
 import React from 'react';
-import { Modal } from 'react-native';
+import { Modal, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as Notifications from 'expo-notifications';
 import { Home, Calendar, GraduationCap, HandHeart, Sparkles, ShieldCheck } from 'lucide-react-native';
-import { useConvexAuth, useQuery } from 'convex/react';
+import { useConvexAuth, useQuery, useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { ConvexClientProvider } from './src/convex/ConvexClientProvider';
 import { api } from '../convex/_generated/api';
 import { theme } from './src/theme';
 import { User } from './src/types';
 import { derivePoleMemberships, derivePoleLeaderships } from './src/lib/convexAdapters';
+import { registerForPushNotificationsAsync } from './src/lib/pushNotifications';
 import { TopHeader } from './src/components/TopHeader';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -156,6 +158,35 @@ function MainTabs({ currentUser }: { currentUser: User }) {
   const notificationsData = useQuery(api.notifications.list, {});
   const unreadCount = (notificationsData as any)?.unreadCount ?? 0;
 
+  const registerPushToken = useMutation(api.push.registerToken);
+  const unregisterPushToken = useMutation(api.push.unregisterToken);
+  const [pushToken, setPushToken] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    let cancelled = false;
+    registerForPushNotificationsAsync().then((token) => {
+      if (!cancelled && token) {
+        setPushToken(token);
+        registerPushToken({ token, platform: Platform.OS });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Re-registers on every account switch so a shared device's token stays
+    // attached to whichever user is currently signed in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser.id]);
+
+  // Tapping a push notification (app backgrounded/killed) opens the same
+  // in-app notifications modal the bell icon does — there's no per-type
+  // deep link target yet, just getting the user to the list is the win.
+  React.useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+      setShowNotifications(true);
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <>
     <Tab.Navigator
@@ -273,7 +304,14 @@ function MainTabs({ currentUser }: { currentUser: User }) {
         button is the only entry point, opened as a modal (same pattern as
         NotificationsScreen below) rather than a hidden stack route. */}
     <Modal visible={showProfile} animationType="slide" onRequestClose={() => setShowProfile(false)}>
-      <ProfileScreen currentUser={currentUser} onLogout={() => signOut()} onClose={() => setShowProfile(false)} />
+      <ProfileScreen
+        currentUser={currentUser}
+        onLogout={() => {
+          if (pushToken) unregisterPushToken({ token: pushToken });
+          signOut();
+        }}
+        onClose={() => setShowProfile(false)}
+      />
     </Modal>
 
     <NotificationsScreen visible={showNotifications} onClose={() => setShowNotifications(false)} />

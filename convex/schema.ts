@@ -238,6 +238,15 @@ export default defineSchema({
     linkUrl: v.optional(v.string()),
   }).index("userId", ["userId"]),
 
+  pushTokens: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    platform: v.optional(v.string()), // ios, android
+    updatedAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("token", ["token"]),
+
   auditLogs: defineTable({
     actorId: v.id("users"),
     action: v.string(),

@@ -1,6 +1,7 @@
 import { query, mutation, action } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth, requireDepartmentLeaderOrAdmin } from "./lib/auth";
+import { notifyUser } from "./lib/notify";
 import { retrieveAccount, modifyAccountCredentials } from "@convex-dev/auth/server";
 import { normalizePhone } from "./phone";
 import { api } from "./_generated/api";
@@ -85,12 +86,11 @@ export const updateRole = mutation({
     const updatedUser = (await ctx.db.get(userId))!;
 
     if (role) {
-      await ctx.db.insert("notifications", {
+      await notifyUser(ctx, {
         userId,
         title: "Mise à jour de vos autorisations",
         message: `Votre rôle sur la plateforme a été mis à jour en : "${roleFr(role)}".`,
         type: "ROLE_UPDATE",
-        isRead: false,
         linkUrl: "/dashboard",
       });
     }

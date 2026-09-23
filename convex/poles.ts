@@ -6,6 +6,7 @@ import {
   requireDepartmentLeaderOrAdmin,
   requirePoleLeaderOrAdmin,
 } from "./lib/auth";
+import { notifyUser } from "./lib/notify";
 
 const USER_CARD_FIELDS = (u: any) => ({
   _id: u._id,
@@ -343,12 +344,11 @@ export const toggleLeader = mutation({
         await ctx.db.patch(userId, { role: "POLE_LEADER" });
       }
 
-      await ctx.db.insert("notifications", {
+      await notifyUser(ctx, {
         userId,
         title: "Nomination comme Responsable",
         message: `Vous avez été nommé(e) responsable du pôle "${pole?.name || 'Département'}". Vos accès de gestion ont été activés.`,
         type: "ROLE_UPDATE",
-        isRead: false,
         linkUrl: "/dashboard",
       });
 

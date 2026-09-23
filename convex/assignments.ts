@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth, requirePoleLeaderOrAdmin } from "./lib/auth";
+import { notifyUser } from "./lib/notify";
 import { Doc } from "./_generated/dataModel";
 import { isUnavailabilityOverlapping } from "./lib/unavailability";
 
@@ -135,12 +136,11 @@ export const create = mutation({
     }
 
     const pole = await ctx.db.get(poleId);
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId,
       title: "Nouvelle affectation de service",
       message: `Vous avez été affecté(e) au service "${event.title}" pour le pôle ${pole?.name}.`,
       type: "ASSIGNMENT",
-      isRead: false,
       linkUrl: `/events/${eventId}`,
     });
 

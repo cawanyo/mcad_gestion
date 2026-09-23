@@ -27,7 +27,8 @@
         {
           "cameraPermission": "MCAD a besoin d'accéder à l'appareil photo pour scanner les codes du matériel."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "extra": {
       "eas": {

@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireAuth, requireLeaderOrAdmin } from "./lib/auth";
+import { notifyUser } from "./lib/notify";
 
 const LESSON_INPUT = v.object({
   title: v.string(),
@@ -323,12 +324,11 @@ export const updateProgress = mutation({
       await upsertProgress(progressStatus, progressPercent, completedCount, isCompleted);
 
       if (isCompleted && (!hadCompletionBefore || progressStatus === "COMPLETED")) {
-        await ctx.db.insert("notifications", {
+        await notifyUser(ctx, {
           userId: currentUser._id,
           title: "Félicitations ! 🎓",
           message: `Vous avez validé avec succès le module de formation "${moduleDoc.title}".`,
           type: "TRAINING_COMPLETED",
-          isRead: false,
           linkUrl: "/training",
         });
       }

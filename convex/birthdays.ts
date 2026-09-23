@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth, getCurrentUser } from "./lib/auth";
+import { notifyUser } from "./lib/notify";
 
 const MONTH_NAMES = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const MONTH_SHORT_NAMES = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
@@ -157,12 +158,11 @@ export const sendWish = mutation({
 
     const senderName = sender ? `${sender.firstName} ${sender.lastName}` : "L'équipe MCAD";
 
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId: targetUserId,
       title: `🎂 Joyeux Anniversaire de la part de ${senderName} !`,
       message: message.trim(),
       type: "BIRTHDAY_WISH",
-      isRead: false,
       linkUrl: "/birthdays",
     });
 

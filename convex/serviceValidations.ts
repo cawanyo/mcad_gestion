@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { Doc } from "./_generated/dataModel";
 import { requireAuth } from "./lib/auth";
+import { notifyUser } from "./lib/notify";
 
 export const list = query({
   args: {
@@ -149,12 +150,11 @@ export const submit = mutation({
     const poleLeaders = await ctx.db.query("poleLeaders").withIndex("poleId", (q) => q.eq("poleId", poleId)).collect();
     for (const pl of poleLeaders) {
       if (pl.userId !== userId) {
-        await ctx.db.insert("notifications", {
+        await notifyUser(ctx, {
           userId: pl.userId,
           title: `Service validé : ${user?.firstName} ${user?.lastName}`,
           message: `${user?.firstName} a validé son service pour "${event?.title}" (${pole?.name}) avec une note de ${rating || 5}/5.`,
           type: "SERVICE_VALIDATION",
-          isRead: false,
           linkUrl: "/validations",
         });
       }
@@ -204,12 +204,11 @@ export const sendReminder = mutation({
     });
 
     const [event, pole] = await Promise.all([ctx.db.get(val.eventId), ctx.db.get(val.poleId)]);
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId: val.userId,
       title: "🔔 Rappel : Validation de votre service",
       message: `N'oubliez pas de valider votre service pour le culte "${event?.title}" (${pole?.name}). Remplissez votre retour d'expérience !`,
       type: "SERVICE_REMINDER",
-      isRead: false,
       linkUrl: "/validations",
     });
 

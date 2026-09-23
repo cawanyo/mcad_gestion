@@ -1,5 +1,6 @@
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { notifyUser } from "./lib/notify";
 
 // Mirrors src/app/api/auth/register/route.ts: new accounts join the (only)
 // existing department by default, matching how the old Postgres route
@@ -39,12 +40,11 @@ export const completeSignUp = internalMutation({
       });
     }
 
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId,
       title: "Bienvenue sur MCAD !",
       message: "Votre compte a été créé avec succès. Vos demandes d'adhésion aux pôles sont transmises aux responsables.",
       type: "WELCOME",
-      isRead: false,
     });
   },
 });
