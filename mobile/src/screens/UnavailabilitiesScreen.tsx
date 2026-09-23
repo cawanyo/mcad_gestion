@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert } from 'react-native';
-import { Plus, Clock } from 'lucide-react-native';
+import { Plus, X, Clock, CalendarClock, CalendarCheck, History } from 'lucide-react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -20,13 +20,29 @@ const isLeaderOrAdmin = (u: User) =>
 
 const fmt = (ms: number) => new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 
+const initials = (u: any) => `${(u?.firstName || '?')[0]}${(u?.lastName || '')[0] || ''}`.toUpperCase();
+
+type Scope = 'active' | 'past' | 'upcoming';
+const SCOPE_TABS: { value: Scope; label: string; icon: any }[] = [
+  { value: 'active', label: 'En cours', icon: CalendarClock },
+  { value: 'past', label: 'Passé', icon: History },
+  { value: 'upcoming', label: 'À venir', icon: CalendarCheck }
+];
+
 // Mirrors src/components/unavailability/UnavailabilitiesView.tsx (sobered to
 // indigo/slate/rose this session on web — same restraint here).
 export const UnavailabilitiesScreen: React.FC<UnavailabilitiesScreenProps> = ({ currentUser }) => {
   const canSeeAll = isLeaderOrAdmin(currentUser);
-  const itemsRaw = useQuery(api.unavailabilities.list, canSeeAll ? {} : { userId: currentUser.id as Id<'users'> });
+  const [owner, setOwner] = React.useState<'MINE' | 'OTHERS'>('MINE');
+  const [scope, setScope] = React.useState<Scope>('active');
+
+  const itemsRaw = useQuery(
+    api.unavailabilities.list,
+    owner === 'MINE' ? { userId: currentUser.id as Id<'users'>, scope } : { scope }
+  );
   const loading = itemsRaw === undefined;
-  const items = itemsRaw || [];
+  const items = (itemsRaw || []).filter((u: any) => owner === 'MINE' || u.userId !== currentUser.id);
+  const now = Date.now();
 
   const createUnavailability = useMutation(api.unavailabilities.create);
   const removeUnavailability = useMutation(api.unavailabilities.remove);
@@ -37,8 +53,6 @@ export const UnavailabilitiesScreen: React.FC<UnavailabilitiesScreenProps> = ({ 
   const [reason, setReason] = React.useState('Vacances / Congés');
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-
-  const now = Date.now();
 
   const handleCreate = async () => {
     setError(null);
@@ -81,30 +95,84 @@ export const UnavailabilitiesScreen: React.FC<UnavailabilitiesScreenProps> = ({ 
         </TouchableOpacity>
       </View>
 
+      <View style={styles.filtersWrap}>
+        {canSeeAll && (
+          <View style={styles.segmentedControl}>
+            <TouchableOpacity style={[styles.segmentBtn, owner === 'MINE' && styles.segmentBtnActive]} onPress={() => setOwner('MINE')}>
+              <Text style={[styles.segmentBtnText, owner === 'MINE' && styles.segmentBtnTextActive]}>Mes indisponibilités</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.segmentBtn, owner === 'OTHERS' && styles.segmentBtnActive]} onPress={() => setOwner('OTHERS')}>
+              <Text style={[styles.segmentBtnText, owner === 'OTHERS' && styles.segmentBtnTextActive]}>Autres indisponibilités</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.scopeRow}>
+          {SCOPE_TABS.map((t) => {
+            const Icon = t.icon;
+            const active = scope === t.value;
+            return (
+              <TouchableOpacity key={t.value} style={[styles.scopePill, active && styles.scopePillActive]} onPress={() => setScope(t.value)}>
+                <Icon size={12} color={active ? '#fff' : theme.colors.textSecondary} />
+                <Text style={[styles.scopePillText, active && styles.scopePillTextActive]}>{t.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
       <ScrollView contentContainerStyle={styles.content}>
         {loading ? (
           <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 40 }} />
         ) : items.length === 0 ? (
-          <Text style={styles.empty}>Aucune indisponibilité déclarée.</Text>
+          <Text style={styles.empty}>
+            {owner === 'MINE'
+              ? scope === 'active'
+                ? "Vous n'avez aucune indisponibilité en cours."
+                : scope === 'upcoming'
+                ? "Vous n'avez aucune indisponibilité à venir."
+                : "Vous n'avez aucune indisponibilité passée."
+              : 'Aucune indisponibilité à afficher pour ce filtre.'}
+          </Text>
         ) : (
           items.map((u: any) => {
             const active = u.startsAt <= now && u.endsAt >= now;
+            const upcoming = u.startsAt > now;
             const canManage = u.userId === currentUser.id || canSeeAll;
             return (
               <View key={u._id} style={[styles.card, active && styles.cardActive]}>
+                {owner === 'OTHERS' && (
+                  <View style={styles.avatarWrap}>
+                    <Text style={styles.avatarText}>{initials(u.user)}</Text>
+                  </View>
+                )}
                 <View style={{ flex: 1 }}>
-                  {canSeeAll && (
+                  {owner === 'OTHERS' && (
                     <Text style={styles.cardUser}>{u.user?.firstName} {u.user?.lastName}</Text>
                   )}
                   <Text style={styles.cardReason}>{u.reason || 'Indisponible'}</Text>
-                  <Text style={styles.cardDates}>Du {fmt(u.startsAt)} au {fmt(u.endsAt)}</Text>
+                  <View style={styles.cardDatesRow}>
+                    <Clock size={11} color={theme.colors.textMuted} />
+                    <Text style={styles.cardDates}>Du {fmt(u.startsAt)} au {fmt(u.endsAt)}</Text>
+                  </View>
                 </View>
-                {active && <View style={styles.activeBadge}><Text style={styles.activeBadgeText}>En cours</Text></View>}
-                {canManage && (
-                  <TouchableOpacity onPress={() => handleDelete(u._id)} style={styles.deleteBtn}>
-                    <Text style={styles.deleteBtnText}>✕</Text>
-                  </TouchableOpacity>
-                )}
+                <View style={styles.cardRight}>
+                  <View style={[styles.statusBadge, active ? styles.statusBadgeActive : upcoming ? styles.statusBadgeUpcoming : styles.statusBadgePast]}>
+                    <Text
+                      style={[
+                        styles.statusBadgeText,
+                        { color: active ? theme.colors.statusDangerText : upcoming ? theme.colors.primaryDark : theme.colors.textSecondary }
+                      ]}
+                    >
+                      {active ? 'En cours' : upcoming ? 'À venir' : 'Passé'}
+                    </Text>
+                  </View>
+                  {canManage && (
+                    <TouchableOpacity onPress={() => handleDelete(u._id)} style={styles.deleteBtn}>
+                      <X size={13} color={theme.colors.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             );
           })
@@ -139,20 +207,41 @@ export const UnavailabilitiesScreen: React.FC<UnavailabilitiesScreenProps> = ({ 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 8, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   headerTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.text },
   addBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center' },
+
+  filtersWrap: { padding: 16, paddingBottom: 12, gap: 10, backgroundColor: theme.colors.card, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  segmentedControl: { flexDirection: 'row', backgroundColor: theme.colors.background, borderRadius: theme.borderRadius.round, padding: 3, borderWidth: 1, borderColor: theme.colors.borderDark },
+  segmentBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: theme.borderRadius.round },
+  segmentBtnActive: { backgroundColor: theme.colors.primary },
+  segmentBtnText: { fontSize: 11, fontWeight: '800', color: theme.colors.textSecondary },
+  segmentBtnTextActive: { color: '#fff' },
+
+  scopeRow: { flexDirection: 'row', gap: 8 },
+  scopePill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 8, borderRadius: theme.borderRadius.round, backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.border },
+  scopePillActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  scopePillText: { fontSize: 11, fontWeight: '700', color: theme.colors.textSecondary },
+  scopePillTextActive: { color: '#fff', fontWeight: '800' },
+
   content: { padding: 16, paddingBottom: 40 },
   empty: { textAlign: 'center', color: theme.colors.textMuted, marginTop: 40, fontSize: 12 },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.borderDark },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.borderDark, ...theme.shadow.card },
   cardActive: { borderColor: theme.colors.statusDangerText },
+  avatarWrap: { width: 34, height: 34, borderRadius: 17, backgroundColor: theme.colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 12, fontWeight: '900', color: theme.colors.primaryDark },
   cardUser: { fontSize: 12, fontWeight: '900', color: theme.colors.text },
   cardReason: { fontSize: 13, fontWeight: '800', color: theme.colors.text, marginTop: 2 },
-  cardDates: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 3 },
-  activeBadge: { backgroundColor: theme.colors.statusDangerBg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginRight: 8 },
-  activeBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.statusDangerText },
-  deleteBtn: { padding: 6 },
-  deleteBtnText: { fontSize: 14, color: theme.colors.textMuted, fontWeight: '900' },
+  cardDatesRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  cardDates: { fontSize: 11, color: theme.colors.textSecondary },
+  cardRight: { alignItems: 'flex-end', gap: 6 },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  statusBadgeActive: { backgroundColor: theme.colors.statusDangerBg },
+  statusBadgeUpcoming: { backgroundColor: theme.colors.primaryLight },
+  statusBadgePast: { backgroundColor: theme.colors.border },
+  statusBadgeText: { fontSize: 9, fontWeight: '900' },
+  deleteBtn: { padding: 4 },
+
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'center', padding: 20 },
   modalCard: { backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.xl, padding: 20 },
   modalTitle: { fontSize: 16, fontWeight: '900', color: theme.colors.text, marginBottom: 12 },
