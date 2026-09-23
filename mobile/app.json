@@ -14,7 +14,11 @@
       "bundleIdentifier": "org.mcad.benevolat"
     },
     "android": {
-      "package": "org.mcad.benevolat"
+      "package": "org.mcad.benevolat",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       [
@@ -23,6 +27,11 @@
           "cameraPermission": "MCAD a besoin d'accéder à l'appareil photo pour scanner les codes du matériel."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1e48a01c-8424-441a-8f21-593b071e8206"
+      }
+    }
   }
 }
