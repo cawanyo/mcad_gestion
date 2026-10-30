@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, [showNotifications, showUserMenu]);
 
   return (
-    <header className="h-14 bg-white border-b border-zinc-200/90 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-30">
+    <header className="h-14 bg-white border-b border-zinc-200/90 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 z-30 select-none">
       {/* Brand & Mobile Toggle */}
       <div className="flex items-center gap-3">
         {onToggleSidebar && (
@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Menu className="w-5 h-5" />
           </button>
         )}
-        <a href="/" className="flex items-center gap-2 group">
+        <a href="/dashboard" className="flex items-center gap-2 group">
           <div className="w-7 h-7 rounded-lg bg-zinc-950 flex items-center justify-center font-bold text-white text-xs tracking-tight">
             MC
           </div>

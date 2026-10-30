@@ -1,15 +1,20 @@
 'use client';
 
+import React, { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CalendarView } from '@/components/calendar/CalendarView';
 import { useAppShell } from '@/contexts/AppShellContext';
 
-export default function CalendarPage() {
+function CalendarContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get('date');
+
   const {
     currentUser,
     poles,
     selectedEventForCalendar,
     isLeaderOrAdmin,
-    openEventModal,
     openAssignmentsDrawer,
     openUnavailabilityModal
   } = useAppShell();
@@ -20,8 +25,11 @@ export default function CalendarPage() {
     <CalendarView
       poles={poles}
       currentUser={currentUser}
+      initialDate={dateParam}
       initialSelectedEvent={selectedEventForCalendar}
-      onOpenCreateEventModal={openEventModal}
+      onOpenCreateEventModal={(dateStr) => {
+        router.push(dateStr ? `/calendar/new?date=${dateStr}` : '/calendar/new');
+      }}
       onOpenAssignmentsDrawer={(ev) => {
         if (isLeaderOrAdmin) {
           openAssignmentsDrawer(ev);
@@ -29,5 +37,19 @@ export default function CalendarPage() {
       }}
       onOpenUnavailabilities={openUnavailabilityModal}
     />
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-xs text-zinc-400">
+          Chargement du calendrier...
+        </div>
+      }
+    >
+      <CalendarContent />
+    </Suspense>
   );
 }

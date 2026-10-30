@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -19,6 +20,7 @@ import {
   UserCheck,
   CheckSquare,
   Sparkles,
+  Edit,
   Edit3,
   Trash2,
   Search,
@@ -32,7 +34,8 @@ import {
   UserMinus,
   Hand,
   ExternalLink,
-  Loader2
+  Loader2,
+  ArrowRight
 } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -49,7 +52,8 @@ interface CalendarViewProps {
   poles: Pole[];
   currentUser: User | null;
   initialSelectedEvent?: Event | null;
-  onOpenCreateEventModal: () => void;
+  initialDate?: string | null;
+  onOpenCreateEventModal: (date?: string) => void;
   onOpenAssignmentsDrawer: (event: Event) => void;
   onOpenUnavailabilities: () => void;
 }
@@ -58,10 +62,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   poles = [],
   currentUser,
   initialSelectedEvent,
+  initialDate,
   onOpenCreateEventModal,
   onOpenAssignmentsDrawer,
   onOpenUnavailabilities
 }) => {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
   const [selectedPoleFilter, setSelectedPoleFilter] = React.useState<string>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = React.useState<'all' | 'my_services'>('all');
@@ -71,6 +77,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // so it never goes stale after an edit/assignment elsewhere.
   const [selectedEventId, setSelectedEventId] = React.useState<string | null>(null);
   const [selectedDateStr, setSelectedDateStr] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (initialDate) {
+      const d = new Date(initialDate + 'T12:00:00');
+      if (!isNaN(d.getTime())) {
+        setCurrentDate(d);
+        setSelectedDateStr(initialDate);
+      }
+    }
+  }, [initialDate]);
 
   // Mobile (< lg) view states
   const [mobileCalendarView, setMobileCalendarView] = React.useState<'month' | 'week'>('month');
@@ -509,10 +525,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               )}
               {isLeaderOrAdmin && (
                 <button
-                  onClick={() => {
-                    setEditingEvent(null);
-                    setShowEventModal(true);
-                  }}
+                  onClick={() => router.push(selectedDateStr ? `/calendar/new?date=${selectedDateStr}` : '/calendar/new')}
                   className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs"
                   title="Nouveau culte"
                 >
@@ -773,19 +786,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   </p>
                   {isLeaderOrAdmin && (
                     <button
-                      onClick={() => {
-                        setEditingEvent(null);
-                        setShowEventModal(true);
-                      }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-1.5 transition-all mt-1"
+                      onClick={() => router.push(selectedDateStr ? `/calendar/new?date=${selectedDateStr}` : '/calendar/new')}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs inline-flex items-center gap-1.5 transition-all mt-1"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ Programmer un culte</span>
+                      <span>Programmer un culte</span>
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {dayEvents.map((ev) => {
                     const isUserAssigned = currentUser && ev.assignments?.some((a) => a.userId === currentUser.id);
                     const totalReq = (ev.requirements || []).reduce((acc, r) => acc + (r.requiredCount || 0), 0);
@@ -801,88 +811,78 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             setMobileEventDetailId(ev.id);
                           }
                         }}
-                        className={`bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs transition-all space-y-3 group ${
-                          canAccessEventDetailPage ? 'hover:shadow-md hover:border-blue-300 cursor-pointer' : 'cursor-default'
+                        className={`bg-white p-4 rounded-xl border border-zinc-200 shadow-xs transition-all space-y-2.5 group ${
+                          canAccessEventDetailPage ? 'hover:border-zinc-300 cursor-pointer' : 'cursor-default'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {ev.organizerPole && (
-                              <span
-                                className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-                                style={{ backgroundColor: ev.organizerPole.color || '#4f46e5' }}
-                              >
+                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
                                 {ev.organizerPole.name}
                               </span>
                             )}
-                            <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-blue-600" />
+                            <span className="text-xs text-zinc-500 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-zinc-400" />
                               <span>
                                 {new Date(ev.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(ev.endsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </span>
                           </div>
 
-                          <span
-                            className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                              isFull ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-800 border border-zinc-200'
-                            }`}
-                          >
-                            {totalAssign}/{totalReq || 0} STARS
-                          </span>
+                          {totalReq > 0 && (
+                            <span
+                              className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
+                                isFull ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700 border border-zinc-200'
+                              }`}
+                            >
+                              {totalAssign}/{totalReq}
+                            </span>
+                          )}
                         </div>
 
                         <div>
-                          <h4 className={`text-sm sm:text-base font-black text-slate-900 transition-colors ${
+                          <h4 className={`text-sm font-bold text-zinc-900 transition-colors ${
                             canAccessEventDetailPage ? 'group-hover:text-blue-600' : ''
                           }`}>
                             {ev.title}
                           </h4>
-                          <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3 text-slate-400" />
-                            <span>{ev.location || 'Temple Principal'}</span>
-                          </p>
+                          {ev.location && (
+                            <p className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 text-zinc-400 shrink-0" />
+                              <span>{ev.location}</span>
+                            </p>
+                          )}
                         </div>
 
-                        {/* Bottom action row */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs">
                           {isUserAssigned ? (
-                            <span className="text-[10px] font-black text-zinc-900 flex items-center gap-1">
+                            <span className="text-xs font-semibold text-blue-600 flex items-center gap-1">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              Vous êtes positionné(e)
+                              Positionné
                             </span>
                           ) : (
-                            <span className="text-[10px] font-semibold text-slate-400">
-                              {canAccessEventDetailPage ? 'Toucher pour voir les détails' : 'Consultation du calendrier'}
+                            <span className="text-xs text-zinc-400">
+                              Détails
                             </span>
                           )}
 
-                        <div className="flex items-center gap-2">
-                          {isLeaderOrAdmin && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingEvent(ev);
-                                setShowEventModal(true);
-                              }}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                              title="Modifier ce culte"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          {canAccessEventDetailPage ? (
-                            <div className="flex items-center gap-1 text-blue-600 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
-                              <span>Voir la fiche</span>
-                              <ChevronRight className="w-4 h-4" />
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-slate-400 font-semibold text-[10px]">
-                              <Eye className="w-3 h-3 text-slate-400" />
-                              <span>Consultation</span>
-                            </div>
-                          )}
-                        </div>
+                          <div className="flex items-center gap-1.5">
+                            {isLeaderOrAdmin && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingEvent(ev);
+                                  setShowEventModal(true);
+                                }}
+                                className="p-1 rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                                title="Modifier"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                          </div>
                         </div>
                       </div>
                     );
@@ -923,14 +923,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
             {isLeaderOrAdmin && (
               <button
-                onClick={() => {
-                  setEditingEvent(null);
-                  setShowEventModal(true);
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-all hover:scale-105"
+                onClick={() => router.push(selectedDateStr ? `/calendar/new?date=${selectedDateStr}` : '/calendar/new')}
+                className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Nouveau culte / récurrent</span>
+                <span>Nouveau culte</span>
               </button>
             )}
           </div>
@@ -1160,19 +1157,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </p>
               {isLeaderOrAdmin && (
                 <button
-                  onClick={() => {
-                    setEditingEvent(null);
-                    setShowEventModal(true);
-                  }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-1.5 transition-all mt-1"
+                  onClick={() => router.push(selectedDateStr ? `/calendar/new?date=${selectedDateStr}` : '/calendar/new')}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs inline-flex items-center gap-1.5 transition-all mt-1"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ Programmer un culte</span>
+                  <span>Programmer un culte</span>
                 </button>
               )}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {dayEvents.map((ev) => {
                 const isUserAssigned = currentUser && ev.assignments?.some((a) => a.userId === currentUser.id);
                 const totalReq = (ev.requirements || []).reduce((acc, r) => acc + (r.requiredCount || 0), 0);
@@ -1188,62 +1182,63 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         setMobileEventDetailId(ev.id);
                       }
                     }}
-                    className={`bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs transition-all space-y-3 group ${
-                      canAccessEventDetailPage ? 'hover:shadow-md hover:border-blue-300 cursor-pointer' : 'cursor-default'
+                    className={`bg-white p-4 rounded-xl border border-zinc-200 shadow-xs transition-all space-y-2.5 group ${
+                      canAccessEventDetailPage ? 'hover:border-zinc-300 cursor-pointer' : 'cursor-default'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {ev.organizerPole && (
-                          <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-                            style={{ backgroundColor: ev.organizerPole.color || '#4f46e5' }}
-                          >
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
                             {ev.organizerPole.name}
                           </span>
                         )}
-                        <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-blue-600" />
+                        <span className="text-xs text-zinc-500 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-zinc-400" />
                           <span>
                             {new Date(ev.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(ev.endsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </span>
                       </div>
 
-                      <span
-                        className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                          isFull ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-800 border border-zinc-200'
-                        }`}
-                      >
-                        {totalAssign}/{totalReq || 0} STARS
-                      </span>
+                      {totalReq > 0 && (
+                        <span
+                          className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
+                            isFull ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700 border border-zinc-200'
+                          }`}
+                        >
+                          {totalAssign}/{totalReq}
+                        </span>
+                      )}
                     </div>
 
                     <div>
-                      <h4 className={`text-sm sm:text-base font-black text-slate-900 transition-colors ${
+                      <h4 className={`text-sm font-bold text-zinc-900 transition-colors ${
                         canAccessEventDetailPage ? 'group-hover:text-blue-600' : ''
                       }`}>
                         {ev.title}
                       </h4>
-                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-slate-400" />
-                        <span>{ev.location || 'Temple Principal'}</span>
-                      </p>
+                      {ev.location && (
+                        <p className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3 text-zinc-400 shrink-0" />
+                          <span>{ev.location}</span>
+                        </p>
+                      )}
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                    <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs">
                       {isUserAssigned ? (
-                        <span className="text-[10px] font-black text-zinc-900 flex items-center gap-1">
+                        <span className="text-xs font-semibold text-blue-600 flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Vous êtes positionné(e)
+                          Positionné
                         </span>
                       ) : (
-                        <span className="text-[10px] font-semibold text-slate-400">
-                          {canAccessEventDetailPage ? 'Cliquez pour voir les détails' : 'Consultation du calendrier'}
+                        <span className="text-xs text-zinc-400">
+                          Détails
                         </span>
                       )}
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         {isLeaderOrAdmin && (
                           <button
                             onClick={(e) => {
@@ -1251,23 +1246,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               setEditingEvent(ev);
                               setShowEventModal(true);
                             }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                            title="Modifier ce culte"
+                            className="p-1 rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                            title="Modifier"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        {canAccessEventDetailPage ? (
-                          <div className="flex items-center gap-1 text-blue-600 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
-                            <span>Voir la fiche</span>
-                            <ChevronRight className="w-4 h-4" />
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-slate-400 font-semibold text-[10px]">
-                            <Eye className="w-3 h-3 text-slate-400" />
-                            <span>Consultation</span>
-                          </div>
-                        )}
+                        <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
                       </div>
                     </div>
                   </div>

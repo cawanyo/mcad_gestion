@@ -2,16 +2,20 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { LandingPage } from '@/components/public/LandingPage';
+import { useConvexAuth } from 'convex/react';
 
-export default function PublicLandingPage() {
+export default function LandingRedirectPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useConvexAuth();
 
-  return (
-    <LandingPage
-      onGoToLogin={() => router.push('/login')}
-      onGoToRegister={() => router.push('/register')}
-      onQuickAdminLogin={() => router.push('/login')}
-    />
-  );
+  React.useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated) {
+      router.replace('/dashboard');
+    } else {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  return null;
 }

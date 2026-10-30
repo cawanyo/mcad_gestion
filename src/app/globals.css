@@ -7,6 +7,13 @@
   --background-rgb: 255, 255, 255;
 }
 
+html, body {
+  height: 100%;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   color: #09090b;
   background: #ffffff;

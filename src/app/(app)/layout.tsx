@@ -157,12 +157,10 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   // the old fetch()-based world — harmless once every query is reactive.
   const fetchData = async () => {};
 
-  // Once we know for sure there's no session, bounce to the public landing
-  // page — this is the client-side equivalent of the old inline
-  // `if (!currentUser) return <LandingPage />` render branch.
+  // Once we know for sure there's no session, bounce to the login page
   React.useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.replace('/landing');
+      router.replace('/login');
     }
   }, [authLoading, isAuthenticated, router]);
 
@@ -252,7 +250,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
   }
 
   // Not authenticated: the effect above is already redirecting to
-  // /landing — render nothing while that navigation happens.
+  // /login — render nothing while that navigation happens.
   if (!currentUser) {
     return null;
   }
@@ -286,7 +284,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     navigateToEvent,
     navigateToPole,
     clearSelectedPoleForNav,
-    openEventModal: () => setShowEventModal(true),
+    openEventModal: () => router.push('/calendar/new'),
     openAssignmentsDrawer: (event: Event) => {
       setSelectedEventIdForAssignments(event.id as Id<'events'>);
       setShowAssignmentsDrawer(true);
@@ -296,7 +294,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 
   return (
     <AppShellContext.Provider value={contextValue}>
-      <div className="flex h-screen bg-white text-zinc-900 overflow-hidden font-sans">
+      <div className="flex h-screen h-[100dvh] w-full bg-white text-zinc-900 overflow-hidden font-sans overscroll-none">
         {/* Desktop Sidebar (Visible ONLY on screens >= lg) */}
         <div className="hidden lg:flex flex-shrink-0 h-full">
           <Sidebar
@@ -320,7 +318,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
           />
 
           {/* Dynamic Responsive View (with bottom padding on mobile for Bottom Tabs) */}
-          <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 lg:pb-8">
+          <main className="flex-1 overflow-y-auto overscroll-y-contain px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-32 lg:pb-8">
             {children}
           </main>
         </div>
