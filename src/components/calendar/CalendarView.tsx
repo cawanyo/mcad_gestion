@@ -42,7 +42,6 @@ import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { adaptEvent, adaptChecklist } from '@/lib/convexAdapters';
 import { Event, Pole, User } from '@/types';
-import { EventModal } from './EventModal';
 import { EventDetailPage } from './EventDetailPage';
 import { ChecklistRunnerModal } from '../checklists/ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from '../checklists/ChecklistFeedbackModal';
@@ -53,6 +52,7 @@ interface CalendarViewProps {
   currentUser: User | null;
   initialSelectedEvent?: Event | null;
   initialDate?: string | null;
+  initialEventId?: string | null;
   onOpenCreateEventModal: (date?: string) => void;
   onOpenAssignmentsDrawer: (event: Event) => void;
   onOpenUnavailabilities: () => void;
@@ -63,6 +63,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   currentUser,
   initialSelectedEvent,
   initialDate,
+  initialEventId,
   onOpenCreateEventModal,
   onOpenAssignmentsDrawer,
   onOpenUnavailabilities
@@ -88,6 +89,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   }, [initialDate]);
 
+  React.useEffect(() => {
+    if (initialEventId) {
+      setSelectedEventId(initialEventId);
+      setMobileEventDetailId(initialEventId);
+    }
+  }, [initialEventId]);
+
   // Mobile (< lg) view states
   const [mobileCalendarView, setMobileCalendarView] = React.useState<'month' | 'week'>('month');
   const [mobileEventDetailId, setMobileEventDetailId] = React.useState<string | null>(null);
@@ -96,8 +104,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const detailsPanelRef = React.useRef<HTMLDivElement>(null);
 
   // Modals & Confirmations
-  const [showEventModal, setShowEventModal] = React.useState(false);
-  const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
   const [runningChecklist, setRunningChecklist] = React.useState<any | null>(null);
   const [feedbackChecklist, setFeedbackChecklist] = React.useState<any | null>(null);
   const [deleteConfirmEventId, setDeleteConfirmEventId] = React.useState<string | null>(null);
@@ -436,7 +442,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // Dedicated Event Detail Page for Mobile (< lg) and deep view
   if (mobileEventDetailId) {
     return (
-      <div className="space-y-6 font-sans">
+      <div className="space-y-6 font-sans mb-10">
         <EventDetailPage
           eventId={mobileEventDetailId as Id<'events'>}
           currentUser={currentUser}
@@ -444,8 +450,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           allChecklists={allChecklists}
           onBack={() => setMobileEventDetailId(null)}
           onOpenEditModal={(ev) => {
-            setEditingEvent(ev);
-            setShowEventModal(true);
+            router.push(`/calendar/new?eventId=${ev.id}`);
           }}
           onOpenAssignmentsDrawer={(ev) => onOpenAssignmentsDrawer(ev)}
           onRunChecklist={(cl, ev) => setRunningChecklist(cl)}
@@ -455,23 +460,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             setMobileEventDetailId(null);
           }}
         />
-
-        {/* Event Create / Edit Modal */}
-        {showEventModal && (
-          <EventModal
-            isOpen={showEventModal}
-            onClose={() => {
-              setShowEventModal(false);
-              setEditingEvent(null);
-            }}
-            poles={poles}
-            editingEvent={editingEvent}
-            defaultDate={modalDefaultDate}
-            onEventCreated={(result) => {
-              setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
-            }}
-          />
-        )}
 
         {/* Runner Modal */}
         {runningChecklist && (
@@ -537,8 +525,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* Filters on Mobile */}
           <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-            <div className="relative">
-              <Layers className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative rounded-sm py-2">
               <select
                 value={selectedPoleFilter}
                 onChange={(e) => setSelectedPoleFilter(e.target.value)}
@@ -555,8 +542,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
 
             {currentUser && (
-              <div className="relative">
-                <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <div className="relative rounded-sm py-2">
                 <select
                   value={selectedTypeFilter}
                   onChange={(e) => setSelectedTypeFilter(e.target.value as any)}
@@ -872,8 +858,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setEditingEvent(ev);
-                                  setShowEventModal(true);
+                                  router.push(`/calendar/new?eventId=${ev.id}`);
                                 }}
                                 className="p-1 rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
                                 title="Modifier"
@@ -1243,8 +1228,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingEvent(ev);
-                              setShowEventModal(true);
+                              router.push(`/calendar/new?eventId=${ev.id}`);
                             }}
                             className="p-1 rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
                             title="Modifier"
@@ -1263,23 +1247,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
     </div>
-
-      {/* Event Create / Edit Modal */}
-      {showEventModal && (
-        <EventModal
-          isOpen={showEventModal}
-          onClose={() => {
-            setShowEventModal(false);
-            setEditingEvent(null);
-          }}
-          poles={poles}
-          editingEvent={editingEvent}
-          defaultDate={modalDefaultDate}
-          onEventCreated={(result) => {
-            setEventToast(editingEvent ? 'Événement mis à jour' : 'Événement créé');
-          }}
-        />
-      )}
 
       {/* Runner Modal */}
       {runningChecklist && (

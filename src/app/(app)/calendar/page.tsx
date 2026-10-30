@@ -9,6 +9,7 @@ function CalendarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dateParam = searchParams.get('date');
+  const eventIdParam = searchParams.get('eventId') || searchParams.get('id');
 
   const {
     currentUser,
@@ -26,6 +27,7 @@ function CalendarContent() {
       poles={poles}
       currentUser={currentUser}
       initialDate={dateParam}
+      initialEventId={eventIdParam}
       initialSelectedEvent={selectedEventForCalendar}
       onOpenCreateEventModal={(dateStr) => {
         router.push(dateStr ? `/calendar/new?date=${dateStr}` : '/calendar/new');

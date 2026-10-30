@@ -10,7 +10,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { BottomTabBar } from '@/components/layout/BottomTabBar';
 import { User, Pole, Event, NotificationItem } from '@/types';
-import { Sparkles } from 'lucide-react';
+
 import { invalidateCache } from '@/lib/cache';
 import { tabToPath } from '@/lib/navigation';
 import { adaptDashboard, adaptEvent, adaptPole, adaptNotification, adaptMemberListItem } from '@/lib/convexAdapters';

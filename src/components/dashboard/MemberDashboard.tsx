@@ -55,7 +55,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
   const [dashboardFeedback, setDashboardFeedback] = React.useState<string | null>(null);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto mb-10">
       {/* Feedback Banner */}
       {dashboardFeedback && (
         <div className="p-3 bg-zinc-100 border border-zinc-300 text-zinc-900 rounded-xl text-xs font-medium flex items-center justify-between">
