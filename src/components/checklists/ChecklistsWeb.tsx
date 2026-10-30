@@ -347,7 +347,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   const renderChecklistCard = (chk: Checklist) => (
     <div
       key={chk.id}
-      className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-4 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition-all"
+      className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-4 flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition-all"
     >
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
@@ -374,7 +374,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
       <div className="space-y-2 pt-2 border-t border-slate-100">
         <button
           onClick={() => setRunningChecklist(chk)}
-          className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-all"
+          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-all"
         >
           <Play className="w-3.5 h-3.5 fill-current" />
           <span>Exécuter la checklist</span>
@@ -388,7 +388,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                 setEditTitle(chk.title);
                 setEditDescription(chk.description || '');
               }}
-              className="text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1 transition-colors"
+              className="text-xs font-bold text-slate-600 hover:text-blue-600 flex items-center gap-1 transition-colors"
             >
               <Edit2 className="w-3 h-3" />
               <span>Gérer & modifier</span>
@@ -407,7 +407,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={() => setFeedbackChecklist(chk)}
-              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               title="Voir les retours & commentaires"
             >
               <MessageSquare className="w-4 h-4" />
@@ -416,7 +416,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
             {isLeaderOrAdmin && (
               <button
                 onClick={() => setDeletingChecklist(chk)}
-                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                className="p-1.5 text-slate-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
                 title="Supprimer la checklist"
               >
                 <Trash2 className="w-4 h-4" />
@@ -449,7 +449,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
         {isLeaderOrAdmin && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all self-start sm:self-auto"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-xs transition-all self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
             <span>+ Nouvelle checklist</span>
@@ -465,7 +465,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
             onClick={() => setSelectedPoleId('all')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
               selectedPoleId === 'all'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                ? 'bg-blue-600 text-white shadow-md shadow-xs'
                 : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
             }`}
           >
@@ -480,7 +480,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                 onClick={() => setSelectedPoleId(p.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
                   isSelected
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                    ? 'bg-blue-600 text-white shadow-md shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
@@ -505,7 +505,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                 onClick={() => setSelectedPoleId(p.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
                   isSelected
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                    ? 'bg-blue-600 text-white shadow-md shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
@@ -537,7 +537,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
         <div className="space-y-4">
           {loading ? (
             <div className="py-16 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-              <CheckSquare className="w-4 h-4 animate-bounce text-indigo-600" />
+              <CheckSquare className="w-4 h-4 animate-bounce text-blue-600" />
               <span>Chargement des checklists...</span>
             </div>
           ) : filteredChecklists.length === 0 ? (
@@ -552,7 +552,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
               {isLeaderOrAdmin && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-indigo-700 transition-colors"
+                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-blue-700 transition-colors"
                 >
                   + Créer une checklist
                 </button>
@@ -563,7 +563,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
               {/* Mes Checklists de Pôle */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
+                  <span className="text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg">
                     Mes checklists de pôle ({myChecklists.length})
                   </span>
                 </div>
@@ -616,7 +616,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                         setEditDescription(activeEditorChecklist.description || '');
                         setShowEditInfoModal(true);
                       }}
-                      className="p-1 text-slate-400 hover:text-indigo-600 rounded-lg"
+                      className="p-1 text-slate-400 hover:text-blue-600 rounded-lg"
                       title="Modifier titre / description"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -630,7 +630,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setRunningChecklist(activeEditorChecklist)}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Tester la checklist</span>
@@ -638,7 +638,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
               <button
                 onClick={() => setFeedbackChecklist(activeEditorChecklist)}
-                className="p-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-colors"
+                className="p-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl hover:bg-blue-50 transition-colors"
                 title="Retours des membres"
               >
                 <MessageSquare className="w-4 h-4" />
@@ -648,7 +648,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                 <>
                   <button
                     onClick={() => setShowAddStepModal(true)}
-                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Ajouter une étape</span>
@@ -656,7 +656,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
                   <button
                     onClick={() => setDeletingChecklist(activeEditorChecklist)}
-                    className="p-2 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-100 transition-colors"
+                    className="p-2 bg-zinc-100 text-zinc-800 border border-zinc-200 border border-rose-200 rounded-xl hover:bg-rose-100 transition-colors"
                     title="Supprimer la checklist"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -672,7 +672,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
               onClick={() => setActiveEditorTab('etapes')}
               className={`py-3 border-b-2 transition-all ${
                 activeEditorTab === 'etapes'
-                  ? 'border-indigo-600 text-indigo-600'
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -682,7 +682,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
               onClick={() => setActiveEditorTab('events')}
               className={`py-3 border-b-2 transition-all ${
                 activeEditorTab === 'events'
-                  ? 'border-indigo-600 text-indigo-600'
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -738,7 +738,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                               <GripVertical className="w-4 h-4" />
                             </span>
                           )}
-                          <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                             {idx + 1}
                           </span>
                           <div>
@@ -752,7 +752,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                         {isLeaderOrAdmin && (
                           <button
                             onClick={() => setDeletingStepIndex(idx)}
-                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
+                            className="text-slate-400 hover:text-zinc-900 p-1.5 rounded-lg hover:bg-zinc-100 transition-colors"
                             title="Supprimer cette étape"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -793,7 +793,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                         className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between"
                       >
                         <div className="flex items-center gap-3">
-                          <Calendar className="w-4 h-4 text-indigo-600" />
+                          <Calendar className="w-4 h-4 text-blue-600" />
                           <div>
                             <p className="text-xs font-bold text-slate-800">{ev.title}</p>
                             <p className="text-[10px] text-slate-500">
@@ -806,7 +806,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                           isAssociated ? (
                             <button
                               onClick={() => handleDissociateEvent(ev.id)}
-                              className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-1"
+                              className="px-3 py-1 bg-zinc-100 text-zinc-900 border border-zinc-200 text-xs font-bold rounded-xl flex items-center gap-1"
                             >
                               <Check className="w-3 h-3" />
                               <span>Associé</span>
@@ -814,14 +814,14 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                           ) : (
                             <button
                               onClick={() => handleAssociateEvent(ev.id)}
-                              className="px-3 py-1 bg-white hover:bg-indigo-50 text-indigo-700 border border-slate-200 text-xs font-bold rounded-xl"
+                              className="px-3 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 text-xs font-bold rounded-xl"
                             >
                               Associer
                             </button>
                           )
                         ) : (
                           isAssociated && (
-                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-lg">
+                            <span className="px-2.5 py-1 bg-emerald-50 text-zinc-800 text-[10px] font-bold rounded-lg">
                               Associé au culte
                             </span>
                           )
@@ -889,7 +889,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
               <button
                 type="submit"
                 disabled={savingInfo || !editTitle.trim()}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50"
               >
                 {savingInfo ? 'Enregistrement...' : 'Enregistrer'}
               </button>
@@ -933,14 +933,14 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                 </label>
 
                 {uploadingMedia ? (
-                  <div className="py-4 text-center flex items-center justify-center gap-2 text-xs text-indigo-600">
+                  <div className="py-4 text-center flex items-center justify-center gap-2 text-xs text-blue-600">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Téléversement du fichier...</span>
                   </div>
                 ) : newStepMediaUrl ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-bold text-zinc-800 bg-emerald-50 px-2 py-0.5 rounded-full">
                         ✓ Fichier chargé ({newStepMediaType === 'VIDEO' ? 'Vidéo' : 'Photo'})
                       </span>
                       <button
@@ -949,7 +949,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                           setNewStepMediaUrl('');
                           setNewStepMediaType('TEXT');
                         }}
-                        className="text-xs text-rose-600 hover:underline flex items-center gap-1"
+                        className="text-xs text-zinc-900 hover:underline flex items-center gap-1"
                       >
                         <X className="w-3 h-3" />
                         <span>Retirer</span>
@@ -982,13 +982,13 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                           setNewStepMediaUrl(val);
                           setNewStepMediaType(isVid ? 'VIDEO' : val ? 'PHOTO' : 'NONE');
                         }}
-                        className="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                        className="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-hidden"
                       />
-                      <label className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                      <label className="px-3 py-2 bg-blue-50 hover:bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
                         {uploadingMedia ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
                         ) : (
-                          <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                          <Upload className="w-3.5 h-3.5 text-blue-600" />
                         )}
                         <span>{uploadingMedia ? 'Envoi...' : 'Téléverser'}</span>
                         <input
@@ -1006,14 +1006,14 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
                     {/* Progress bar */}
                     {stepUploadProgress && (
-                      <div className="p-2.5 bg-indigo-50/90 border border-indigo-200 rounded-xl space-y-1 animate-in fade-in">
-                        <div className="flex items-center justify-between text-[11px] font-bold text-indigo-900">
+                      <div className="p-2.5 bg-blue-50/90 border border-blue-200 rounded-xl space-y-1 animate-in fade-in">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-zinc-900">
                           <span>{stepUploadProgress?.statusText}</span>
                           <span>{stepUploadProgress?.percent}%</span>
                         </div>
                         <div className="w-full bg-indigo-200/70 rounded-full h-1.5 overflow-hidden">
                           <div
-                            className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300 ease-out"
+                            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300 ease-out"
                             style={{ width: `${stepUploadProgress?.percent}%` }}
                           />
                         </div>
@@ -1034,7 +1034,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
               <button
                 onClick={handleAddStep}
                 disabled={actionLoading || !newStepTitle.trim()}
-                className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-600/20 disabled:opacity-50"
+                className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 shadow-md shadow-xs disabled:opacity-50"
               >
                 {actionLoading ? 'Ajout...' : "Ajouter l'étape"}
               </button>

@@ -83,14 +83,14 @@ export const EquipmentBarcode: React.FC<EquipmentBarcodeProps> = ({ equipmentId,
         <span>Code-barres</span>
       </div>
       {renderError ? (
-        <p className="text-xs text-rose-600 text-center py-4">Impossible de générer le code-barres.</p>
+        <p className="text-xs text-zinc-900 text-center py-4">Impossible de générer le code-barres.</p>
       ) : (
         <canvas ref={canvasRef} className="rounded-xl max-w-full" />
       )}
       <button
         onClick={handleDownload}
         disabled={!dataUrl}
-        className="w-full flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
       >
         <Download className="w-3.5 h-3.5" />
         <span>Télécharger</span>

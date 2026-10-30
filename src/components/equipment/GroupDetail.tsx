@@ -66,7 +66,7 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
       <div className="text-center py-16 space-y-3">
         <Boxes className="w-10 h-10 text-slate-300 mx-auto" />
         <h1 className="text-lg font-bold text-slate-900">Groupe introuvable</h1>
-        <Link href="/equipment/groups" className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold">
+        <Link href="/equipment/groups" className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold">
           <ArrowLeft className="w-3.5 h-3.5" />
           Retour aux groupes
         </Link>
@@ -134,12 +134,12 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
         Retour aux groupes
       </Link>
 
-      {errorMessage && <p className="text-xs text-rose-600 font-medium">{errorMessage}</p>}
+      {errorMessage && <p className="text-xs text-zinc-900 font-medium">{errorMessage}</p>}
 
       <div className="bg-white rounded-2xl border border-slate-200/90 p-5 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
               <Boxes className="w-5 h-5" />
             </div>
             <div className="min-w-0">
@@ -150,7 +150,7 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
           {!group.isTemplate && group.status && (
             <span
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
-                group.status === 'RETURNED' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                group.status === 'RETURNED' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-100 text-zinc-800'
               }`}
             >
               {group.status === 'RETURNED' ? <PackageCheck className="w-3 h-3" /> : <PackageX className="w-3 h-3" />}
@@ -168,14 +168,14 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
         {!group.isTemplate && totalOut > 0 && (
           <div className="space-y-1 border-t border-slate-100 pt-4">
             <div className="flex items-center justify-between text-xs font-bold">
-              <span className={allReturned ? 'text-emerald-700' : 'text-slate-600'}>
+              <span className={allReturned ? 'text-zinc-800' : 'text-slate-600'}>
                 {totalReturned} / {totalOut} unités revenues
               </span>
               <span className="text-slate-400">{progressPct}%</span>
             </div>
             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${allReturned ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                className={`h-full rounded-full transition-all ${allReturned ? 'bg-blue-600' : 'bg-zinc-900'}`}
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -186,7 +186,7 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
           <div className="flex flex-wrap items-center gap-2.5 border-t border-slate-100 pt-4">
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               Ajouter du matériel
@@ -208,13 +208,13 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
                     onClick={() => setShowReturnModal(true)}
                     className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold shadow-xs transition-colors"
                   >
-                    <PackageCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <PackageCheck className="w-3.5 h-3.5 text-zinc-900" />
                     Vérifier le retour
                   </button>
                   {!allReturned && totalOut > 0 && (
                     <button
                       onClick={() => setConfirmClose(true)}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-white border border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl text-xs font-bold shadow-xs transition-colors"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-white border border-zinc-200 text-zinc-800 hover:bg-zinc-100 rounded-xl text-xs font-bold shadow-xs transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                       Clôturer quand même
@@ -234,7 +234,7 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
               </button>
               <button
                 onClick={() => setConfirmDeleteGroup(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold shadow-xs transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-100 rounded-xl text-xs font-bold shadow-xs transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Supprimer
@@ -268,7 +268,7 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({ groupId }) => {
                 <button
                   onClick={() => handleRemoveItem(item.equipmentId)}
                   disabled={removingItemId === item.equipmentId}
-                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors flex-shrink-0"
+                  className="p-2 text-slate-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors flex-shrink-0"
                 >
                   {removingItemId === item.equipmentId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 </button>

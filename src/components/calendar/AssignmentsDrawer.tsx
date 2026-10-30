@@ -23,6 +23,7 @@ import { adaptEvent } from '@/lib/convexAdapters';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { isUnavailabilityOverlapping } from '@/lib/unavailability';
 import { Pole } from '@/types';
+import { Avatar } from '@/components/ui/Avatar';
 
 interface AssignmentsDrawerProps {
   isOpen: boolean;
@@ -195,52 +196,52 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex justify-end font-sans">
       <div className="bg-white w-full max-w-lg h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
         {/* Top Header */}
-        <div className="p-5 bg-gradient-to-r from-indigo-800 to-indigo-950 text-white flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-white border-b border-zinc-200 text-zinc-900 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold">Gérer les affectations en direct</h2>
-            <p className="text-xs text-indigo-200 mt-0.5">
-              {localEvent.title} • {new Date(localEvent.startsAt).toLocaleDateString('fr-FR')} ({new Date(localEvent.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(localEvent.endsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })})
+            <h2 className="text-base font-bold text-zinc-900">Affectations</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              {localEvent.title} • {new Date(localEvent.startsAt).toLocaleDateString('fr-FR')}
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 text-white/80">
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tab switch: Par pôle / Par personne */}
-        <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex bg-slate-200 p-1 rounded-xl w-full">
+        {/* Tab switch */}
+        <div className="p-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
+          <div className="flex bg-zinc-200/80 p-0.5 rounded-lg w-full">
             <button
               onClick={() => setActiveTab('pole')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'pole' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600'
+              className={`flex-1 py-1 rounded-md text-xs font-semibold transition-colors ${
+                activeTab === 'pole' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
-              Par pôle (Éligibles)
+              Par pôle
             </button>
             <button
               onClick={() => setActiveTab('person')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'person' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600'
+              className={`flex-1 py-1 rounded-md text-xs font-semibold transition-colors ${
+                activeTab === 'person' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
-              Équipe mobilisée ({currentAssignments.length})
+              Équipe ({currentAssignments.length})
             </button>
           </div>
         </div>
 
         {activeTab === 'pole' ? (
           <>
-            {/* Pole selector strip — only poles this event actually requested */}
-            <div className="px-4 py-2 bg-white border-b border-slate-100 flex items-center gap-2 overflow-x-auto">
+            {/* Pole selector strip */}
+            <div className="px-3 py-2 bg-white border-b border-zinc-100 flex items-center gap-1.5 overflow-x-auto">
               {requestedPoles.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setSelectedPoleId(p.id)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                     selectedPoleId === p.id
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
                   }`}
                 >
                   {p.name}
@@ -304,30 +305,30 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
                   return (
                     <div
                       key={m.id}
-                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
                         isAssignedToThisPole
-                          ? 'border-emerald-200 bg-emerald-50/30'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
+                          ? 'border-zinc-300 bg-zinc-50'
+                          : 'border-zinc-200 bg-white hover:border-zinc-300'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={m.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                          alt=""
-                          className="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200"
+                      <div className="flex items-center gap-2.5">
+                        <Avatar
+                          src={m.avatar}
+                          name={`${m.firstName} ${m.lastName}`}
+                          size="sm"
                         />
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-bold text-slate-900">{m.firstName} {m.lastName}</p>
+                            <p className="text-xs font-semibold text-zinc-900">{m.firstName} {m.lastName}</p>
                             {isAssignedToThisPole && m.isUnavailable && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Ce membre a signalé une indisponibilité pour cette date">
-                                <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-medium bg-zinc-100 text-zinc-700 border border-zinc-300" title="Indisponibilité signalée">
+                                <AlertTriangle className="w-2.5 h-2.5 text-zinc-500" />
                                 <span>Indisponible</span>
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-500">
-                            {isAssignedToThisPole ? (assignment?.roleTag || 'Affecté(e)') : (m.phone || 'Disponible')}
+                          <p className="text-[11px] text-zinc-500">
+                            {isAssignedToThisPole ? (assignment?.roleTag || 'Affecté') : (m.phone || 'Disponible')}
                           </p>
                         </div>
                       </div>
@@ -335,13 +336,13 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
                       <div className="flex items-center gap-2">
                         {isAssignedToThisPole ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
-                              <CheckCircle2 className="w-3 h-3" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-200 text-zinc-800">
+                              <CheckCircle2 className="w-3 h-3 text-zinc-600" />
                               <span>Affecté</span>
                             </span>
                             <button
                               onClick={() => handleRemoveAssignment(assignment.id)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
                               title="Désaffecter"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -351,7 +352,7 @@ export const AssignmentsDrawer: React.FC<AssignmentsDrawerProps> = ({
                           <button
                             onClick={() => handleAssign(m.id, selectedPoleId, 'Membre')}
                             disabled={loading}
-                            className="px-3 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                            className="px-3 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
                           >
                             Affecter
                           </button>

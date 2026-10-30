@@ -29,35 +29,32 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   subtitle,
   icon,
-  headerGradient = 'from-indigo-600 to-indigo-700',
   maxWidth = 'lg',
   children
 }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div
-        className={`bg-white rounded-3xl ${MAX_WIDTHS[maxWidth]} w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]`}
+        className={`bg-white rounded-2xl ${MAX_WIDTHS[maxWidth]} w-full shadow-2xl border border-zinc-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]`}
       >
-        {/* Header */}
-        <div
-          className={`p-4 sm:p-5 bg-gradient-to-r ${headerGradient} text-white flex items-center justify-between flex-shrink-0`}
-        >
-          <div className="flex items-center gap-2.5">
+        {/* Sober Header */}
+        <div className="p-4 sm:p-5 bg-white border-b border-zinc-200 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
             {icon && (
-              <div className="p-2 bg-white/15 rounded-xl backdrop-blur-xs flex-shrink-0">
+              <div className="p-2 bg-zinc-100 text-zinc-900 rounded-xl flex-shrink-0">
                 {icon}
               </div>
             )}
             <div>
-              <h2 className="text-sm sm:text-base font-extrabold">{title}</h2>
-              {subtitle && <p className="text-[11px] text-white/80 mt-0.5">{subtitle}</p>}
+              <h2 className="text-base font-bold text-zinc-900 tracking-tight">{title}</h2>
+              {subtitle && <p className="text-xs text-zinc-500 mt-0.5">{subtitle}</p>}
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+            className="p-1.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

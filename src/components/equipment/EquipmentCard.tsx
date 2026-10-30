@@ -17,7 +17,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({ equipment }) => {
   return (
     <Link
       href={`/equipment/${equipment.id}`}
-      className="group bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all overflow-hidden flex flex-col"
+      className="group bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md hover:border-blue-200 transition-all overflow-hidden flex flex-col"
     >
       <div className="aspect-video w-full bg-slate-100 flex items-center justify-center overflow-hidden">
         {equipment.photoUrl ? (

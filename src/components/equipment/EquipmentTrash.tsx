@@ -33,7 +33,7 @@ export const EquipmentTrash: React.FC = () => {
         <p className="text-sm text-slate-500">Connectez-vous pour accéder à la corbeille du matériel.</p>
         <Link
           href="/login"
-          className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
+          className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold"
         >
           <LogIn className="w-3.5 h-3.5" />
           Se connecter
@@ -111,7 +111,7 @@ export const EquipmentTrash: React.FC = () => {
                 <button
                   onClick={() => handleRestore(item.id)}
                   disabled={restoringId === item.id}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-50 text-blue-700 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Restaurer</span>
@@ -121,7 +121,7 @@ export const EquipmentTrash: React.FC = () => {
                     setError(null);
                     setConfirmDelete(item);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 hover:bg-zinc-100 text-zinc-900 rounded-xl text-xs font-bold transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Supprimer définitivement</span>

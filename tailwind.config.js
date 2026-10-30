@@ -8,20 +8,21 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Strict sober palette: White, Black/Dark Zinc, and Cobalt Blue (#2563eb)
         brand: {
-          50: '#f0f4ff',
-          100: '#dbe4fe',
-          200: '#bfd0fd',
-          300: '#93b2fb',
-          400: '#608bf7',
-          500: '#3b68f0',
-          600: '#254ce4',
-          700: '#1d39cd',
-          800: '#1e30a6',
-          900: '#1e2d83',
-          950: '#141c4f',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb', // Selected Accent Color
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#09090b',
         },
-        sidebar: '#111827',
+        sidebar: '#09090b',
       },
     },
   },

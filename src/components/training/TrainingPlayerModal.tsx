@@ -122,7 +122,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-indigo-300 border border-blue-500/30">
                   {module.pole?.name || 'Formation'}
                 </span>
                 <span className="text-xs text-slate-400">• {module.level}</span>
@@ -165,7 +165,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
           <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-200 bg-white flex flex-col flex-shrink-0 h-48 md:h-full overflow-hidden">
             <div className="p-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                <Layers className="w-3.5 h-3.5 text-blue-600" />
                 <span>Programme du module</span>
               </h3>
               <span className="text-[11px] font-bold text-slate-500">
@@ -184,7 +184,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
                     onClick={() => setCurrentLessonIndex(idx)}
                     className={`w-full text-left p-3 rounded-2xl transition-all flex items-start gap-2.5 border ${
                       isSelected
-                        ? 'bg-indigo-50 border-indigo-200 text-indigo-950 shadow-xs'
+                        ? 'bg-blue-50 border-blue-200 text-zinc-950 shadow-xs'
                         : 'bg-white hover:bg-slate-50 border-transparent text-slate-700'
                     }`}
                   >
@@ -197,7 +197,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
                       className="mt-0.5 flex-shrink-0 text-slate-400 hover:scale-110 transition-transform"
                     >
                       {isCompleted ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 fill-emerald-50" />
+                        <CheckCircle2 className="w-4 h-4 text-zinc-900 fill-emerald-50" />
                       ) : (
                         <Circle className="w-4 h-4 text-slate-300 hover:text-slate-400" />
                       )}
@@ -236,7 +236,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
                 {/* Lesson Header */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                    <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
                       Leçon {currentLessonIndex + 1} sur {totalLessons}
                     </span>
                     {currentLesson.durationMinutes && (
@@ -263,7 +263,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
                 {currentLesson.content && (
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-indigo-600" />
+                      <FileText className="w-4 h-4 text-blue-600" />
                       <span>Guide et contenu pratique</span>
                     </h4>
                     <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line font-medium">
@@ -289,13 +289,13 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
                       disabled={loadingAction}
                       className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 border ${
                         completedLessonIds.has(currentLesson.id)
-                          ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                          ? 'bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-emerald-100'
                           : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       {completedLessonIds.has(currentLesson.id) ? (
                         <>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <CheckCircle2 className="w-4 h-4 text-zinc-900" />
                           <span>Leçon terminée</span>
                         </>
                       ) : (
@@ -310,7 +310,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
                       <button
                         onClick={handleNextLesson}
                         disabled={loadingAction}
-                        className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 hover:scale-[1.02] transition-all flex items-center gap-1.5"
+                        className="px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-xs hover:scale-[1.02] transition-all flex items-center gap-1.5"
                       >
                         <span>Suivante</span>
                         <ChevronRight className="w-4 h-4" />
@@ -318,7 +318,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
                     ) : (
                       <button
                         onClick={onClose}
-                        className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5"
+                        className="px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5"
                       >
                         <Award className="w-4 h-4" />
                         <span>Terminer le module</span>
@@ -339,13 +339,13 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
       {/* 🎉 Celebratory Modal when course is 100% completed */}
       {showCelebration && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-5 shadow-2xl border border-amber-200">
-            <div className="w-16 h-16 bg-gradient-to-tr from-amber-400 to-amber-500 text-white rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-amber-500/30 animate-bounce">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-5 shadow-2xl border border-zinc-200">
+            <div className="w-16 h-16 bg-gradient-to-tr from-zinc-900 to-zinc-950 text-white rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-amber-500/30 animate-bounce">
               <Award className="w-9 h-9" />
             </div>
 
             <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-800 bg-zinc-100 px-3 py-1 rounded-full border border-zinc-200">
                 Félicitations ! 🎓
               </span>
               <h3 className="text-xl font-black text-slate-900">
@@ -360,7 +360,7 @@ export const TrainingPlayerModal: React.FC<TrainingPlayerModalProps> = ({
 
             <button
               onClick={() => setShowCelebration(false)}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-transform hover:scale-[1.02]"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-xs transition-transform hover:scale-[1.02]"
             >
               Continuer
             </button>

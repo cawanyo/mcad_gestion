@@ -238,7 +238,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1">
               <GraduationCap className="w-3.5 h-3.5" />
               Académie & Formations MCAD
             </span>
@@ -257,7 +257,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
               setEditingModule(null);
               setIsEditorOpen(true);
             }}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-600/20 hover:scale-[1.02] transition-all flex items-center gap-2 self-start md:self-auto"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-xs hover:scale-[1.02] transition-all flex items-center gap-2 self-start md:self-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Nouveau Module</span>
@@ -270,19 +270,19 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
         <StatCard
           label="Modules disponibles"
           value={totalModulesCount}
-          icon={<BookOpen className="w-4 h-4 text-indigo-600" />}
+          icon={<BookOpen className="w-4 h-4 text-blue-600" />}
           subValue="Dans vos pôles"
         />
         <StatCard
           label="Formations en cours"
           value={inProgressCount}
-          icon={<TrendingUp className="w-4 h-4 text-amber-600" />}
+          icon={<TrendingUp className="w-4 h-4 text-zinc-800" />}
           subValue="Parcours initiés"
         />
         <StatCard
           label="Modules validés 🎓"
           value={completedCount}
-          icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+          icon={<CheckCircle2 className="w-4 h-4 text-zinc-900" />}
           subValue="100% complétés"
         />
         <StatCard
@@ -298,8 +298,8 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
-                <Flame className="w-4 h-4 fill-amber-500 text-amber-600" />
+              <div className="w-7 h-7 rounded-xl bg-zinc-100 text-zinc-800 flex items-center justify-center border border-zinc-200">
+                <Flame className="w-4 h-4 fill-amber-500 text-zinc-800" />
               </div>
               <h2 className="text-sm sm:text-base font-black text-slate-900">
                 Reprendre mes formations en cours
@@ -326,7 +326,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
 
                 <div className="relative z-10 space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-300 border border-indigo-500/40">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/30 text-indigo-300 border border-blue-500/40">
                       {m.pole?.name}
                     </span>
                     <span className="text-xs font-black text-emerald-400">
@@ -362,7 +362,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
 
                   <button
                     onClick={() => setActiveCourseModuleId(m.id)}
-                    className="w-full py-2.5 px-4 bg-white text-indigo-950 hover:bg-indigo-50 rounded-2xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                    className="w-full py-2.5 px-4 bg-white text-zinc-950 hover:bg-blue-50 rounded-2xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
                   >
                     <Play className="w-3.5 h-3.5 fill-indigo-950" />
                     <span>Continuer la formation</span>
@@ -379,7 +379,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-indigo-600" />
+            <BookOpen className="w-4 h-4 text-blue-600" />
             <h2 className="text-sm sm:text-base font-black text-slate-900">
               Catalogue de toutes les formations
             </h2>
@@ -402,7 +402,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden transition-all"
+                className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden transition-all"
               />
               {searchQuery.trim() && (
                 <button
@@ -469,7 +469,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
         </div>
       ) : paginatedModules.length === 0 ? (
         <div className="bg-white p-12 text-center rounded-3xl border border-slate-200 shadow-xs space-y-3">
-          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center">
+          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl mx-auto flex items-center justify-center">
             <BookOpen className="w-6 h-6" />
           </div>
           <h3 className="text-sm font-bold text-slate-900">Aucun module de formation trouvé</h3>
@@ -484,7 +484,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                 setEditingModule(null);
                 setIsEditorOpen(true);
               }}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
             >
               + Créer un module
             </button>
@@ -503,7 +503,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                   key={m.id}
                   className={`bg-white rounded-3xl border overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group ${
                     isInProgress
-                      ? 'border-indigo-300 ring-2 ring-indigo-500/10'
+                      ? 'border-blue-300 ring-2 ring-indigo-500/10'
                       : 'border-slate-200'
                   }`}
                 >
@@ -535,9 +535,9 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                       <span
                         className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider backdrop-blur-md text-white ${
                           m.level === 'BEGINNER'
-                            ? 'bg-emerald-600/90'
+                            ? 'bg-zinc-900/90'
                             : m.level === 'INTERMEDIATE'
-                            ? 'bg-indigo-600/90'
+                            ? 'bg-blue-600/90'
                             : 'bg-amber-600/90'
                         }`}
                       >
@@ -559,18 +559,18 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         {isInProgress && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
                             En cours
                           </span>
                         )}
                         {isCompleted && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-800 border border-emerald-200">
                             Validé 🎓
                           </span>
                         )}
                       </div>
 
-                      <h3 className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                      <h3 className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
                         {m.title}
                       </h3>
                       <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">
@@ -587,9 +587,9 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                         <span
                           className={`${
                             isCompleted
-                              ? 'text-emerald-600'
+                              ? 'text-zinc-900'
                               : isInProgress
-                              ? 'text-indigo-600'
+                              ? 'text-blue-600'
                               : 'text-slate-400'
                           }`}
                         >
@@ -601,9 +601,9 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
                             isCompleted
-                              ? 'bg-emerald-500'
+                              ? 'bg-blue-600'
                               : isInProgress
-                              ? 'bg-indigo-600'
+                              ? 'bg-blue-600'
                               : 'bg-slate-300'
                           }`}
                           style={{ width: `${progress}%` }}
@@ -617,15 +617,15 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                         onClick={() => setActiveCourseModuleId(m.id)}
                         className={`flex-1 py-2.5 px-4 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs hover:scale-[1.01] ${
                           isCompleted
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                            ? 'bg-zinc-100 text-zinc-800 border border-emerald-200 hover:bg-emerald-100'
                             : isInProgress
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-600/20'
+                            ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs'
                             : 'bg-slate-900 text-white hover:bg-slate-800'
                         }`}
                       >
                         {isCompleted ? (
                           <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-zinc-900" />
                             <span>Revoir la formation</span>
                           </>
                         ) : isInProgress ? (
@@ -648,14 +648,14 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                               setEditingModule(m);
                               setIsEditorOpen(true);
                             }}
-                            className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
+                            className="p-2 text-slate-400 hover:text-zinc-800 hover:bg-zinc-100 rounded-xl transition-colors"
                             title="Modifier le module"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeletingModule(m)}
-                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                            className="p-2 text-slate-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors"
                             title="Supprimer le module"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -700,7 +700,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
                       onClick={() => setCurrentPage(pageNum)}
                       className={`w-8 h-8 rounded-xl text-xs font-black transition-all ${
                         isActive
-                          ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-600/30'
+                          ? 'bg-blue-600 text-white shadow-xs shadow-indigo-600/30'
                           : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
                       }`}
                     >

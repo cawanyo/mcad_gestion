@@ -57,7 +57,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
       {/* Top Header & Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+          <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
             <BarChart3 className="w-5 h-5" />
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900">
@@ -73,7 +73,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
                 onClick={() => setViewMode('department')}
                 className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
                   viewMode === 'department'
-                    ? 'bg-white text-indigo-800 shadow-xs'
+                    ? 'bg-white text-blue-800 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -83,7 +83,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
                 onClick={() => setViewMode('personal')}
                 className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
                   viewMode === 'personal'
-                    ? 'bg-white text-indigo-800 shadow-xs'
+                    ? 'bg-white text-blue-800 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -123,7 +123,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
 
       {loading ? (
         <div className="py-16 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-          <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+          <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
           <span>Calcul en cours...</span>
         </div>
       ) : !statsData ? (
@@ -142,8 +142,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
             <StatCard
               label={`Services en ${selectedYear}`}
               value={statsData.kpis?.totalServicesYear || 0}
-              icon={<TrendingUp className="w-4 h-4 text-indigo-600" />}
-              iconBg="bg-indigo-50"
+              icon={<TrendingUp className="w-4 h-4 text-blue-600" />}
+              iconBg="bg-blue-50"
             />
             <StatCard
               label="Total historique"
@@ -154,8 +154,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
             <StatCard
               label="Taux de validation"
               value={`${statsData.kpis?.validationRate || 100}%`}
-              icon={<CheckCircle2 className="w-4 h-4 text-indigo-600" />}
-              iconBg="bg-indigo-50"
+              icon={<CheckCircle2 className="w-4 h-4 text-blue-600" />}
+              iconBg="bg-blue-50"
             />
             <StatCard
               label="Satisfaction"
@@ -188,10 +188,10 @@ export const StatsView: React.FC<StatsViewProps> = ({
                         {m.count > 0 ? m.count : ''}
                       </span>
                       <div
-                        className={`w-full max-w-[28px] rounded-xl transition-all duration-300 ${
+                        className={`w-full max-w-[28px] rounded-lg transition-all duration-300 ${
                           m.count > 0
-                            ? 'bg-gradient-to-t from-indigo-600 to-indigo-500 shadow-xs'
-                            : 'bg-slate-100'
+                            ? 'bg-blue-600 shadow-xs'
+                            : 'bg-zinc-100'
                         }`}
                         style={{ height: `${heightPercent}%` }}
                       />
@@ -272,8 +272,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
             <StatCard
               label="Effectif actif"
               value={statsData.kpis?.totalMembers || 0}
-              icon={<Users className="w-4 h-4 text-indigo-600" />}
-              iconBg="bg-indigo-50"
+              icon={<Users className="w-4 h-4 text-blue-600" />}
+              iconBg="bg-blue-50"
             />
             <StatCard
               label="Cultes"
@@ -284,8 +284,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
             <StatCard
               label="Affectations"
               value={statsData.kpis?.totalAssignmentsCount || 0}
-              icon={<Layers className="w-4 h-4 text-indigo-600" />}
-              iconBg="bg-indigo-50"
+              icon={<Layers className="w-4 h-4 text-blue-600" />}
+              iconBg="bg-blue-50"
             />
             <StatCard
               label="Moyenne / culte"
@@ -311,7 +311,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
               <div className="space-y-2 pt-1">
                 <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden flex">
                   <div
-                    className="bg-indigo-600 h-full transition-all duration-500"
+                    className="bg-blue-600 h-full transition-all duration-500"
                     style={{ width: `${statsData.demographics?.gender?.menPercentage || 50}%` }}
                     title={`Hommes: ${statsData.demographics?.gender?.menCount}`}
                   />
@@ -323,8 +323,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="flex items-center gap-1.5 font-bold text-indigo-700">
-                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
+                  <span className="flex items-center gap-1.5 font-bold text-blue-700">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
                     <span>Hommes : {statsData.demographics?.gender?.menCount || 0} ({statsData.demographics?.gender?.menPercentage || 0}%)</span>
                   </span>
                   <span className="flex items-center gap-1.5 font-bold text-slate-600">
@@ -369,8 +369,8 @@ export const StatsView: React.FC<StatsViewProps> = ({
                 Mobilisations par mois
               </h3>
               <div className="flex items-center gap-3 text-xs font-bold">
-                <span className="flex items-center gap-1 text-indigo-700">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                <span className="flex items-center gap-1 text-blue-700">
+                  <span className="w-2 h-2 rounded-full bg-blue-600" />
                   <span>STARS mobilisées</span>
                 </span>
                 <span className="flex items-center gap-1 text-slate-500">
@@ -410,7 +410,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
           {/* TOP STARS LES PLUS ENGAGÉES */}
           <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Award className="w-4 h-4 text-indigo-600" />
+              <Award className="w-4 h-4 text-blue-600" />
               <span>Plus engagé(e)s</span>
             </h3>
 
@@ -425,13 +425,13 @@ export const StatsView: React.FC<StatsViewProps> = ({
                   >
                     <div className="relative">
                       <Avatar src={v.avatar} name={v.name} size="md" />
-                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-indigo-600 text-white font-black text-[9px] flex items-center justify-center shadow-xs">
+                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white font-black text-[9px] flex items-center justify-center shadow-xs">
                         {idx + 1}
                       </span>
                     </div>
                     <div className="min-w-0">
                       <p className="font-extrabold text-slate-900 truncate">{v.name}</p>
-                      <p className="text-[10px] font-bold text-indigo-700">{v.servicesCount} service(s)</p>
+                      <p className="text-[10px] font-bold text-blue-700">{v.servicesCount} service(s)</p>
                     </div>
                   </div>
                 ))}

@@ -196,17 +196,17 @@ export const EventModal: React.FC<EventModalProps> = ({
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto font-sans">
       <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-900 text-white flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-white border-b border-zinc-200 text-zinc-900 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-900">
               <Calendar className="w-4 h-4" />
             </div>
-            <h2 className="text-base font-bold">
+            <h2 className="text-base font-bold text-zinc-900">
               {editingEvent ? 'Modifier le culte' : 'Nouveau culte'}
             </h2>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 text-white/80">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 transition-colors">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -425,21 +425,21 @@ export const EventModal: React.FC<EventModalProps> = ({
           )}
 
           {/* Submit */}
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-4 border-t border-zinc-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+              className="px-4 py-2 text-xs font-medium text-zinc-600 hover:text-zinc-900 rounded-lg"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5 transition-colors"
             >
               {loading ? (
-                <span>Création en cours...</span>
+                <span>Enregistrement...</span>
               ) : editingEvent ? (
                 <span>Mettre à jour</span>
               ) : recurrenceRule !== 'NONE' ? (
@@ -448,7 +448,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                   <span>Créer la série ({recurrenceCount} cultes)</span>
                 </>
               ) : (
-                <span>Créer l'événement</span>
+                <span>Créer le culte</span>
               )}
             </button>
           </div>

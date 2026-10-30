@@ -206,7 +206,7 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSteps([...steps, { ...EMPTY_STEP }])}
-                className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Ajouter une étape</span>
@@ -216,12 +216,12 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
             {steps.map((step, idx) => (
               <div key={idx} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-indigo-600">Étape {idx + 1}</span>
+                  <span className="text-[11px] font-bold text-blue-600">Étape {idx + 1}</span>
                   {steps.length > 1 && (
                     <button
                       type="button"
                       onClick={() => setSteps(steps.filter((_, i) => i !== idx))}
-                      className="text-[10px] text-rose-600 hover:underline"
+                      className="text-[10px] text-zinc-900 hover:underline"
                     >
                       Supprimer
                     </button>
@@ -260,7 +260,7 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
                   </label>
 
                   {step.uploading ? (
-                    <div className="py-4 text-center flex items-center justify-center gap-2 text-xs text-indigo-600">
+                    <div className="py-4 text-center flex items-center justify-center gap-2 text-xs text-blue-600">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span>Téléversement en cours...</span>
                     </div>
@@ -273,7 +273,7 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRemoveStepMedia(idx)}
-                          className="text-xs text-rose-600 hover:underline flex items-center gap-1"
+                          className="text-xs text-zinc-900 hover:underline flex items-center gap-1"
                         >
                           <X className="w-3 h-3" />
                           <span>Retirer le fichier</span>
@@ -303,13 +303,13 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
                             updated[idx] = { ...updated[idx], mediaUrl: val, mediaType: isVid ? 'VIDEO' : val ? 'PHOTO' : 'NONE' };
                             setSteps(updated);
                           }}
-                          className="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                          className="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-hidden"
                         />
-                        <label className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                        <label className="px-3 py-2 bg-blue-50 hover:bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
                           {step.uploading ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
                           ) : (
-                            <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                            <Upload className="w-3.5 h-3.5 text-blue-600" />
                           )}
                           <span>{step.uploading ? 'Envoi...' : 'Téléverser'}</span>
                           <input
@@ -326,21 +326,21 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
                       </div>
 
                       {stepUploadProgress[idx] && (
-                        <div className="p-2.5 bg-indigo-50/90 border border-indigo-200 rounded-xl space-y-1 animate-in fade-in">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-indigo-900">
+                        <div className="p-2.5 bg-blue-50/90 border border-blue-200 rounded-xl space-y-1 animate-in fade-in">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-zinc-900">
                             <span>{stepUploadProgress[idx]?.statusText}</span>
                             <span>{stepUploadProgress[idx]?.percent}%</span>
                           </div>
                           <div className="w-full bg-indigo-200/70 rounded-full h-1.5 overflow-hidden">
                             <div
-                              className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300 ease-out"
+                              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300 ease-out"
                               style={{ width: `${stepUploadProgress[idx]?.percent}%` }}
                             />
                           </div>
                         </div>
                       )}
 
-                      {step.error && <p className="text-xs text-rose-600 font-semibold">⚠️ {step.error}</p>}
+                      {step.error && <p className="text-xs text-zinc-900 font-semibold">⚠️ {step.error}</p>}
                     </div>
                   )}
                 </div>
@@ -359,7 +359,7 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-xs disabled:opacity-50"
             >
               {saving ? 'Enregistrement...' : editingChecklist ? 'Enregistrer les modifications' : 'Créer la checklist'}
             </button>

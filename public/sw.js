@@ -1,0 +1,146 @@
+// MCAD Service Worker (PWA & Web Push Notifications)
+const CACHE_NAME = 'mcad-cache-v1';
+const OFFLINE_URL = '/offline.html';
+
+const STATIC_ASSETS = [
+  '/',
+  '/manifest.json',
+  '/offline.html',
+  '/favicon.ico',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/badge-72x72.png'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS);
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((name) => {
+          if (name !== CACHE_NAME) {
+            return caches.delete(name);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Network-first for navigations with offline fallback, cache-first for static assets
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Bypass API routes and WebSocket connections
+  if (url.pathname.startsWith('/api') || url.pathname.includes('/_convex') || request.method !== 'GET') {
+    return;
+  }
+
+  // Navigation requests: try network, then fallback to cache, then offline page
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        return caches.match(OFFLINE_URL);
+      })
+    );
+    return;
+  }
+
+  // Static files: Stale-while-revalidate
+  if (
+    url.pathname.startsWith('/icons/') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.ico') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.woff2')
+  ) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const fetchPromise = fetch(request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          }
+          return networkResponse;
+        }).catch(() => null);
+
+        return cached || fetchPromise;
+      })
+    );
+  }
+});
+
+// ==========================================
+// Web Push Notifications
+// ==========================================
+self.addEventListener('push', (event) => {
+  let payload = {
+    title: 'MCAD',
+    body: 'Nouvelle notification de département',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/badge-72x72.png',
+    url: '/dashboard'
+  };
+
+  if (event.data) {
+    try {
+      const json = event.data.json();
+      payload = { ...payload, ...json };
+    } catch {
+      payload.body = event.data.text() || payload.body;
+    }
+  }
+
+  const options = {
+    body: payload.body,
+    icon: payload.icon || '/icons/icon-192x192.png',
+    badge: payload.badge || '/icons/badge-72x72.png',
+    vibrate: [100, 50, 100],
+    data: {
+      url: payload.url || (payload.data && payload.data.url) || '/dashboard',
+      dateOfArrival: Date.now()
+    },
+    actions: [
+      { action: 'open', title: 'Ouvrir' },
+      { action: 'close', title: 'Fermer' }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'close') {
+    return;
+  }
+
+  const targetUrl = event.notification.data?.url || '/dashboard';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(targetUrl) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});

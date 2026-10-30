@@ -18,8 +18,6 @@ const SIZES = {
   xl: 'w-14 h-14 text-base'
 };
 
-// Fetch at 2x the CSS box size for a crisp look on retina screens while
-// still staying tiny compared to an original phone-camera upload.
 const FETCH_SIZE_PX = {
   xs: 48,
   sm: 64,
@@ -52,14 +50,14 @@ export const Avatar: React.FC<AvatarProps> = ({
         alt={name}
         loading="lazy"
         onError={() => setImgError(true)}
-        className={`${sizeClass} rounded-full object-cover ring-1 ring-slate-200 flex-shrink-0 ${className}`}
+        className={`${sizeClass} rounded-full object-cover ring-1 ring-zinc-200 flex-shrink-0 ${className}`}
       />
     );
   }
 
   return (
     <div
-      className={`${sizeClass} rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-black flex items-center justify-center ring-1 ring-slate-200 flex-shrink-0 select-none ${className}`}
+      className={`${sizeClass} rounded-full bg-zinc-900 text-white font-bold flex items-center justify-center ring-1 ring-zinc-800 flex-shrink-0 select-none ${className}`}
     >
       {getInitials(name)}
     </div>

@@ -139,7 +139,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
 
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
                   {module.pole?.name || 'Pôle'}
                 </span>
                 <span className="text-xs text-slate-400 truncate hidden md:inline">
@@ -156,14 +156,14 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-none">
                   Progression
                 </span>
-                <span className="text-xs font-black text-indigo-600">
+                <span className="text-xs font-black text-blue-600">
                   {completedCount}/{totalLessons} ({progressPercent}%)
                 </span>
               </div>
               <div className="w-16 sm:w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    isModuleFullyCompleted ? 'bg-emerald-500' : 'bg-indigo-600'
+                    isModuleFullyCompleted ? 'bg-blue-600' : 'bg-blue-600'
                   }`}
                   style={{ width: `${progressPercent}%` }}
                 />
@@ -187,7 +187,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
 
           <div className="relative z-10 space-y-3 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/20 text-indigo-300 border border-blue-500/30">
                 {module.pole?.name || 'Pôle'}
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-slate-300">
@@ -219,7 +219,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
           <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden lg:sticky lg:top-20">
             <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
               <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-indigo-600" />
+                <Layers className="w-4 h-4 text-blue-600" />
                 <span>Programme du cours</span>
               </h2>
               <span className="text-[11px] font-bold text-slate-500">
@@ -238,7 +238,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                     onClick={() => setCurrentLessonIndex(idx)}
                     className={`w-full text-left p-3.5 rounded-2xl transition-all flex items-start gap-3 border ${
                       isSelected
-                        ? 'bg-indigo-50/80 border-indigo-200 text-indigo-950 shadow-2xs'
+                        ? 'bg-blue-50/80 border-blue-200 text-zinc-950 shadow-2xs'
                         : 'bg-white hover:bg-slate-50 border-transparent text-slate-700'
                     }`}
                   >
@@ -251,7 +251,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                       className="mt-0.5 flex-shrink-0 text-slate-400 hover:scale-110 transition-transform"
                     >
                       {isCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600 fill-emerald-50" />
+                        <CheckCircle2 className="w-5 h-5 text-zinc-900 fill-emerald-50" />
                       ) : (
                         <Circle className="w-5 h-5 text-slate-300 hover:text-slate-400" />
                       )}
@@ -271,7 +271,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                       </div>
                       <p
                         className={`text-xs font-bold ${
-                          isSelected ? 'text-indigo-950' : 'text-slate-800'
+                          isSelected ? 'text-zinc-950' : 'text-slate-800'
                         } ${isCompleted && !isSelected ? 'line-through text-slate-400' : ''}`}
                       >
                         {lesson.title}
@@ -290,7 +290,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                 {/* Lesson Header */}
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs font-black text-indigo-600 uppercase tracking-wider bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">
+                    <span className="text-xs font-black text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
                       Leçon {currentLessonIndex + 1} sur {totalLessons}
                     </span>
                     {currentLesson.durationMinutes && (
@@ -319,7 +319,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                 {currentLesson.content && (
                   <div className="bg-slate-50/70 p-6 rounded-3xl border border-slate-200/80 space-y-3">
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-indigo-600" />
+                      <FileText className="w-4 h-4 text-blue-600" />
                       <span>Guide et contenu pratique</span>
                     </h3>
                     <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line font-medium font-sans">
@@ -345,13 +345,13 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                       disabled={loadingAction}
                       className={`flex-1 sm:flex-none px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 border ${
                         completedLessonIds.has(currentLesson.id)
-                          ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                          ? 'bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-emerald-100'
                           : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       {completedLessonIds.has(currentLesson.id) ? (
                         <>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <CheckCircle2 className="w-4 h-4 text-zinc-900" />
                           <span>Leçon terminée</span>
                         </>
                       ) : (
@@ -366,7 +366,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                       <button
                         onClick={handleNextLesson}
                         disabled={loadingAction}
-                        className="flex-1 sm:flex-none px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5"
+                        className="flex-1 sm:flex-none px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-xs hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5"
                       >
                         <span>Suivante</span>
                         <ChevronRight className="w-4 h-4" />
@@ -374,7 +374,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                     ) : (
                       <button
                         onClick={onBack}
-                        className="flex-1 sm:flex-none px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
+                        className="flex-1 sm:flex-none px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
                       >
                         <Award className="w-4 h-4" />
                         <span>Terminer le module</span>
@@ -395,13 +395,13 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
       {/* 🎉 Full Celebration Modal when course is 100% completed */}
       {showCelebration && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-5 shadow-2xl border border-amber-200">
-            <div className="w-16 h-16 bg-gradient-to-tr from-amber-400 to-amber-500 text-white rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-amber-500/30 animate-bounce">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-5 shadow-2xl border border-zinc-200">
+            <div className="w-16 h-16 bg-gradient-to-tr from-zinc-900 to-zinc-950 text-white rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-amber-500/30 animate-bounce">
               <Award className="w-9 h-9" />
             </div>
 
             <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-800 bg-zinc-100 px-3 py-1 rounded-full border border-zinc-200">
                 Félicitations ! 🎓
               </span>
               <h3 className="text-xl font-black text-slate-900">
@@ -419,7 +419,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                 setShowCelebration(false);
                 onBack();
               }}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-transform hover:scale-[1.02]"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-xs transition-transform hover:scale-[1.02]"
             >
               Retour à l'académie
             </button>

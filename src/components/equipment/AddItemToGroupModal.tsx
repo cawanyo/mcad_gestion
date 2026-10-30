@@ -121,7 +121,7 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
           <button
             onClick={() => setTab('manual')}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-              tab === 'manual' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+              tab === 'manual' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             Manuel
@@ -129,7 +129,7 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
           <button
             onClick={() => setTab('scan')}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-              tab === 'scan' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+              tab === 'scan' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             Scanner
@@ -139,16 +139,16 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
         {tab === 'manual' ? (
           <form onSubmit={handleAddManual} className="space-y-3">
             {errorMessage && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-zinc-100 border border-zinc-200 text-rose-900 text-xs flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
             {selected ? (
-              <div className="flex items-center justify-between gap-2 p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl">
-                <span className="text-sm font-bold text-indigo-900 truncate">{selected.name}</span>
-                <button type="button" onClick={() => setSelected(null)} className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex-shrink-0">
+              <div className="flex items-center justify-between gap-2 p-2.5 bg-blue-50 border border-blue-200 rounded-xl">
+                <span className="text-sm font-bold text-zinc-900 truncate">{selected.name}</span>
+                <button type="button" onClick={() => setSelected(null)} className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex-shrink-0">
                   Changer
                 </button>
               </div>
@@ -161,7 +161,7 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Rechercher un matériel par nom..."
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
                 {debouncedSearch && (
@@ -199,7 +199,7 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
                 step={1}
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
 
@@ -210,7 +210,7 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
               <button
                 type="submit"
                 disabled={loading || !selected}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-xs disabled:opacity-50 flex items-center gap-1.5"
               >
                 {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>Ajouter</span>
@@ -220,7 +220,7 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
         ) : (
           <div className="space-y-3">
             {scanError ? (
-              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2">
+              <div className="p-4 rounded-2xl bg-zinc-100 border border-zinc-200 text-rose-900 text-xs flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{scanError}</span>
               </div>
@@ -255,12 +255,12 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
                 placeholder="Ou saisir le code du matériel..."
-                className="flex-1 min-w-0 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium uppercase focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="flex-1 min-w-0 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium uppercase focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
               <button
                 type="submit"
                 disabled={!manualCode.trim()}
-                className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl flex-shrink-0"
+                className="p-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl flex-shrink-0"
               >
                 <ArrowRight className="w-4 h-4" />
               </button>
@@ -272,7 +272,7 @@ export const AddItemToGroupModal: React.FC<AddItemToGroupModalProps> = ({ isOpen
                   <li
                     key={entry.id}
                     className={`flex items-center gap-1.5 text-xs font-semibold p-2 rounded-lg ${
-                      entry.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'
+                      entry.ok ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-100 text-zinc-900'
                     }`}
                   >
                     {entry.ok ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />}

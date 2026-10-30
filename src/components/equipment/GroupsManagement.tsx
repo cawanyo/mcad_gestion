@@ -30,7 +30,7 @@ export const GroupsManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Boxes className="w-5 h-5 text-indigo-600" />
+            <Boxes className="w-5 h-5 text-blue-600" />
             Groupes de matériel
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
@@ -41,7 +41,7 @@ export const GroupsManagement: React.FC = () => {
         {isAuthenticated ? (
           <button
             onClick={() => setShowFormModal(true)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-colors"
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-xs transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span>{tab === 'kits' ? 'Nouveau kit' : 'Nouvelle sortie'}</span>
@@ -61,7 +61,7 @@ export const GroupsManagement: React.FC = () => {
         <button
           onClick={() => setTab('sorties')}
           className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-            tab === 'sorties' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+            tab === 'sorties' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           Sorties
@@ -69,7 +69,7 @@ export const GroupsManagement: React.FC = () => {
         <button
           onClick={() => setTab('kits')}
           className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-            tab === 'kits' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+            tab === 'kits' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           Kits

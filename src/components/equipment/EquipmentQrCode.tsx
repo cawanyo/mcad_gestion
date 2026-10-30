@@ -53,7 +53,7 @@ export const EquipmentQrCode: React.FC<EquipmentQrCodeProps> = ({ equipmentId, e
       <button
         onClick={handleDownload}
         disabled={!dataUrl}
-        className="w-full flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
       >
         <Download className="w-3.5 h-3.5" />
         <span>Télécharger</span>

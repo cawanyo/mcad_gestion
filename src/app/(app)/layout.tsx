@@ -216,75 +216,34 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     await markNotificationRead({ markAllRead: true });
   };
 
-  // Loading state with dynamic progress & completion stages
+  // Loading state with dynamic progress
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 selection:bg-amber-500 selection:text-slate-950">
-        <div className="w-full max-w-sm flex flex-col items-center text-center space-y-6 animate-in fade-in duration-300">
-          {/* Glowing Emblem */}
-          <div className="relative">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-200 flex items-center justify-center shadow-xl shadow-amber-500/25 text-slate-950 font-black animate-pulse">
-              <Sparkles className="w-8 h-8" />
-            </div>
-            <div className="absolute -inset-1 bg-amber-500/20 rounded-3xl blur-md -z-10 animate-ping opacity-30" />
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 selection:bg-blue-600 selection:text-white">
+        <div className="w-full max-w-sm flex flex-col items-center text-center space-y-5 animate-in fade-in duration-200">
+          <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-white font-bold text-base shadow-sm">
+            MC
           </div>
 
-          {/* Titles */}
           <div className="space-y-1">
-            <h1 className="text-xl font-black text-white tracking-tight flex items-center justify-center gap-2">
-              <span>MCAD</span>
-              <span className="text-amber-400 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20">
-                ICC
-              </span>
+            <h1 className="text-lg font-bold text-white tracking-tight">
+              MCAD
             </h1>
-            <p className="text-xs text-slate-400 font-medium">
-              Plateforme de Gestion de Département
+            <p className="text-xs text-zinc-400">
+              {loadingStatus}
             </p>
           </div>
 
-          {/* Progress Box */}
-          <div className="w-full bg-slate-900/90 border border-slate-800 p-4 rounded-2xl shadow-lg space-y-3">
-            {/* Status Text & Percentage */}
+          <div className="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-xl space-y-2.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300 font-semibold truncate pr-2 text-left">
-                {loadingStatus}
-              </span>
-              <span className="text-amber-400 font-extrabold flex-shrink-0">
-                {loadingProgress}%
-              </span>
+              <span className="text-zinc-400 font-medium">Chargement</span>
+              <span className="text-blue-500 font-bold">{loadingProgress}%</span>
             </div>
-
-            {/* Visual Animated Progress Bar */}
-            <div className="w-full bg-slate-800/80 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+            <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-amber-400 to-amber-300 transition-all duration-300 ease-out shadow-sm shadow-amber-400/50"
+                className="h-full rounded-full bg-blue-600 transition-all duration-300 ease-out"
                 style={{ width: `${Math.max(5, loadingProgress)}%` }}
               />
-            </div>
-
-            {/* Stepper Dots */}
-            <div className="grid grid-cols-3 gap-1.5 pt-1">
-              {[
-                { label: 'Connexion', min: 20 },
-                { label: 'Synchronisation', min: 85 },
-                { label: 'Prêt', min: 100 }
-              ].map((step, idx) => {
-                const isPassed = loadingProgress >= step.min;
-                return (
-                  <div key={idx} className="flex flex-col items-center gap-1">
-                    <div
-                      className={`h-1 w-full rounded-full transition-colors ${
-                        isPassed ? 'bg-amber-400' : 'bg-slate-800'
-                      }`}
-                    />
-                    <span className={`text-[9px] font-bold ${
-                      isPassed ? 'text-slate-200' : 'text-slate-600'
-                    }`}>
-                      {step.label}
-                    </span>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>
@@ -337,7 +296,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 
   return (
     <AppShellContext.Provider value={contextValue}>
-      <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
+      <div className="flex h-screen bg-white text-zinc-900 overflow-hidden font-sans">
         {/* Desktop Sidebar (Visible ONLY on screens >= lg) */}
         <div className="hidden lg:flex flex-shrink-0 h-full">
           <Sidebar

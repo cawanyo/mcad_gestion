@@ -6,20 +6,15 @@ import { tabToPath } from '@/lib/navigation';
 import {
   LayoutDashboard,
   Calendar,
-  CalendarDays,
   Layers,
   Users,
   UserPlus,
   CheckSquare,
-  ClipboardList,
   Clock,
   Cake,
   BarChart3,
-  Mail,
   Settings,
   LogOut,
-  Sparkles,
-  ChevronDown,
   X,
   Home,
   GraduationCap,
@@ -47,22 +42,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isPending, startTransition] = React.useTransition();
   const [pendingTabId, setPendingTabId] = React.useState<string | null>(null);
 
-  const isLeaderOrAdmin = currentUser?.role === 'SUPER_ADMIN' ||
+  const isLeaderOrAdmin =
+    currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER' ||
     currentUser?.role === 'POLE_LEADER' ||
     currentUser?.role === 'CALENDAR_MANAGER' ||
     ((currentUser?.poleLeaderships?.length ?? 0) > 0);
 
-  // Navigation tailored to role
+  // Concise navigation items
   const navItems = isLeaderOrAdmin
     ? [
         { id: 'dashboard', label: 'Accueil', icon: Home },
-        { id: 'leader_dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+        { id: 'leader_dashboard', label: 'Vue d\'ensemble', icon: LayoutDashboard },
         { id: 'calendar', label: 'Calendrier', icon: Calendar },
         { id: 'poles', label: 'Pôles', icon: Layers },
         { id: 'equipment', label: 'Matériel', icon: Package },
         { id: 'members', label: 'Membres', icon: Users },
-        { id: 'requests', label: "Demandes d'adhésion", icon: UserPlus, badge: pendingRequestsCount },
+        { id: 'requests', label: 'Demandes', icon: UserPlus, badge: pendingRequestsCount },
         { id: 'training', label: 'Formations', icon: GraduationCap },
         { id: 'checklists', label: 'Checklists', icon: CheckSquare },
         { id: 'unavailabilities', label: 'Indisponibilités', icon: Clock },
@@ -72,24 +68,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ]
     : [
         { id: 'dashboard', label: 'Accueil', icon: Home },
-        { id: 'calendar', label: 'Calendrier des cultes', icon: Calendar },
-        { id: 'training', label: 'Mes Formations', icon: GraduationCap },
-        { id: 'checklists', label: 'Mes Checklists', icon: CheckSquare },
-        { id: 'unavailabilities', label: 'Mes Indisponibilités', icon: Clock },
-        { id: 'poles', label: 'Mes Pôles', icon: Layers },
+        { id: 'calendar', label: 'Cultes', icon: Calendar },
+        { id: 'training', label: 'Formations', icon: GraduationCap },
+        { id: 'checklists', label: 'Checklists', icon: CheckSquare },
+        { id: 'unavailabilities', label: 'Indisponibilités', icon: Clock },
+        { id: 'poles', label: 'Pôles', icon: Layers },
         { id: 'equipment', label: 'Matériel', icon: Package },
         { id: 'birthdays', label: 'Anniversaires', icon: Cake },
-        { id: 'statistics', label: 'Mes Statistiques', icon: BarChart3 },
+        { id: 'statistics', label: 'Statistiques', icon: BarChart3 },
         { id: 'settings', label: 'Mon Compte', icon: Settings },
       ];
 
   const getRoleLabel = (role?: string) => {
     switch (role) {
-      case 'DEPARTMENT_LEADER': return 'Responsable Département';
-      case 'POLE_LEADER': return 'Responsable de pôle';
-      case 'CALENDAR_MANAGER': return 'Gestionnaire Calendrier';
+      case 'DEPARTMENT_LEADER': return 'Responsable';
+      case 'POLE_LEADER': return 'Responsable Pôle';
+      case 'CALENDAR_MANAGER': return 'Gestionnaire';
       case 'SUPER_ADMIN': return 'Administrateur';
-      default: return 'Membre de service';
+      default: return 'Membre';
     }
   };
 
@@ -101,26 +97,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (onCloseMobile) onCloseMobile();
   };
 
-  // Clear the spinner once the route has actually changed — isPending alone
-  // can stay true briefly on the destination page too (React batches the
-  // transition with whatever that page renders first), so this avoids it
-  // looking stuck on the new page's own nav item.
   React.useEffect(() => {
     if (!isPending) setPendingTabId(null);
   }, [isPending, pathname]);
 
   return (
-    <aside className="w-64 bg-[#121929] text-slate-300 flex flex-col flex-shrink-0 h-full border-r border-slate-800 select-none">
+    <aside className="w-60 bg-zinc-950 text-zinc-300 flex flex-col flex-shrink-0 h-full border-r border-zinc-800 select-none">
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
+      <div className="p-4 border-b border-zinc-800/80 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-bold">
-            <Sparkles className="w-5 h-5" />
+          <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center font-bold text-white text-xs tracking-tight">
+            MC
           </div>
           <div>
-            <h1 className="font-bold text-white text-base tracking-tight leading-tight">MCAD</h1>
-            <p className="text-[11px] text-slate-400 font-medium">
-              {isLeaderOrAdmin ? 'Espace Responsable' : 'Espace Membre'}
+            <h1 className="font-bold text-white text-sm tracking-tight leading-tight">MCAD</h1>
+            <p className="text-[10px] text-zinc-400 font-medium">
+              {isLeaderOrAdmin ? 'Administration' : 'Espace Membre'}
             </p>
           </div>
         </div>
@@ -128,15 +120,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {onCloseMobile && (
           <button
             onClick={onCloseMobile}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <div className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === tabToPath(item.id);
@@ -145,55 +137,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={item.id}
               onClick={() => handleSelectTab(item.id)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-blue-600 text-white font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
               }`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 {isLoading ? (
-                  <Loader2 className={`w-4 h-4 animate-spin ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <Icon className="w-3.5 h-3.5" />
                 )}
                 <span>{item.label}</span>
               </div>
-              {item.badge && item.badge > 0 && (
-                <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
-                  isActive ? 'bg-white text-blue-600' : 'bg-red-500 text-white'
-                }`}>
+              {item.badge && item.badge > 0 ? (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isActive ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'
+                  }`}
+                >
                   {item.badge}
                 </span>
-              )}
+              ) : null}
             </button>
           );
         })}
       </div>
 
-      {/* User Profile Card & Logout */}
-      <div className="p-3 border-t border-slate-800/80 bg-[#0d1322] space-y-2">
-        <div className="w-full flex items-center gap-3 p-2 rounded-xl text-left bg-slate-900/60 border border-slate-800/50">
+      {/* User Profile Card & Actions */}
+      <div className="p-3 border-t border-zinc-800/80 bg-zinc-950 space-y-2">
+        <div className="w-full flex items-center gap-2.5 p-2 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
           <Avatar
             src={currentUser?.avatar}
             name={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'David Kouassi'}
-            size="md"
+            size="sm"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-slate-400 leading-none">Connecté :</p>
-            <p className="text-xs font-bold text-white truncate mt-0.5">
+            <p className="text-xs font-semibold text-white truncate">
               {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'David Kouassi'}
             </p>
-            <span className="text-[10px] text-blue-400 truncate font-medium block mt-0.5">
+            <span className="text-[10px] text-zinc-400 truncate block">
               {getRoleLabel(currentUser?.role)}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 pt-1">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => router.push('/settings')}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
           >
             <Settings className="w-3.5 h-3.5" />
             <span>Paramètres</span>
@@ -202,11 +195,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {onLogout && (
             <button
               onClick={onLogout}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 border border-rose-900/40 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
               title="Se déconnecter"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>Déconnexion</span>
+              <span>Quitter</span>
             </button>
           )}
         </div>

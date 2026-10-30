@@ -17,14 +17,15 @@ export const EquipmentHeader: React.FC = () => {
   const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-30 shadow-xs">
-      <Link href="/equipment" className="flex items-center gap-2.5 group">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-md shadow-amber-500/20 text-slate-950 font-bold group-hover:scale-105 transition-transform">
-          <span className="text-sm font-black tracking-tighter">MC</span>
+    <header className="h-14 bg-white border-b border-zinc-200 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-30">
+      <Link href="/equipment" className="flex items-center gap-2 group">
+        <div className="w-7 h-7 rounded-lg bg-zinc-950 flex items-center justify-center font-bold text-white text-xs">
+          MC
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-black text-slate-900 tracking-tight leading-none">MCAD</span>
-          <span className="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">Matériel</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-bold text-zinc-900 tracking-tight">MCAD</span>
+          <span className="text-xs text-zinc-400">/</span>
+          <span className="text-xs font-medium text-zinc-600">Matériel</span>
         </div>
       </Link>
 
@@ -41,7 +42,7 @@ export const EquipmentHeader: React.FC = () => {
         {isAuthenticated && viewer ? (
           <Link
             href="/dashboard"
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-bold transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold transition-colors"
           >
             <LayoutDashboard className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Retour au tableau de bord</span>
@@ -50,7 +51,7 @@ export const EquipmentHeader: React.FC = () => {
         ) : (
           <Link
             href="/login"
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-xs transition-colors"
           >
             <LogIn className="w-3.5 h-3.5" />
             <span>Se connecter</span>

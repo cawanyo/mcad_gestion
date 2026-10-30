@@ -18,21 +18,21 @@ export const StatCard: React.FC<StatCardProps> = ({
   subValue,
   description,
   icon,
-  iconBg = 'bg-indigo-50 text-indigo-600',
-  valueColor = 'text-slate-900'
+  iconBg = 'bg-zinc-100 text-zinc-900',
+  valueColor = 'text-zinc-900'
 }) => {
   const subtitle = subValue || description;
 
   return (
-    <div className="p-3.5 sm:p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+    <div className="p-4 bg-white rounded-2xl border border-zinc-200/90 shadow-xs flex items-center justify-between">
       <div className="space-y-0.5">
-        <span className="text-[11px] font-bold text-slate-500">{label}</span>
-        <div className="flex items-baseline gap-1.5">
-          <span className={`text-xl sm:text-2xl font-black ${valueColor}`}>{value}</span>
-          {subtitle && <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500">{subtitle}</span>}
+        <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">{label}</span>
+        <div className="flex items-baseline gap-2 mt-0.5">
+          <span className={`text-2xl font-bold tracking-tight ${valueColor}`}>{value}</span>
+          {subtitle && <span className="text-xs text-zinc-500">{subtitle}</span>}
         </div>
       </div>
-      {icon && <div className={`p-2 rounded-xl flex-shrink-0 ${iconBg}`}>{icon}</div>}
+      {icon && <div className={`p-2.5 rounded-xl flex-shrink-0 ${iconBg}`}>{icon}</div>}
     </div>
   );
 };

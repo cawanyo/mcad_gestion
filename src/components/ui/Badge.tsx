@@ -14,45 +14,43 @@ interface BadgeProps {
 export const Badge: React.FC<BadgeProps> = ({
   children,
   variant = 'default',
-  color,
   size = 'md',
   icon,
-  dot = false
+  dot = false,
 }) => {
   const sizeClasses = {
-    xs: 'px-1.5 py-0.2 text-[8px]',
-    sm: 'px-2 py-0.5 text-[9px]',
-    md: 'px-2.5 py-0.5 text-[10px]',
-    lg: 'px-3 py-1 text-xs'
+    xs: 'px-1.5 py-0.5 text-[9px]',
+    sm: 'px-2 py-0.5 text-[10px]',
+    md: 'px-2.5 py-0.5 text-[11px]',
+    lg: 'px-3 py-1 text-xs',
   };
 
   const sizeClass = sizeClasses[size] || sizeClasses.md;
 
-  if (color) {
-    return (
-      <span
-        className={`${sizeClass} rounded-full font-bold inline-flex items-center gap-1`}
-        style={{ backgroundColor: `${color}18`, color: color }}
-      >
-        {dot && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />}
-        {icon}
-        <span>{children}</span>
-      </span>
-    );
-  }
-
+  // Sober minimalist monochrome + cobalt blue palette
   const variants = {
-    default: 'bg-slate-100 text-slate-700',
-    primary: 'bg-indigo-100 text-indigo-800',
-    success: 'bg-emerald-100 text-emerald-800',
-    warning: 'bg-amber-100 text-amber-800',
-    danger: 'bg-rose-100 text-rose-800',
-    purple: 'bg-purple-100 text-purple-800',
-    custom: 'bg-slate-100 text-slate-700'
+    default: 'bg-zinc-100 text-zinc-800 border border-zinc-200',
+    primary: 'bg-blue-50 text-blue-700 border border-blue-200',
+    success: 'bg-zinc-100 text-zinc-900 border border-zinc-300',
+    warning: 'bg-zinc-100 text-zinc-700 border border-zinc-200',
+    danger: 'bg-zinc-900 text-white border border-zinc-900',
+    purple: 'bg-blue-50 text-blue-700 border border-blue-200',
+    custom: 'bg-zinc-100 text-zinc-800 border border-zinc-200',
   };
 
+  const badgeClass = variants[variant] || variants.default;
+
   return (
-    <span className={`${sizeClass} rounded-full font-bold inline-flex items-center gap-1 ${variants[variant]}`}>
+    <span
+      className={`${sizeClass} rounded-full font-medium inline-flex items-center gap-1.5 transition-colors select-none ${badgeClass}`}
+    >
+      {dot && (
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${
+            variant === 'danger' ? 'bg-white' : variant === 'primary' ? 'bg-blue-600' : 'bg-zinc-500'
+          }`}
+        />
+      )}
       {icon}
       <span>{children}</span>
     </span>

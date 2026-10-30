@@ -398,7 +398,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
                 {editingModule ? 'Édition de Module' : 'Nouveau Module'}
               </span>
               {selectedPole && (
@@ -419,35 +419,35 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
 
       {/* Error alert */}
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs flex items-center gap-2.5 shadow-xs animate-in fade-in">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600" />
+        <div className="p-4 bg-zinc-100 border border-zinc-200 text-rose-800 rounded-2xl text-xs flex items-center gap-2.5 shadow-xs animate-in fade-in">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 text-zinc-900" />
           <span className="font-semibold">{error}</span>
         </div>
       )}
 
       {/* Quick Template Presets (for new modules) */}
       {!editingModule && (
-        <div className="p-4 bg-indigo-50/60 rounded-3xl border border-indigo-100 space-y-2">
-          <span className="text-xs font-bold text-indigo-900">Modèles rapides :</span>
+        <div className="p-4 bg-blue-50/60 rounded-3xl border border-blue-100 space-y-2">
+          <span className="text-xs font-bold text-zinc-900">Modèles rapides :</span>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => applyPreset('SONO')}
-              className="px-3 py-1.5 bg-white hover:bg-indigo-100/60 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900 shadow-xs transition-colors"
+              className="px-3 py-1.5 bg-white hover:bg-blue-50/60 border border-blue-200 rounded-xl text-xs font-bold text-zinc-900 shadow-xs transition-colors"
             >
               Régie Son & Mixage
             </button>
             <button
               type="button"
               onClick={() => applyPreset('MEDIA')}
-              className="px-3 py-1.5 bg-white hover:bg-indigo-100/60 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900 shadow-xs transition-colors"
+              className="px-3 py-1.5 bg-white hover:bg-blue-50/60 border border-blue-200 rounded-xl text-xs font-bold text-zinc-900 shadow-xs transition-colors"
             >
               Projection & Média
             </button>
             <button
               type="button"
               onClick={() => applyPreset('ACCUEIL')}
-              className="px-3 py-1.5 bg-white hover:bg-indigo-100/60 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900 shadow-xs transition-colors"
+              className="px-3 py-1.5 bg-white hover:bg-blue-50/60 border border-blue-200 rounded-xl text-xs font-bold text-zinc-900 shadow-xs transition-colors"
             >
               Accueil & Protocole
             </button>
@@ -461,7 +461,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
         {/* ========================================================= */}
         <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200 shadow-xs space-y-5">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <BookOpen className="w-4 h-4 text-indigo-600" />
+            <BookOpen className="w-4 h-4 text-blue-600" />
             <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
               Informations générales
             </h2>
@@ -477,7 +477,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                 value={poleId}
                 onChange={(e) => setPoleId(e.target.value)}
                 required
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
               >
                 {poles.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -504,7 +504,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                     onClick={() => setLevel(item.key as any)}
                     className={`py-2.5 px-2 rounded-2xl text-xs font-bold border transition-all text-center ${
                       level === item.key
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
@@ -525,7 +525,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                 placeholder="Ex: Régie Son & Mixage Live"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
               />
             </div>
 
@@ -541,7 +541,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                   placeholder="Ex: 30 min"
                   value={estimatedDuration}
                   onChange={(e) => setEstimatedDuration(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                  className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
                 />
               </div>
             </div>
@@ -561,9 +561,9 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                 />
                 <label className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs">
                   {coverUploading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                    <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
                   ) : (
-                    <Upload className="w-4 h-4 text-indigo-600" />
+                    <Upload className="w-4 h-4 text-blue-600" />
                   )}
                   <span>Fichier</span>
                   <input
@@ -606,7 +606,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                 placeholder="Ce que la STAR saura faire à la fin du parcours..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
               />
             </div>
           </div>
@@ -618,7 +618,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
         <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200 shadow-xs space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
-              <Film className="w-4 h-4 text-indigo-600" />
+              <Film className="w-4 h-4 text-blue-600" />
               <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
                 Leçons ({lessons.length})
               </h2>
@@ -626,7 +626,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             <button
               type="button"
               onClick={handleAddLesson}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-2xl border border-indigo-200 transition-colors shadow-xs self-start sm:self-auto"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-50 text-blue-700 font-bold text-xs rounded-2xl border border-blue-200 transition-colors shadow-xs self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Ajouter</span>
@@ -643,7 +643,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                 {/* Lesson Header Row */}
                 <div className="flex items-center justify-between gap-2 flex-wrap border-b border-slate-200/60 pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-xl bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                    <span className="w-7 h-7 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
                       {idx + 1}
                     </span>
                     <span className="text-xs font-bold text-slate-900">
@@ -674,7 +674,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                     <button
                       type="button"
                       onClick={() => handleDuplicateLesson(idx)}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-200/50"
+                      className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-200/50"
                       title="Dupliquer la leçon"
                     >
                       <Copy className="w-3.5 h-3.5" />
@@ -682,7 +682,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                     <button
                       type="button"
                       onClick={() => handleRemoveLesson(idx)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
+                      className="p-1.5 text-slate-400 hover:text-zinc-900 rounded-lg hover:bg-zinc-100"
                       title="Supprimer la leçon"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -708,7 +708,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                           prev.map((l, i) => (i === idx ? { ...l, title: val } : l))
                         );
                       }}
-                      className="w-full p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-hidden"
                     />
                   </div>
 
@@ -728,7 +728,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                           prev.map((l, i) => (i === idx ? { ...l, durationMinutes: val } : l))
                         );
                       }}
-                      className="w-full p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-hidden"
                     />
                   </div>
 
@@ -745,7 +745,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                           prev.map((l, i) => (i === idx ? { ...l, mediaType: val } : l))
                         );
                       }}
-                      className="w-full p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-hidden"
                     >
                       <option value="NONE">Texte seul</option>
                       <option value="VIDEO">Vidéo</option>
@@ -784,13 +784,13 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                             )
                           );
                         }}
-                        className="flex-1 p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                        className="flex-1 p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-hidden"
                       />
-                      <label className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-2xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                      <label className="px-3.5 py-2.5 bg-blue-50 hover:bg-blue-50 border border-blue-200 text-blue-700 rounded-2xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
                         {lesson.uploading ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
                         ) : (
-                          <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                          <Upload className="w-3.5 h-3.5 text-blue-600" />
                         )}
                         <span>{lesson.uploading ? 'Envoi...' : 'Téléverser'}</span>
                         <input
@@ -810,17 +810,17 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
 
                   {/* Lesson Upload Progress Bar */}
                   {lessonUploadProgress[idx] && (
-                    <div className="sm:col-span-3 p-3 bg-indigo-50/90 border border-indigo-200 rounded-2xl space-y-1.5 animate-in fade-in">
-                      <div className="flex items-center justify-between text-xs font-bold text-indigo-900">
+                    <div className="sm:col-span-3 p-3 bg-blue-50/90 border border-blue-200 rounded-2xl space-y-1.5 animate-in fade-in">
+                      <div className="flex items-center justify-between text-xs font-bold text-zinc-900">
                         <span className="flex items-center gap-1.5">
-                          <RefreshCw className="w-3 h-3 animate-spin text-indigo-600" />
+                          <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />
                           {lessonUploadProgress[idx]?.statusText}
                         </span>
                         <span>{lessonUploadProgress[idx]?.percent}%</span>
                       </div>
                       <div className="w-full bg-indigo-200/70 rounded-full h-2 overflow-hidden">
                         <div
-                          className="bg-indigo-600 h-2 rounded-full transition-all duration-300 ease-out"
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
                           style={{ width: `${lessonUploadProgress[idx]?.percent}%` }}
                         />
                       </div>
@@ -843,7 +843,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                               )
                             );
                           }}
-                          className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1"
+                          className="text-[11px] font-bold text-zinc-900 hover:text-rose-700 flex items-center gap-1"
                         >
                           <Trash2 className="w-3 h-3" />
                           <span>Supprimer le média</span>
@@ -874,7 +874,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                           prev.map((l, i) => (i === idx ? { ...l, description: val } : l))
                         );
                       }}
-                      className="w-full p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-hidden"
                     />
                   </div>
 
@@ -893,7 +893,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                           prev.map((l, i) => (i === idx ? { ...l, content: val } : l))
                         );
                       }}
-                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-hidden font-mono"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-hidden font-mono"
                     />
                   </div>
                 </div>
@@ -905,7 +905,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
           <button
             type="button"
             onClick={handleAddLesson}
-            className="w-full py-4 border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 text-indigo-700 rounded-3xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
+            className="w-full py-4 border-2 border-dashed border-blue-200 hover:border-blue-500 bg-blue-50/40 hover:bg-blue-50 text-blue-700 rounded-3xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
             <span>Ajouter une leçon</span>
@@ -924,7 +924,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-50"
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-50"
           >
             {loading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />

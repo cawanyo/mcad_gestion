@@ -48,7 +48,7 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-white p-6 sm:p-8 border border-slate-200 shadow-xs">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold">
             <HandHeart className="w-3.5 h-3.5" />
             <span>Espace Service & Engagement</span>
           </div>
@@ -70,12 +70,12 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
               key={card.id}
               type="button"
               onClick={() => onNavigate(card.id)}
-              className="group relative text-left p-6 rounded-3xl bg-white hover:bg-slate-50/80 border border-slate-200/90 hover:border-indigo-200 transition-all duration-200 hover:shadow-md flex flex-col justify-between overflow-hidden"
+              className="group relative text-left p-6 rounded-3xl bg-white hover:bg-slate-50/80 border border-slate-200/90 hover:border-blue-200 transition-all duration-200 hover:shadow-md flex flex-col justify-between overflow-hidden"
             >
               <div>
                 {/* Top Row: Icon + Badge */}
                 <div className="flex items-center justify-between gap-2 mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs">
                     <Icon className="w-6 h-6" />
                   </div>
 
@@ -87,7 +87,7 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
                 </div>
 
                 {/* Title & Description */}
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors mb-1">
+                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-1">
                   {card.title}
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
@@ -96,9 +96,9 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
               </div>
 
               {/* Bottom Action Prompt */}
-              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-indigo-600 transition-colors">
+              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-600 transition-colors">
                 <span>Accéder à la section</span>
-                <div className="w-7 h-7 rounded-xl bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center text-slate-500 transition-all group-hover:translate-x-1">
+                <div className="w-7 h-7 rounded-xl bg-slate-100 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center text-slate-500 transition-all group-hover:translate-x-1">
                   <ArrowRight className="w-4 h-4" />
                 </div>
               </div>

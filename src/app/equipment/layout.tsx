@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function EquipmentLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-white text-zinc-900">
       <EquipmentHeader />
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">{children}</main>
     </div>

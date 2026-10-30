@@ -247,7 +247,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
             <button
               onClick={() => setViewMode('list')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === 'list' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                viewMode === 'list' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Liste
@@ -255,7 +255,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
             <button
               onClick={() => setViewMode('calendar')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === 'calendar' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                viewMode === 'calendar' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Calendrier
@@ -268,7 +268,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
               setInitialStartDate(undefined);
               setShowModal(true);
             }}
-            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-all w-full sm:w-auto"
+            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-xs transition-all w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Déclarer une absence</span>
@@ -283,7 +283,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
           <button
             onClick={() => setSelectedScope('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              selectedScope === 'all' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              selectedScope === 'all' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Toutes ({unavailabilities.length})
@@ -291,7 +291,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
           <button
             onClick={() => setSelectedScope('active')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              selectedScope === 'active' ? 'bg-white text-rose-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              selectedScope === 'active' ? 'bg-white text-zinc-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             En cours ({activeCount})
@@ -299,7 +299,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
           <button
             onClick={() => setSelectedScope('upcoming')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              selectedScope === 'upcoming' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              selectedScope === 'upcoming' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             À venir ({upcomingCount})
@@ -350,7 +350,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
               onClick={() => setOnlyMine(!onlyMine)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
                 onlyMine
-                  ? 'bg-indigo-100 border-indigo-300 text-indigo-900'
+                  ? 'bg-blue-50 border-blue-300 text-zinc-900'
                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
               }`}
             >
@@ -367,7 +367,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
         <div className="space-y-3">
           {loading ? (
             <div className="py-16 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+              <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
               <span>Chargement des indisponibilités...</span>
             </div>
           ) : filteredUnavailabilities.length === 0 ? (
@@ -386,7 +386,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                   setEditingUnavailability(null);
                   setShowModal(true);
                 }}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs inline-flex items-center gap-1.5 transition-all"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs inline-flex items-center gap-1.5 transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Déclarer une absence</span>
@@ -407,9 +407,9 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                     key={u.id}
                     className={`p-5 bg-white rounded-3xl border transition-all hover:shadow-md space-y-4 relative ${
                       status === 'ACTIVE'
-                        ? 'border-rose-200 ring-1 ring-rose-200 bg-gradient-to-br from-rose-50/20 to-white'
+                        ? 'border-zinc-200 ring-1 ring-rose-200 bg-gradient-to-br from-rose-50/20 to-white'
                         : status === 'UPCOMING'
-                        ? 'border-indigo-200'
+                        ? 'border-blue-200'
                         : 'border-slate-200 opacity-75'
                     }`}
                   >
@@ -449,9 +449,9 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                       <span
                         className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${
                           status === 'ACTIVE'
-                            ? 'bg-rose-100 text-rose-800 animate-pulse'
+                            ? 'bg-zinc-100 text-zinc-900 animate-pulse'
                             : status === 'UPCOMING'
-                            ? 'bg-indigo-100 text-indigo-700'
+                            ? 'bg-blue-50 text-blue-700'
                             : 'bg-slate-100 text-slate-600'
                         }`}
                       >
@@ -464,7 +464,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-800">{u.reason || 'Indisponibilité'}</span>
                         {u.recurrence && u.recurrence !== 'NONE' && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700">
                             {u.recurrence === 'WEEKLY'
                               ? 'Hebdomadaire'
                               : u.recurrence === 'BIWEEKLY'
@@ -490,14 +490,14 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                             setEditingUnavailability(u);
                             setShowModal(true);
                           }}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Modifier l'indisponibilité"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDelete(u.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
                           title="Supprimer l'indisponibilité"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -538,7 +538,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
 
               <button
                 onClick={() => setCalendarDate(new Date())}
-                className="px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors ml-1"
+                className="px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-xl transition-colors ml-1"
               >
                 Aujourd'hui
               </button>
@@ -567,9 +567,9 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                     cell.isCurrentMonth ? 'bg-white' : 'bg-slate-50/50 text-slate-400 opacity-60'
                   } ${
                     cell.isToday
-                      ? 'border-indigo-500 bg-indigo-50/20 ring-1 ring-indigo-500/20'
+                      ? 'border-blue-500 bg-blue-50/20 ring-1 ring-indigo-500/20'
                       : isSelected
-                      ? 'border-indigo-400 bg-indigo-50/20 shadow-xs ring-1 ring-indigo-300/40'
+                      ? 'border-blue-400 bg-blue-50/20 shadow-xs ring-1 ring-indigo-300/40'
                       : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50/50'
                   }`}
                 >
@@ -577,7 +577,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                     <span
                       className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
                         cell.isToday
-                          ? 'bg-indigo-600 text-white shadow-xs'
+                          ? 'bg-blue-600 text-white shadow-xs'
                           : cell.isCurrentMonth
                           ? 'text-slate-800'
                           : 'text-slate-400'
@@ -587,7 +587,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                     </span>
 
                     {cell.unavailabilities.length > 0 && (
-                      <span className="text-[10px] font-extrabold text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded-md">
+                      <span className="text-[10px] font-extrabold text-zinc-800 bg-zinc-100 px-1.5 py-0.2 rounded-md">
                         {cell.unavailabilities.length} absent(s)
                       </span>
                     )}
@@ -622,7 +622,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black text-slate-900 flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-indigo-600" />
+                  <CalendarDays className="w-4 h-4 text-blue-600" />
                   <span>
                     Indisponibilités du {new Date(selectedCalendarDateStr + 'T12:00:00').toLocaleDateString('fr-FR', {
                       weekday: 'long',
@@ -639,7 +639,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                     setInitialStartDate(selectedCalendarDateStr);
                     setShowModal(true);
                   }}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 transition-all"
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>+ Déclarer pour cette date</span>
@@ -686,7 +686,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                         {(currentUser?.id === u.userId || isLeaderOrAdmin) && (
                           <button
                             onClick={() => handleDelete(u.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                            className="p-1 text-slate-400 hover:text-zinc-900 transition-colors"
                             title="Supprimer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

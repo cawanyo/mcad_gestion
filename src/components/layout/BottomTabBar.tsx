@@ -6,7 +6,7 @@ import {
   Home,
   CalendarDays,
   GraduationCap,
-  HandHeart,
+  Layers,
   Sparkles,
   Loader2
 } from 'lucide-react';
@@ -25,9 +25,7 @@ interface BottomTabBarProps {
   currentUser: User | null;
 }
 
-export const BottomTabBar: React.FC<BottomTabBarProps> = ({
-  currentUser,
-}) => {
+export const BottomTabBar: React.FC<BottomTabBarProps> = () => {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -36,8 +34,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const [isPending, startTransition] = React.useTransition();
   const [pendingTabId, setPendingTabId] = React.useState<string | null>(null);
 
-  // Clear the spinner once the route has actually changed — see Sidebar's
-  // identical handling for why this can't just rely on isPending alone.
   React.useEffect(() => {
     if (!isPending) setPendingTabId(null);
   }, [isPending, pathname]);
@@ -57,7 +53,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     },
     {
       id: 'calendar',
-      label: 'Calendrier',
+      label: 'Cultes',
       icon: CalendarDays,
     },
     {
@@ -66,24 +62,19 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       icon: GraduationCap,
     },
     {
-      id: 'service_hub',
-      label: 'Service',
-      icon: HandHeart,
-    },
-    {
-      id: 'life_hub',
-      label: 'Vie MCAD',
-      icon: Sparkles,
+      id: 'poles',
+      label: 'Pôles',
+      icon: Layers,
     },
   ];
 
   return (
-    <nav 
+    <nav
       aria-label="Navigation mobile"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-zinc-200"
     >
-      <div className="w-full max-w-lg mx-auto px-0.5 sm:px-2">
-        <div className="flex items-center justify-around h-15 sm:h-16">
+      <div className="w-full max-w-md mx-auto px-2">
+        <div className="flex items-center justify-around h-14">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = currentParentTab === tab.id;
@@ -94,47 +85,21 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => handleSelectTab(tab.id)}
-                className={`relative flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-xl transition-all duration-150 select-none ${
-                  isActive
-                    ? 'text-indigo-600 font-black'
-                    : 'text-slate-400 hover:text-slate-600 font-medium'
+                className={`flex flex-col items-center justify-center flex-1 py-1 rounded-lg transition-colors select-none ${
+                  isActive ? 'text-blue-600 font-semibold' : 'text-zinc-400 hover:text-zinc-600'
                 }`}
               >
-                {/* Active Top Bar Indicator */}
-                {isActive && (
-                  <span className="absolute -top-2.5 w-6 sm:w-8 h-1 bg-indigo-600 rounded-full shadow-[0_0_8px_rgba(79,70,229,0.5)]" />
-                )}
-
-                {/* Icon with optional notification badge */}
-                <div className="relative mb-0.5">
-                  <div
-                    className={`p-1 rounded-lg transition-transform ${
-                      isActive
-                        ? 'bg-indigo-50 text-indigo-600 scale-105'
-                        : 'text-slate-400'
-                    }`}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 animate-spin" />
-                    ) : (
-                      <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                    )}
-                  </div>
-
-                  {/* Badge */}
+                <div className="relative">
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Icon className="w-5 h-5" />
+                  )}
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="absolute -top-1 -right-1.5 min-w-[15px] h-[15px] px-0.5 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-xs">
-                      {tab.badge}
-                    </span>
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full" />
                   )}
                 </div>
-
-                {/* Label */}
-                <span
-                  className={`text-[9px] sm:text-[10px] tracking-tight leading-tight text-center truncate max-w-full ${
-                    isActive ? 'text-indigo-900 font-black' : 'text-slate-500'
-                  }`}
-                >
+                <span className="text-[10px] mt-0.5 tracking-tight leading-none">
                   {tab.label}
                 </span>
               </button>

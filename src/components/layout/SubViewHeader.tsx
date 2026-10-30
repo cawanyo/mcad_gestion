@@ -18,20 +18,20 @@ export const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   action,
 }) => {
   return (
-    <div className="flex items-center justify-between gap-3 mb-6 p-3 sm:p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-      <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between gap-3 mb-5 p-3 rounded-xl bg-white border border-zinc-200">
+      <div className="flex items-center gap-2.5">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors shadow-xs"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-medium text-xs transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           <span>{parentTitle}</span>
         </button>
 
-        <span className="text-slate-300 text-xs font-bold hidden sm:inline">/</span>
+        <span className="text-zinc-300 text-xs hidden sm:inline">/</span>
 
-        <span className="text-xs sm:text-sm font-extrabold text-slate-800 tracking-tight">
+        <span className="text-xs sm:text-sm font-semibold text-zinc-900 tracking-tight">
           {currentTitle}
         </span>
       </div>

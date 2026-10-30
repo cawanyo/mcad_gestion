@@ -125,7 +125,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
         {/* Top Header Bar */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-sm flex-shrink-0">
+            <div className="w-9 h-9 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm flex-shrink-0">
               <CheckSquare className="w-5 h-5" />
             </div>
             <div>
@@ -153,7 +153,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
           {currentScreen === 'INTRO' && (
             <div className="space-y-6 animate-in fade-in duration-150">
               <div className="text-center space-y-2 max-w-md mx-auto">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>{totalSteps} étapes au total</span>
                 </div>
@@ -176,7 +176,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
                     className="p-3 rounded-xl bg-white border border-slate-200/60 flex items-center justify-between gap-3 shadow-xs"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                      <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
                         {idx + 1}
                       </span>
                       <div>
@@ -200,7 +200,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
               <div className="pt-2">
                 <button
                   onClick={handleStart}
-                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-extrabold text-sm shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
+                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-extrabold text-sm shadow-lg shadow-xs flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
                 >
                   <span>Commencer la checklist</span>
                   <ArrowRight className="w-4 h-4" />
@@ -214,7 +214,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
             <div className="space-y-5 animate-in fade-in duration-150">
               {/* Step Progress & Tag */}
               <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                <span className="text-xs font-extrabold text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
                   Étape {currentStepIndex + 1} sur {totalSteps}
                 </span>
 
@@ -222,7 +222,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
                   onClick={() => handleToggleStepCompleted(currentStep.id)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all ${
                     completedSteps.has(currentStep.id)
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      ? 'bg-zinc-100 text-zinc-900 border border-zinc-200 border border-emerald-200'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                   }`}
                 >
@@ -261,7 +261,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
           {currentScreen === 'FEEDBACK' && (
             <div className="space-y-6 animate-in fade-in duration-150">
               <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-zinc-900 flex items-center justify-center mx-auto shadow-sm">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-extrabold text-slate-900">
@@ -275,7 +275,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
               {/* Comment Input Box */}
               <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+                  <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
                   <span>Commentaire ou observation (Optionnel)</span>
                 </label>
                 <textarea
@@ -283,7 +283,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="Ex: Le câble du micro 2 présentait un faux contact, matériel rangé dans le placard B, tout s'est bien déroulé..."
-                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                 />
                 <span className="text-[11px] text-slate-400 block">
                   Ce commentaire sera visible par les responsables du pôle dans l'historique des checklists.
@@ -305,7 +305,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
                 <button
                   onClick={handleSubmitExecution}
                   disabled={submitting}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>{submitting ? 'Enregistrement...' : 'Terminer et enregistrer'}</span>
@@ -317,7 +317,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
           {/* SCREEN 4: SUCCESS */}
           {currentScreen === 'SUCCESS' && (
             <div className="py-8 text-center space-y-4 animate-in zoom-in-95 duration-200">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-md animate-bounce">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 text-zinc-900 flex items-center justify-center mx-auto shadow-md animate-bounce">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
               <div className="space-y-1">
@@ -330,7 +330,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
               <div className="pt-4">
                 <button
                   onClick={onClose}
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-indigo-600/20"
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-xs"
                 >
                   Fermer
                 </button>
@@ -346,7 +346,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
                 <span>Progression : {completedSteps.size} / {totalSteps} étapes</span>
-                <span className="text-indigo-600">{progressPercent}%</span>
+                <span className="text-blue-600">{progressPercent}%</span>
               </div>
 
               <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
@@ -369,7 +369,7 @@ export const ChecklistRunnerModal: React.FC<ChecklistRunnerModalProps> = ({
 
               <button
                 onClick={handleNextStep}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all hover:scale-105"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-xs transition-all hover:scale-105"
               >
                 <span>{currentStepIndex === totalSteps - 1 ? 'Terminer la checklist' : 'Suivant'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />

@@ -104,7 +104,7 @@ export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose,
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {errorMessage && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2">
+          <div className="p-3 rounded-xl bg-zinc-100 border border-zinc-200 text-rose-900 text-xs flex items-start gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{errorMessage}</span>
           </div>
@@ -118,7 +118,7 @@ export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose,
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             placeholder={isTemplate ? 'ex: Kit Sono, Kit Vidéo...' : 'ex: Culte du 12/10, Camp jeunesse...'}
           />
         </div>
@@ -128,7 +128,7 @@ export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose,
           <select
             value={poleId}
             onChange={(e) => setPoleId(e.target.value)}
-            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           >
             <option value="">Aucun</option>
             {(polesRaw || []).map((p: any) => (
@@ -145,7 +145,7 @@ export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose,
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"
+            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
           />
         </div>
 
@@ -161,7 +161,7 @@ export const GroupFormModal: React.FC<GroupFormModalProps> = ({ isOpen, onClose,
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 flex items-center gap-1.5"
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-xs disabled:opacity-50 flex items-center gap-1.5"
           >
             {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>{editingGroup ? 'Enregistrer' : 'Créer'}</span>

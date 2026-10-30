@@ -38,7 +38,7 @@ export const ChecklistFeedbackModal: React.FC<ChecklistFeedbackModalProps> = ({
         {/* Header */}
         <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
               <MessageSquare className="w-5 h-5" />
             </div>
             <div>
@@ -63,7 +63,7 @@ export const ChecklistFeedbackModal: React.FC<ChecklistFeedbackModalProps> = ({
         <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
           {loading ? (
             <div className="py-12 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2">
-              <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+              <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
               <span>Chargement des retours...</span>
             </div>
           ) : executions.length === 0 ? (
@@ -97,7 +97,7 @@ export const ChecklistFeedbackModal: React.FC<ChecklistFeedbackModalProps> = ({
                     </div>
 
                     <div className="text-right">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-900 border border-zinc-200">
                         <CheckCircle2 className="w-3 h-3" />
                         <span>Validée</span>
                       </span>
@@ -116,7 +116,7 @@ export const ChecklistFeedbackModal: React.FC<ChecklistFeedbackModalProps> = ({
                   {/* Comment if provided */}
                   {item.comment ? (
                     <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-extrabold text-indigo-600 uppercase tracking-wider block">
+                      <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider block">
                         Commentaire / Observation :
                       </span>
                       <p className="text-xs text-slate-700 leading-relaxed italic">

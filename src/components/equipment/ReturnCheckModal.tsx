@@ -99,14 +99,14 @@ export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onCl
       <div className="space-y-4">
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs font-bold">
-            <span className={allReturned ? 'text-emerald-700' : 'text-slate-600'}>
+            <span className={allReturned ? 'text-zinc-800' : 'text-slate-600'}>
               {totalReturned} / {totalOut} unités revenues
             </span>
             <span className="text-slate-400">{progressPct}%</span>
           </div>
           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${allReturned ? 'bg-emerald-500' : 'bg-amber-500'}`}
+              className={`h-full rounded-full transition-all ${allReturned ? 'bg-blue-600' : 'bg-zinc-900'}`}
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -116,7 +116,7 @@ export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onCl
           <button
             onClick={() => setTab('scan')}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-              tab === 'scan' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+              tab === 'scan' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             Scanner
@@ -124,7 +124,7 @@ export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onCl
           <button
             onClick={() => setTab('manual')}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-              tab === 'manual' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+              tab === 'manual' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             Manuel
@@ -134,7 +134,7 @@ export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onCl
         {tab === 'scan' ? (
           <div className="space-y-3">
             {scanError ? (
-              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2">
+              <div className="p-4 rounded-2xl bg-zinc-100 border border-zinc-200 text-rose-900 text-xs flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{scanError}</span>
               </div>
@@ -168,12 +168,12 @@ export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onCl
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
                 placeholder="Ou saisir le code du matériel..."
-                className="flex-1 min-w-0 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium uppercase focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="flex-1 min-w-0 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium uppercase focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
               <button
                 type="submit"
                 disabled={!manualCode.trim()}
-                className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl flex-shrink-0"
+                className="p-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl flex-shrink-0"
               >
                 <ArrowRight className="w-4 h-4" />
               </button>
@@ -185,7 +185,7 @@ export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onCl
                   <li
                     key={entry.id}
                     className={`flex items-center gap-1.5 text-xs font-semibold p-2 rounded-lg ${
-                      entry.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'
+                      entry.ok ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-100 text-zinc-900'
                     }`}
                   >
                     {entry.ok ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />}
@@ -203,7 +203,7 @@ export const ReturnCheckModal: React.FC<ReturnCheckModalProps> = ({ isOpen, onCl
                 <div
                   key={item.id}
                   className={`flex items-center gap-2.5 p-2.5 rounded-xl border ${
-                    complete ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-slate-200'
+                    complete ? 'bg-zinc-100/60 border-zinc-200' : 'bg-white border-slate-200'
                   }`}
                 >
                   <Package className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />

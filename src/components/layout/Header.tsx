@@ -3,14 +3,12 @@
 import React from 'react';
 import {
   Bell,
-  Menu,
   Check,
-  Calendar,
-  AlertCircle,
   LogOut,
-  User,
   Settings,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  Sparkles
 } from 'lucide-react';
 import { User as UserType, NotificationItem } from '@/types';
 import { Avatar } from '@/components/ui';
@@ -42,7 +40,6 @@ export const Header: React.FC<HeaderProps> = ({
   const notificationRef = React.useRef<HTMLDivElement>(null);
   const userMenuRef = React.useRef<HTMLDivElement>(null);
 
-  // Auto-dismiss dropdowns when clicking anywhere outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (
@@ -71,44 +68,46 @@ export const Header: React.FC<HeaderProps> = ({
   }, [showNotifications, showUserMenu]);
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-30 shadow-xs">
-      {/* Brand Logo */}
-      <div className="flex items-center gap-4">
-        <a href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-md shadow-amber-500/20 text-slate-950 font-bold group-hover:scale-105 transition-transform">
-            <span className="text-sm font-black tracking-tighter">MC</span>
+    <header className="h-14 bg-white border-b border-zinc-200/90 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-30">
+      {/* Brand & Mobile Toggle */}
+      <div className="flex items-center gap-3">
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="lg:hidden p-1.5 rounded-lg text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+        <a href="/" className="flex items-center gap-2 group">
+          <div className="w-7 h-7 rounded-lg bg-zinc-950 flex items-center justify-center font-bold text-white text-xs tracking-tight">
+            MC
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-black text-slate-900 tracking-tight leading-none">MCAD</span>
-            <span className="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">Gestion</span>
-          </div>
+          <span className="text-sm font-bold text-zinc-900 tracking-tight">MCAD</span>
         </a>
       </div>
 
-      {/* Right Actions & User Avatar */}
-      <div className="flex items-center gap-3 sm:gap-4">
-        {/* Notification Bell */}
+      {/* Right Actions */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Notifications */}
         <div ref={notificationRef} className="relative">
           <button
             onClick={() => {
               setShowNotifications(!showNotifications);
               setShowUserMenu(false);
             }}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 hover:bg-slate-200/80 flex items-center justify-center text-slate-600 relative transition-colors"
+            className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-600 hover:text-zinc-900 relative transition-colors"
           >
             <Bell className="w-4 h-4" />
             {unreadNotificationsCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white rounded-full text-[9px] sm:text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
-                {unreadNotificationsCount}
-              </span>
+              <span className="absolute 1 top-1 right-1 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white" />
             )}
           </button>
 
-          {/* Notifications Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              <div className="p-3.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+            <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-xl border border-zinc-200 shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="p-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
+                <span className="text-xs font-semibold text-zinc-800">
                   Notifications ({unreadNotificationsCount})
                 </span>
                 {unreadNotificationsCount > 0 && (
@@ -121,9 +120,9 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
 
-              <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+              <div className="max-h-72 overflow-y-auto divide-y divide-zinc-100">
                 {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-slate-400">
+                  <div className="p-6 text-center text-xs text-zinc-400">
                     Aucune notification
                   </div>
                 ) : (
@@ -134,45 +133,56 @@ export const Header: React.FC<HeaderProps> = ({
                         onMarkNotificationRead(notif.id);
                         setShowNotifications(false);
                       }}
-                      className={`p-3 text-left hover:bg-slate-50 cursor-pointer transition-colors ${
-                        !notif.isRead ? 'bg-blue-50/50' : ''
+                      className={`p-3 text-left hover:bg-zinc-50 cursor-pointer transition-colors ${
+                        !notif.isRead ? 'bg-blue-50/40' : ''
                       }`}
                     >
                       <div className="flex items-start gap-2.5">
-                        <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${
-                          !notif.isRead ? 'bg-blue-600' : 'bg-transparent'
-                        }`} />
-                        <div className="flex-1">
-                          <p className="text-xs font-semibold text-slate-900 leading-tight">
+                        <div
+                          className={`w-1.5 h-1.5 mt-1.5 rounded-full flex-shrink-0 ${
+                            !notif.isRead ? 'bg-blue-600' : 'bg-transparent'
+                          }`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-zinc-900 truncate">
                             {notif.title}
                           </p>
-                          <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
+                          <p className="text-[11px] text-zinc-600 line-clamp-2 mt-0.5">
                             {notif.message}
                           </p>
-                          <span className="text-[10px] text-slate-400 mt-1 block">
-                            {new Date(notif.createdAt).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
                         </div>
                       </div>
                     </div>
                   ))
                 )}
               </div>
+
+              {onNavigateSettings && (
+                <div className="p-2.5 bg-zinc-50 border-t border-zinc-100 flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-500">Notifications Web Push</span>
+                  <button
+                    onClick={() => {
+                      setShowNotifications(false);
+                      onNavigateSettings();
+                    }}
+                    className="text-blue-600 font-medium hover:underline"
+                  >
+                    Gérer
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* User Profile & Dropdown with Logout */}
-        <div ref={userMenuRef} className="relative pl-2 sm:pl-3 border-l border-slate-200">
+        {/* User Profile */}
+        <div ref={userMenuRef} className="relative pl-2 border-l border-zinc-200">
           <button
             onClick={() => {
               setShowUserMenu(!showUserMenu);
               setShowNotifications(false);
             }}
-            className="flex items-center gap-2 sm:gap-2.5 p-1 rounded-xl hover:bg-slate-100 transition-colors text-left"
+            className="flex items-center gap-2 p-1 rounded-lg hover:bg-zinc-100 transition-colors text-left"
           >
             <Avatar
               src={currentUser?.avatar}
@@ -180,53 +190,45 @@ export const Header: React.FC<HeaderProps> = ({
               size="sm"
             />
             <div className="hidden sm:block text-left">
-              <p className="text-xs font-bold text-slate-800 leading-tight">
+              <p className="text-xs font-semibold text-zinc-900 leading-tight">
                 {currentUser?.firstName} {currentUser?.lastName}
               </p>
-              <p className="text-[11px] text-slate-500 font-medium">
-                {currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'DEPARTMENT_LEADER'
-                  ? 'Responsable Département'
-                  : 'Membre'}
-              </p>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+            <ChevronDown className="w-3 h-3 text-zinc-400 hidden sm:block" />
           </button>
 
-          {/* User Profile Menu */}
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 py-2 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-4 py-2 border-b border-slate-100">
-                <p className="text-xs font-bold text-slate-900 truncate">
+            <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-zinc-200 shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-3 py-2 border-b border-zinc-100">
+                <p className="text-xs font-semibold text-zinc-900 truncate">
                   {currentUser?.firstName} {currentUser?.lastName}
                 </p>
-                <p className="text-[11px] text-slate-500 font-mono truncate mt-0.5">{currentUser?.phone || 'Connecté'}</p>
+                <p className="text-[11px] text-zinc-400 truncate mt-0.5">{currentUser?.phone || 'Connecté'}</p>
               </div>
 
               {onNavigateSettings && (
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      onNavigateSettings();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <Settings className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Paramètres</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    onNavigateSettings();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors text-left"
+                >
+                  <Settings className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Paramètres</span>
+                </button>
               )}
 
               {onLogout && (
-                <div className="pt-1 border-t border-slate-100">
+                <div className="border-t border-zinc-100 mt-1 pt-1">
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
                       onLogout();
                     }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-zinc-900 font-medium hover:bg-zinc-50 transition-colors text-left"
                   >
-                    <LogOut className="w-3.5 h-3.5" />
+                    <LogOut className="w-3.5 h-3.5 text-zinc-400" />
                     <span>Se déconnecter</span>
                   </button>
                 </div>

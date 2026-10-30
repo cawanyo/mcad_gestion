@@ -81,7 +81,7 @@ export const EquipmentManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Package className="w-5 h-5 text-indigo-600" />
+            <Package className="w-5 h-5 text-blue-600" />
             Matériel
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
@@ -94,13 +94,13 @@ export const EquipmentManagement: React.FC = () => {
             href="/equipment/groups"
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold shadow-xs transition-colors"
           >
-            <Boxes className="w-4 h-4 text-indigo-600" />
+            <Boxes className="w-4 h-4 text-blue-600" />
             <span>Groupes</span>
           </Link>
           {isAuthenticated ? (
             <button
               onClick={() => setShowFormModal(true)}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-colors"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-xs transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>Ajouter un matériel</span>
@@ -125,7 +125,7 @@ export const EquipmentManagement: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher un matériel par nom..."
-            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
         <button
@@ -135,7 +135,7 @@ export const EquipmentManagement: React.FC = () => {
           }}
           className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold shadow-xs transition-colors flex-shrink-0"
         >
-          <ScanLine className="w-4 h-4 text-indigo-600" />
+          <ScanLine className="w-4 h-4 text-blue-600" />
           <span>Scanner un code</span>
         </button>
       </div>
@@ -144,7 +144,7 @@ export const EquipmentManagement: React.FC = () => {
         <select
           value={poleFilter}
           onChange={(e) => setPoleFilter(e.target.value)}
-          className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
         >
           <option value="">Tous les pôles</option>
           {(polesRaw || []).map((p: any) => (
@@ -156,7 +156,7 @@ export const EquipmentManagement: React.FC = () => {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
         >
           <option value="">Toutes les catégories</option>
           {(categoriesRaw || []).map((c: any) => (
@@ -168,7 +168,7 @@ export const EquipmentManagement: React.FC = () => {
         <select
           value={conditionFilter}
           onChange={(e) => setConditionFilter(e.target.value)}
-          className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
         >
           <option value="">Tous les états</option>
           {EQUIPMENT_CONDITIONS.map((c) => (
@@ -191,7 +191,7 @@ export const EquipmentManagement: React.FC = () => {
           </button>
         )}
       </div>
-      {scanError && <p className="text-xs text-rose-600 font-medium">{scanError}</p>}
+      {scanError && <p className="text-xs text-zinc-900 font-medium">{scanError}</p>}
 
       {itemsRaw === undefined ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

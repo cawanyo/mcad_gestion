@@ -61,7 +61,7 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipmentId })
         </p>
         <Link
           href="/equipment"
-          className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
+          className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Retour au répertoire
@@ -95,7 +95,7 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipmentId })
       </Link>
 
       {isDeleted && (
-        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2 font-semibold">
+        <div className="p-3.5 rounded-2xl bg-zinc-100 border border-zinc-200 text-amber-900 text-xs flex items-center gap-2 font-semibold">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
           <span>Ce matériel a été supprimé et se trouve dans la corbeille.</span>
         </div>
@@ -177,7 +177,7 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipmentId })
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold shadow-xs transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-100 rounded-xl text-xs font-bold shadow-xs transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Supprimer

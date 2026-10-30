@@ -191,3 +191,9 @@ export async function uploadMediaWithProgress(
 
   return fallbackResult;
 }
+
+export async function uploadFileToCloudinary(file: File): Promise<string> {
+  const result = await uploadMediaWithProgress(file);
+  return result.url;
+}
+

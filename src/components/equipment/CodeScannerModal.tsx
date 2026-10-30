@@ -44,7 +44,7 @@ export const CodeScannerModal: React.FC<CodeScannerModalProps> = ({ isOpen, onCl
     >
       <div className="space-y-3">
         {error ? (
-          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2">
+          <div className="p-4 rounded-2xl bg-zinc-100 border border-zinc-200 text-rose-900 text-xs flex items-start gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -70,12 +70,12 @@ export const CodeScannerModal: React.FC<CodeScannerModalProps> = ({ isOpen, onCl
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
             placeholder="Saisir le code du matériel..."
-            className="flex-1 min-w-0 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium uppercase focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            className="flex-1 min-w-0 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium uppercase focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
           <button
             type="submit"
             disabled={!manualCode.trim()}
-            className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl flex-shrink-0"
+            className="p-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl flex-shrink-0"
           >
             <ArrowRight className="w-4 h-4" />
           </button>

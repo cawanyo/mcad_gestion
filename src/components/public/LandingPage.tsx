@@ -2,18 +2,12 @@
 
 import React from 'react';
 import {
-  Sparkles,
-  Users,
   Calendar,
   CheckSquare,
-  ShieldCheck,
+  Users,
   ArrowRight,
   LogIn,
-  UserPlus,
-  Clock,
-  HeartHandshake,
-  CheckCircle2,
-  ChevronRight
+  UserPlus
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -25,141 +19,106 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({
   onGoToLogin,
   onGoToRegister,
-  onQuickAdminLogin
 }) => {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Navigation Header */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-bold">
-              <Sparkles className="w-6 h-6" />
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      {/* Header */}
+      <header className="border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center font-bold text-white text-xs">
+              MC
             </div>
-            <div>
-              <span className="font-extrabold text-white text-base sm:text-lg tracking-tight">MCAD</span>
-              <span className="text-[11px] text-slate-400 font-medium hidden lg:block">Plateforme de Gestion de Département</span>
-            </div>
+            <span className="font-bold text-white text-base tracking-tight">MCAD</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={onGoToLogin}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+              className="px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-white transition-colors"
             >
-              <LogIn className="w-4 h-4" />
-              <span>Connexion</span>
+              Connexion
             </button>
             <button
               onClick={onGoToRegister}
-              className="flex items-center gap-1.5 px-4 sm:px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all hover:scale-105"
+              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
             >
-              <UserPlus className="w-4 h-4" />
-              <span>Créer un compte</span>
+              Créer un compte
             </button>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-20 sm:pt-20 sm:pb-28 px-4 sm:px-6 max-w-7xl mx-auto text-center space-y-8 flex-1 flex flex-col justify-center">
-        {/* Glow background */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 sm:w-[600px] h-96 sm:h-[600px] bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+      {/* Hero */}
+      <section className="pt-16 pb-20 px-4 sm:px-6 max-w-4xl mx-auto text-center space-y-6 flex-1 flex flex-col justify-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs mx-auto">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span>Plateforme de gestion opérationnelle</span>
+        </div>
 
-      
-
-        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight max-w-4xl mx-auto">
-          La gestion de votre département d'église,{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-amber-300">
-            simple, fluide et sans conflit.
-          </span>
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+          Coordination et gestion des services d'église
         </h1>
 
-        <p className="text-sm sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          Centralisez vos membres, planifiez les cultes avec quotas par pôle, suivez vos checklists opérationnelles enrichies de photos/vidéos et validez les services en temps réel.
+        <p className="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto leading-relaxed">
+          Planning des cultes, gestion des disponibilités, checklists d'intervention et suivi des membres.
         </p>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+        {/* CTA */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
           <button
             onClick={onGoToLogin}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-bold shadow-xl shadow-indigo-600/30 transition-all hover:scale-105"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition-colors"
           >
             <span>Accéder à l'application</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onGoToRegister}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-2xl text-sm font-bold transition-all"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 rounded-xl text-xs font-medium transition-colors"
           >
-            <UserPlus className="w-4 h-4 text-indigo-400" />
-            <span>Rejoindre un pôle (Inscription)</span>
+            <UserPlus className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Créer un compte</span>
           </button>
         </div>
 
-       
-       
-      </section>
-
-      {/* 4 Feature Pillars Grid */}
-      <section className="border-t border-slate-800/80 bg-slate-950/50 py-16 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto space-y-10">
-          <div className="text-center space-y-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Tout ce dont votre département a besoin</h2>
-            <p className="text-xs sm:text-sm text-slate-400">Une architecture pensée pour les responsables et accessible pour chaque membre.</p>
+        {/* 3 Sober Features */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-12 text-left">
+          <div className="p-4 bg-zinc-900/60 border border-zinc-800/80 rounded-xl space-y-2">
+            <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-200 flex items-center justify-center">
+              <Calendar className="w-4 h-4" />
+            </div>
+            <h3 className="text-xs font-bold text-white">Planning & Cultes</h3>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Affectation des équipes par pôle et détection automatique des indisponibilités.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Card 1 */}
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3 hover:border-indigo-500/50 transition-all">
-              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
-                <Users className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-white">Membres & Multi-pôles</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Adhésions flexibles, gestion des rôles par périmètre et suivi des compétences par équipe.
-              </p>
+          <div className="p-4 bg-zinc-900/60 border border-zinc-800/80 rounded-xl space-y-2">
+            <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-200 flex items-center justify-center">
+              <CheckSquare className="w-4 h-4" />
             </div>
+            <h3 className="text-xs font-bold text-white">Checklists de Service</h3>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Exécution et validation des étapes opérationnelles directement sur mobile et web.
+            </p>
+          </div>
 
-            {/* Card 2 */}
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3 hover:border-indigo-500/50 transition-all">
-              <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-white">Cultes & Quotas par pôle</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Calendrier départemental partagé, définition des besoins par pôle et jauges de complétion.
-              </p>
+          <div className="p-4 bg-zinc-900/60 border border-zinc-800/80 rounded-xl space-y-2">
+            <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-200 flex items-center justify-center">
+              <Users className="w-4 h-4" />
             </div>
-
-            {/* Card 3 */}
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3 hover:border-indigo-500/50 transition-all">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-white">Moteur Anti-conflits</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Détection automatique des indisponibilités déclarées et des doubles affectations sur le même créneau.
-              </p>
-            </div>
-
-            {/* Card 4 */}
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3 hover:border-indigo-500/50 transition-all">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                <CheckSquare className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-white">Checklists & Validations</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Guides d'exécution multimédias (photo/vidéo), commentaire obligatoire et rappels automatiques.
-              </p>
-            </div>
+            <h3 className="text-xs font-bold text-white">Gestion des Pôles</h3>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Organisation des équipes, fiches membres et validation des demandes d'adhésion.
+            </p>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950 py-8 px-4 sm:px-6 text-center text-xs text-slate-500">
-        <p>© 2026 MCAD — Plateforme de Gestion de Département • Tous droits réservés.</p>
+      <footer className="border-t border-zinc-800/80 py-4 text-center text-xs text-zinc-600">
+        <p>MCAD — Plateforme sobre et centralisée</p>
       </footer>
     </div>
   );

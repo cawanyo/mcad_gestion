@@ -207,11 +207,11 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           {/* Conflict Alert Notice */}
           {conflictWarning && conflictWarning.length > 0 && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-start gap-2.5 animate-in fade-in">
-              <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-2xl bg-zinc-100 border border-zinc-200 text-xs text-rose-900 flex items-start gap-2.5 animate-in fade-in">
+              <AlertTriangle className="w-4 h-4 text-zinc-900 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">Attention : Affectation(s) existante(s) en conflit !</p>
-                <p className="mt-0.5 text-rose-800">
+                <p className="mt-0.5 text-zinc-900">
                   Le membre est déjà affecté à {conflictWarning.length} culte(s) pendant cette période. Les responsables seront avertis.
                 </p>
               </div>
@@ -220,8 +220,8 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
 
           {/* Error Message */}
           {errorMsg && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-2xl bg-zinc-100 border border-zinc-200 text-xs text-rose-900 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-zinc-900 flex-shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -236,7 +236,7 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
               <select
                 value={targetUserId}
                 onChange={(e) => setTargetUserId(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 {currentUser && (
                   <option value={currentUser.id}>
@@ -265,7 +265,7 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
                   onClick={() => setReason(preset.value)}
                   className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all ${
                     reason === preset.value
-                      ? 'bg-indigo-100 border-indigo-300 text-indigo-900 shadow-xs'
+                      ? 'bg-blue-50 border-blue-300 text-zinc-900 shadow-xs'
                       : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                   }`}
                 >
@@ -280,7 +280,7 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Préciser le motif..."
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
 
@@ -288,7 +288,7 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                <Calendar className="w-3.5 h-3.5 text-blue-600" />
                 <span>Date de début *</span>
               </label>
               <input
@@ -302,13 +302,13 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
                     setEndDate(newStart);
                   }
                 }}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
 
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                <Calendar className="w-3.5 h-3.5 text-blue-600" />
                 <span>Date de fin *</span>
               </label>
               <input
@@ -317,15 +317,15 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
                 value={endDate}
                 min={startDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
           </div>
 
           {/* Duration Indicator */}
-          <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-200/80 flex items-center justify-between text-xs">
-            <span className="text-indigo-900 font-semibold">Durée totale d'absence :</span>
-            <span className="font-extrabold text-indigo-800 bg-white px-2.5 py-0.5 rounded-lg border border-indigo-200 shadow-xs">
+          <div className="p-3 bg-blue-50/60 rounded-2xl border border-blue-200/80 flex items-center justify-between text-xs">
+            <span className="text-zinc-900 font-semibold">Durée totale d'absence :</span>
+            <span className="font-extrabold text-blue-800 bg-white px-2.5 py-0.5 rounded-lg border border-blue-200 shadow-xs">
               {daysCount} jour(s)
             </span>
           </div>
@@ -336,7 +336,7 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
             <select
               value={recurrence}
               onChange={(e) => setRecurrence(e.target.value)}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               <option value="NONE">Aucune (Indisponibilité ponctuelle)</option>
               <option value="WEEKLY">Chaque semaine (ex: indisponible tous les samedis)</option>
@@ -357,7 +357,7 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all hover:scale-[1.01] disabled:opacity-50"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-xs flex items-center gap-1.5 transition-all hover:scale-[1.01] disabled:opacity-50"
             >
               {loading ? (
                 <span>Enregistrement...</span>
