@@ -28,18 +28,25 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 1. Register Service Worker
+    // 1. Register Service Worker immediately if DOM is ready
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      const registerSW = () => {
         navigator.serviceWorker
-          .register('/sw.js')
+          .register('/sw.js', { scope: '/' })
           .then((registration) => {
-            console.log('[MCAD PWA] Service Worker actif:', registration.scope);
+            // Check for updates periodically
+            registration.update().catch(() => {});
           })
           .catch((error) => {
             console.warn('[MCAD PWA] Enregistrement SW échoué:', error);
           });
-      });
+      };
+
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        registerSW();
+      } else {
+        window.addEventListener('load', registerSW);
+      }
     }
 
     // 2. Detect installation state

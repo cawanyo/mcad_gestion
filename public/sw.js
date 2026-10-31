@@ -87,7 +87,7 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   let payload = {
     title: 'MCAD',
-    body: 'Nouvelle notification de département',
+    body: 'Nouvelle notification',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/badge-72x72.png',
     url: '/dashboard'
@@ -102,23 +102,32 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const options = {
+  const baseOptions = {
     body: payload.body,
     icon: payload.icon || '/icons/icon-192x192.png',
     badge: payload.badge || '/icons/badge-72x72.png',
-    vibrate: [100, 50, 100],
     data: {
       url: payload.url || (payload.data && payload.data.url) || '/dashboard',
       dateOfArrival: Date.now()
     },
-    actions: [
-      { action: 'open', title: 'Ouvrir' },
-      { action: 'close', title: 'Fermer' }
-    ]
+    tag: payload.tag || ('mcad-push-' + Date.now()),
+    renotify: true
   };
 
   event.waitUntil(
-    self.registration.showNotification(payload.title, options)
+    self.registration
+      .showNotification(payload.title, {
+        ...baseOptions,
+        vibrate: [100, 50, 100],
+        actions: [
+          { action: 'open', title: 'Ouvrir' },
+          { action: 'close', title: 'Fermer' }
+        ]
+      })
+      .catch(() => {
+        // Fallback for browsers that reject actions/vibrate
+        return self.registration.showNotification(payload.title, baseOptions);
+      })
   );
 });
 

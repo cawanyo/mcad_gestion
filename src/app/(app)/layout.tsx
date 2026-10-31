@@ -124,6 +124,55 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     }
   }, [authLoading, loading]);
 
+  // Background OS notification when a new notification arrives while user is in another tab or minimized
+  const prevUnreadCountRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (prevUnreadCountRef.current !== null && unreadNotificationsCount > prevUnreadCountRef.current) {
+      const latest = notifications[0];
+      if (latest && 'Notification' in window && Notification.permission === 'granted') {
+        const notifTitle = latest.title || 'MCAD';
+        const notifBody = latest.message || 'Nouvelle notification';
+        const targetUrl = latest.linkUrl || '/dashboard';
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification(notifTitle, {
+              body: notifBody,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/badge-72x72.png',
+              data: { url: targetUrl },
+              tag: 'mcad-notif-' + latest.id,
+              renotify: true,
+            } as any).catch(() => {
+              try {
+                new Notification(notifTitle, {
+                  body: notifBody,
+                  icon: '/icons/icon-192x192.png',
+                });
+              } catch {}
+            });
+          }).catch(() => {
+            try {
+              new Notification(notifTitle, {
+                body: notifBody,
+                icon: '/icons/icon-192x192.png',
+              });
+            } catch {}
+          });
+        } else {
+          try {
+            new Notification(notifTitle, {
+              body: notifBody,
+              icon: '/icons/icon-192x192.png',
+            });
+          } catch {}
+        }
+      }
+    }
+    prevUnreadCountRef.current = unreadNotificationsCount;
+  }, [unreadNotificationsCount, notifications]);
+
   // Modals & Drawers (shared across every route)
   const [showEventModal, setShowEventModal] = React.useState(false);
   const [showAssignmentsDrawer, setShowAssignmentsDrawer] = React.useState(false);

@@ -25,12 +25,24 @@ export function useWebPush() {
 
     setPermission(Notification.permission as PushPermissionStatus);
 
-    // Check if already subscribed
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.pushManager.getSubscription().then((sub) => {
-        setSubscription(sub);
-      }).catch(() => {});
-    }).catch(() => {});
+    // Check if already subscribed and keep subscription fresh on server
+    navigator.serviceWorker.ready
+      .then((reg) => {
+        reg.pushManager
+          .getSubscription()
+          .then((sub) => {
+            setSubscription(sub);
+            if (sub) {
+              fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscription: sub }),
+              }).catch(() => {});
+            }
+          })
+          .catch(() => {});
+      })
+      .catch(() => {});
   }, []);
 
   const subscribe = async (): Promise<boolean> => {

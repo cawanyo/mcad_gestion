@@ -124,14 +124,11 @@ export default function LeaderTrainingManagementPage() {
           </button>
           <div>
             <h1 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-              <span>Gestion des Formations</span>
+              <span>Formations</span>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200">
                 {modules.length}
               </span>
             </h1>
-            <p className="text-[11px] text-zinc-500">
-              Conception pédagogique, ajout de leçons et mise à jour des parcours
-            </p>
           </div>
         </div>
 

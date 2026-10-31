@@ -89,7 +89,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   const [showEditPoleModal, setShowEditPoleModal] = React.useState(false);
   const [showJoinModal, setShowJoinModal] = React.useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = React.useState(false);
-  const [selectedChecklistForSteps, setSelectedChecklistForSteps] = React.useState<any>(null);
 
   // Confirmation Modals
   const [confirmRemoveMember, setConfirmRemoveMember] = React.useState<{ id: string; name: string } | null>(null);
@@ -678,17 +677,18 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
                 key={chk.id}
                 className="p-2.5 rounded-lg border border-zinc-200 hover:border-zinc-300 bg-white flex items-center justify-between gap-3 text-xs"
               >
-                <div className="min-w-0 space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-zinc-900 truncate">{chk.title}</span>
-                    <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 shrink-0">
-                      {chk.steps?.length || 0} étape(s)
-                    </span>
-                  </div>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/checklists/${chk.id}/run`)}
+                  className="min-w-0 flex-1 text-left space-y-0.5 group"
+                >
+                  <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600 text-xs sm:text-sm leading-snug line-clamp-2 transition-colors">
+                    {chk.title}
+                  </h3>
                   {chk.description && (
-                    <p className="text-[11px] text-zinc-500 truncate">{chk.description}</p>
+                    <p className="text-[11px] text-zinc-500 line-clamp-1">{chk.description}</p>
                   )}
-                </div>
+                </button>
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
@@ -697,14 +697,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
                   >
                     <Play className="w-3 h-3 fill-current" />
                     <span>Exécuter</span>
-                  </button>
-
-                  <button
-                    onClick={() => setSelectedChecklistForSteps(chk)}
-                    className="p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors"
-                    title="Étapes"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
                   </button>
 
                   {canManagePole && (
@@ -987,97 +979,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
         </div>
       )}
 
-      {/* Modal: View Checklist Steps with direct Video player and Photo viewer */}
-      {selectedChecklistForSteps && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">{selectedChecklistForSteps.title}</h3>
-                <p className="text-xs text-slate-500">{selectedChecklistForSteps.description}</p>
-              </div>
-              <button
-                onClick={() => setSelectedChecklistForSteps(null)}
-                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              {selectedChecklistForSteps.steps?.map((s: any, idx: number) => (
-                <div key={s.id || idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold flex items-center justify-center">
-                        {idx + 1}
-                      </span>
-                      <span className="text-xs font-bold text-slate-900">{s.title}</span>
-                    </div>
-
-                    {s.mediaType && s.mediaType !== 'NONE' && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                        s.mediaType === 'VIDEO' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {s.mediaType === 'VIDEO' ? <Film className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
-                        <span>{s.mediaType === 'VIDEO' ? 'Vidéo intégrée' : 'Photo'}</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {s.description && <p className="text-xs text-slate-600 pl-7 leading-relaxed">{s.description}</p>}
-
-                  {/* Direct Media Player / Viewer */}
-                  {s.mediaUrl && (
-                    <div className="pl-7 pt-1">
-                      {s.mediaType === 'PHOTO' ? (
-                        <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-xs bg-slate-950">
-                          <img
-                            src={s.mediaUrl}
-                            alt={s.title}
-                            className="w-full max-h-56 object-contain mx-auto"
-                          />
-                        </div>
-                      ) : s.mediaType === 'VIDEO' ? (
-                        <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-xs bg-black">
-                          <video
-                            src={s.mediaUrl}
-                            controls
-                            className="w-full max-h-56 bg-black"
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-between items-center pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const chk = selectedChecklistForSteps;
-                  setSelectedChecklistForSteps(null);
-                  router.push(`/checklists/${chk.id}/run`);
-                }}
-                className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors"
-              >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Démarrer cette checklist</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedChecklistForSteps(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal: Edit Pole Details */}
       {showEditPoleModal && (
