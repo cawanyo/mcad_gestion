@@ -317,9 +317,11 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
             onNavigateSettings={() => router.push('/settings')}
           />
 
-          {/* Dynamic Responsive View (with bottom padding on mobile for Bottom Tabs) */}
-          <main className="flex-1 overflow-y-auto overscroll-y-contain px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-32 lg:pb-8">
-            {children}
+          {/* Dynamic Responsive View (with bottom margin & padding on mobile for Bottom Tabs) */}
+          <main className="flex-1 overflow-y-auto overscroll-y-contain px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+            <div className="mb-24 pb-16 lg:mb-0 lg:pb-8">
+              {children}
+            </div>
           </main>
         </div>
 

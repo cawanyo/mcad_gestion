@@ -68,24 +68,28 @@ export const Header: React.FC<HeaderProps> = ({
   }, [showNotifications, showUserMenu]);
 
   return (
-    <header className="h-14 bg-white border-b border-zinc-200/90 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 z-30 select-none">
-      {/* Brand & Mobile Toggle */}
-      <div className="flex items-center gap-3">
-        {onToggleSidebar && (
-          <button
-            onClick={onToggleSidebar}
-            className="lg:hidden p-1.5 rounded-lg text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        )}
-        <a href="/dashboard" className="flex items-center gap-2 group">
-          <div className="w-7 h-7 rounded-lg bg-zinc-950 flex items-center justify-center font-bold text-white text-xs tracking-tight">
-            MC
-          </div>
-          <span className="text-sm font-bold text-zinc-900 tracking-tight">MCAD</span>
-        </a>
-      </div>
+    <header
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      className="bg-white border-b border-zinc-200/90 flex-shrink-0 z-30 select-none pt-safe"
+    >
+      <div className="h-14 px-4 sm:px-6 flex items-center justify-between">
+        {/* Brand & Mobile Toggle */}
+        <div className="flex items-center gap-3">
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className="lg:hidden p-1.5 rounded-lg text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
+          <a href="/dashboard" className="flex items-center gap-2 group">
+            <div className="w-7 h-7 rounded-lg bg-zinc-950 flex items-center justify-center font-bold text-white text-xs tracking-tight">
+              MC
+            </div>
+            <span className="text-sm font-bold text-zinc-900 tracking-tight">MCAD</span>
+          </a>
+        </div>
 
       {/* Right Actions */}
       <div className="flex items-center gap-2 sm:gap-3">
@@ -236,6 +240,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
         </div>
+      </div>
       </div>
     </header>
   );

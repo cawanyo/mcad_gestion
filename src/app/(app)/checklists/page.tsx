@@ -15,10 +15,8 @@ export default function ChecklistsPage() {
     <div>
       <div className="lg:hidden">
         <SubViewHeader
-          parentTitle="Service"
-          parentTabId="service_hub"
-          currentTitle="Checklists de Service"
-          onBack={() => router.push('/service')}
+          currentTitle="Checklists"
+          onBack={() => router.back()}
         />
       </div>
       <ChecklistsWeb

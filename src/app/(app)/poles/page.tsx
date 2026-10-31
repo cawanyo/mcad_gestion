@@ -25,10 +25,8 @@ export default function PolesPage() {
     <div>
       <div className="lg:hidden">
         <SubViewHeader
-          parentTitle="Service"
-          parentTabId="service_hub"
-          currentTitle="Mes Pôles Ministériels"
-          onBack={() => router.push('/service')}
+          currentTitle="Pôles"
+          onBack={() => router.back()}
         />
       </div>
       <PolesManagement

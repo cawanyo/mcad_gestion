@@ -15,10 +15,8 @@ export default function UnavailabilitiesPage() {
     <div>
       <div className="lg:hidden">
         <SubViewHeader
-          parentTitle="Service"
-          parentTabId="service_hub"
-          currentTitle="Mes Indisponibilités"
-          onBack={() => router.push('/service')}
+          currentTitle="Indisponibilités"
+          onBack={() => router.back()}
         />
       </div>
       <UnavailabilitiesView currentUser={currentUser} poles={poles} members={allUsers} />

@@ -17,10 +17,8 @@ export default function MembersPage() {
     <div>
       <div className="lg:hidden">
         <SubViewHeader
-          parentTitle="Responsable"
-          parentTabId="leader_hub"
-          currentTitle="Gestion des Membres"
-          onBack={() => router.push('/leader')}
+          currentTitle="Membres"
+          onBack={() => router.back()}
         />
       </div>
       <MembersManagement poles={poles} currentUser={currentUser} onRefresh={fetchData} />

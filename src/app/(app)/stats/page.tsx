@@ -15,10 +15,8 @@ export default function StatsPage() {
     <div>
       <div className="lg:hidden">
         <SubViewHeader
-          parentTitle="Vie du MCAD"
-          parentTabId="life_hub"
-          currentTitle="Statistiques & Impact"
-          onBack={() => router.push('/life')}
+          currentTitle="Statistiques"
+          onBack={() => router.back()}
         />
       </div>
       <StatsView currentUser={currentUser} poles={poles} />

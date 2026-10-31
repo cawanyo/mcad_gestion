@@ -332,10 +332,10 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-xs"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-800 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Retour aux pôles</span>
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Retour</span>
         </button>
 
         {canManagePole && (

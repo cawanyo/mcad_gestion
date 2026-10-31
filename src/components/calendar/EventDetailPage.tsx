@@ -175,11 +175,11 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({
           <button
             type="button"
             onClick={onBack}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-colors shadow-xs flex items-center gap-1.5"
-            title="Retour au calendrier"
+            className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium"
+            title="Retour"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-xs font-bold hidden sm:inline">Retour au calendrier</span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Retour</span>
           </button>
 
           <div>

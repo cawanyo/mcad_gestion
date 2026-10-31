@@ -191,10 +191,10 @@ export const MemberDetailView: React.FC<MemberDetailViewProps> = ({
       <div className="p-8 max-w-5xl mx-auto text-center space-y-4">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-xs font-medium text-zinc-800 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Retour à la liste des membres</span>
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Retour</span>
         </button>
         <div className="py-16 text-slate-400 text-xs">Chargement des informations du membre...</div>
       </div>
@@ -224,10 +224,10 @@ export const MemberDetailView: React.FC<MemberDetailViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-2xl shadow-xs transition-all hover:scale-105 self-start"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-medium rounded-lg transition-colors self-start"
         >
-          <ArrowLeft className="w-4 h-4 text-indigo-600" />
-          <span>Retour aux membres</span>
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Retour</span>
         </button>
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto">

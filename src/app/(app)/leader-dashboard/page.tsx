@@ -25,10 +25,8 @@ export default function LeaderDashboardPage() {
     <div>
       <div className="lg:hidden">
         <SubViewHeader
-          parentTitle="Responsable"
-          parentTabId="leader_hub"
           currentTitle="Tableau de bord"
-          onBack={() => router.push('/leader')}
+          onBack={() => router.back()}
         />
       </div>
       <DesktopDashboard

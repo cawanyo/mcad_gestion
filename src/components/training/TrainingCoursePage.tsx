@@ -132,7 +132,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
               className="p-2 -ml-2 hover:bg-slate-100 rounded-2xl text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 text-xs font-bold flex-shrink-0"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Retour aux formations</span>
+              <span className="hidden sm:inline">Retour</span>
             </button>
 
             <div className="h-4 w-px bg-slate-200 hidden sm:block" />

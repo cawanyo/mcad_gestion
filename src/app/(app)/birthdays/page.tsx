@@ -15,10 +15,8 @@ export default function BirthdaysPage() {
     <div>
       <div className="lg:hidden">
         <SubViewHeader
-          parentTitle="Vie du MCAD"
-          parentTabId="life_hub"
-          currentTitle="Anniversaires du Mois"
-          onBack={() => router.push('/life')}
+          currentTitle="Anniversaires"
+          onBack={() => router.back()}
         />
       </div>
       <BirthdaysView currentUser={currentUser} poles={poles} />

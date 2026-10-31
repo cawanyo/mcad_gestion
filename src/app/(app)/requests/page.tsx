@@ -17,10 +17,8 @@ export default function RequestsPage() {
     <div>
       <div className="lg:hidden">
         <SubViewHeader
-          parentTitle="Responsable"
-          parentTabId="leader_hub"
-          currentTitle="Demandes d'Adhésion"
-          onBack={() => router.push('/leader')}
+          currentTitle="Demandes d'adhésion"
+          onBack={() => router.back()}
         />
       </div>
       <MembershipRequestsView currentUser={currentUser} poles={poles} onRefreshAll={fetchData} />
