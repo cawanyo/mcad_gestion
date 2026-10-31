@@ -71,7 +71,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = () => {
       aria-label="Navigation mobile"
       className="lg:hidden fixed bottom-[max(0.85rem,calc(env(safe-area-inset-bottom)+0.35rem))] left-3 right-3 max-w-sm mx-auto z-40 select-none"
     >
-      <div className="bg-zinc-950/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-zinc-950/50 p-1.5 flex items-center justify-around">
+      <div className="bg-zinc-950/96 backdrop-blur-2xl border border-zinc-800/80 rounded-2xl shadow-2xl shadow-zinc-950/60 p-1.5 flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentParentTab === tab.id;

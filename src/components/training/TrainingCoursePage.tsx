@@ -10,19 +10,15 @@ import {
   Clock,
   Award,
   Layers,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
-  Film,
-  Image as ImageIcon,
   Check
 } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { TrainingModule, TrainingLesson, User } from '@/types';
-import { Badge, MediaViewer } from '@/components/ui';
+import { MediaViewer } from '@/components/ui';
 
 interface TrainingCoursePageProps {
   module: TrainingModule;
@@ -53,7 +49,6 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
 
   const updateProgress = useMutation(api.training.updateProgress);
 
-  // On mount, mark the module IN_PROGRESS in the DB.
   React.useEffect(() => {
     updateProgress({ action: 'START_MODULE', moduleId: module.id as Id<'trainingModules'> })
       .then(() => onProgressUpdated())
@@ -110,11 +105,24 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
   const renderMedia = (lesson: TrainingLesson) => {
     if (!lesson.mediaUrl || lesson.mediaType === 'NONE') return null;
 
+    if (lesson.mediaType === 'VIDEO') {
+      return (
+        <div className="rounded-2xl overflow-hidden border border-zinc-200 bg-black">
+          <MediaViewer
+            url={lesson.mediaUrl}
+            mediaType="VIDEO"
+            title={lesson.title}
+            aspectRatio="video"
+          />
+        </div>
+      );
+    }
+
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="rounded-2xl overflow-hidden border border-zinc-200 max-h-80">
         <MediaViewer
           url={lesson.mediaUrl}
-          mediaType={lesson.mediaType}
+          mediaType={lesson.mediaType || 'PHOTO'}
           title={lesson.title}
         />
       </div>
@@ -122,306 +130,230 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
   };
 
   return (
-    <div className="min-h-full bg-slate-50 font-sans pb-12">
-      {/* Top Sticky Navigation Bar */}
-      <div className=" z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3.5 shadow-2xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={onBack}
-              className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-600 hover:text-zinc-900 transition-colors flex items-center justify-center flex-shrink-0"
-              aria-label="Retour"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-
-            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                  {module.pole?.name || 'Pôle'}
-                </span>
-                <span className="text-xs text-slate-400 truncate hidden md:inline">
-                  • {module.title}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 flex-shrink-0">
-            {/* Progress Pill */}
-            <div className="flex items-center gap-2.5 bg-slate-50 px-3.5 py-1.5 rounded-2xl border border-slate-200">
-              <div className="text-right">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-none">
-                  Progression
-                </span>
-                <span className="text-xs font-black text-blue-600">
-                  {completedCount}/{totalLessons} ({progressPercent}%)
-                </span>
-              </div>
-              <div className="w-16 sm:w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    isModuleFullyCompleted ? 'bg-blue-600' : 'bg-blue-600'
-                  }`}
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Course Hero Banner */}
-        <div className="relative rounded-3xl overflow-hidden shadow-sm border border-slate-200 bg-slate-900 text-white p-6 sm:p-8">
-          {module.coverImage && (
-            <img
-              src={module.coverImage}
-              alt={module.title}
-              className="absolute inset-0 w-full h-full object-cover opacity-20 filter blur-xs"
-            />
-          )}
-
-          <div className="relative z-10 space-y-3 max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/20 text-indigo-300 border border-blue-500/30">
-                {module.pole?.name || 'Pôle'}
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-slate-300">
-                Niveau : {module.level}
-              </span>
-              {module.estimatedDuration && (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-slate-300 flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-slate-400" />
-                  {module.estimatedDuration}
+    <div className="max-w-5xl mx-auto space-y-4 font-sans py-2 sm:py-4">
+      {/* Top Header Card */}
+      <div className="flex items-center justify-between gap-3 bg-white/80 backdrop-blur-md border border-zinc-200/70 p-3 sm:p-4 rounded-2xl shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <button
+            type="button"
+            onClick={onBack}
+            className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 transition-colors shrink-0"
+            aria-label="Retour"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-bold text-zinc-900 leading-tight truncate">
+                {module.title}
+              </h1>
+              {module.pole && (
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-white shrink-0"
+                  style={{ backgroundColor: module.pole.color || '#2563eb' }}
+                >
+                  {module.pole.name}
                 </span>
               )}
             </div>
-
-            <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight">
-              {module.title}
-            </h1>
-
-            {module.description && (
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-                {module.description}
-              </p>
-            )}
+            <p className="text-[11px] text-zinc-500 truncate">
+              {totalLessons} leçon{totalLessons > 1 ? 's' : ''} • {completedCount} validée{completedCount > 1 ? 's' : ''}
+            </p>
           </div>
         </div>
 
-        {/* Course Workspace: Sidebar + Lesson Viewer */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Lessons Program & Navigation (4 cols) */}
-          <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden lg:sticky lg:top-20">
-            <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
-              <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-600" />
-                <span>Programme du cours</span>
-              </h2>
-              <span className="text-[11px] font-bold text-slate-500">
-                {totalLessons} leçon{totalLessons > 1 ? 's' : ''}
-              </span>
-            </div>
+        {/* Progress pill */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-16 sm:w-24 bg-zinc-100 rounded-full h-1.5 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                isModuleFullyCompleted ? 'bg-emerald-500' : 'bg-blue-600'
+              }`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <span className="text-xs font-semibold text-zinc-700">
+            {progressPercent}%
+          </span>
+        </div>
+      </div>
 
-            <div className="p-2 space-y-1 max-h-[580px] overflow-y-auto">
-              {lessons.map((lesson, idx) => {
-                const isSelected = idx === currentLessonIndex;
-                const isCompleted = completedLessonIds.has(lesson.id);
+      {/* Main Grid: Sidebar of lessons + Lesson Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* Left Column: Lesson Stepper */}
+        <div className="lg:col-span-4 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200/70 p-3 shadow-xs space-y-1.5">
+          <div className="px-2 py-1 flex items-center justify-between text-xs font-bold text-zinc-600">
+            <span>Leçons</span>
+            <span className="text-zinc-400 font-normal">{currentLessonIndex + 1}/{totalLessons}</span>
+          </div>
 
-                return (
-                  <button
-                    key={lesson.id}
-                    onClick={() => setCurrentLessonIndex(idx)}
-                    className={`w-full text-left p-3.5 rounded-2xl transition-all flex items-start gap-3 border ${
-                      isSelected
-                        ? 'bg-blue-50/80 border-blue-200 text-zinc-950 shadow-2xs'
-                        : 'bg-white hover:bg-slate-50 border-transparent text-slate-700'
-                    }`}
-                  >
+          <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-0.5">
+            {lessons.map((lesson, idx) => {
+              const isSelected = idx === currentLessonIndex;
+              const isCompleted = completedLessonIds.has(lesson.id);
+
+              return (
+                <button
+                  key={lesson.id}
+                  type="button"
+                  onClick={() => setCurrentLessonIndex(idx)}
+                  className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between gap-2 border text-xs ${
+                    isSelected
+                      ? 'bg-zinc-100 border-zinc-300 text-zinc-900 font-semibold'
+                      : 'bg-transparent border-transparent hover:bg-zinc-50 text-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleToggleLesson(lesson);
                       }}
-                      className="mt-0.5 flex-shrink-0 text-slate-400 hover:scale-110 transition-transform"
+                      className="shrink-0 text-zinc-400 hover:text-zinc-900"
                     >
                       {isCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-zinc-900 fill-emerald-50" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                       ) : (
-                        <Circle className="w-5 h-5 text-slate-300 hover:text-slate-400" />
+                        <Circle className="w-4 h-4 text-zinc-300" />
                       )}
                     </button>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Leçon {idx + 1}
-                        </span>
-                        {lesson.durationMinutes && (
-                          <span className="text-[10px] text-slate-400 font-medium flex items-center gap-0.5">
-                            <Clock className="w-2.5 h-2.5" />
-                            {lesson.durationMinutes} min
-                          </span>
-                        )}
-                      </div>
-                      <p
-                        className={`text-xs font-bold ${
-                          isSelected ? 'text-zinc-950' : 'text-slate-800'
-                        } ${isCompleted && !isSelected ? 'line-through text-slate-400' : ''}`}
-                      >
-                        {lesson.title}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right Column: Active Lesson Content & Media Viewer (8 cols) */}
-          <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-6">
-            {currentLesson ? (
-              <div className="space-y-6">
-                {/* Lesson Header */}
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs font-black text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
-                      Leçon {currentLessonIndex + 1} sur {totalLessons}
-                    </span>
-                    {currentLesson.durationMinutes && (
-                      <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Durée : {currentLesson.durationMinutes} minutes</span>
-                      </span>
-                    )}
+                    <span className="truncate">{lesson.title}</span>
                   </div>
 
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-                    {currentLesson.title}
-                  </h2>
+                  {lesson.durationMinutes && (
+                    <span className="text-[10px] text-zinc-400 shrink-0">
+                      {lesson.durationMinutes}m
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-                  {currentLesson.description && (
-                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                      {currentLesson.description}
-                    </p>
+        {/* Right Column: Active Lesson View */}
+        <div className="lg:col-span-8 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200/70 p-5 sm:p-6 shadow-xs space-y-4">
+          {currentLesson ? (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
+                    Leçon {currentLessonIndex + 1} sur {totalLessons}
+                  </span>
+                  {currentLesson.durationMinutes && (
+                    <span className="text-[11px] text-zinc-400 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {currentLesson.durationMinutes} min
+                    </span>
                   )}
                 </div>
 
-                {/* Media Attachment */}
-                {renderMedia(currentLesson)}
+                <h2 className="text-base sm:text-lg font-bold text-zinc-900">
+                  {currentLesson.title}
+                </h2>
 
-                {/* Lesson Content / Instructions */}
-                {currentLesson.content && (
-                  <div className="bg-slate-50/70 p-6 rounded-3xl border border-slate-200/80 space-y-3">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-blue-600" />
-                      <span>Guide et contenu pratique</span>
-                    </h3>
-                    <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line font-medium font-sans">
-                      {currentLesson.content}
-                    </div>
-                  </div>
+                {currentLesson.description && (
+                  <p className="text-xs text-zinc-600 leading-relaxed">
+                    {currentLesson.description}
+                  </p>
                 )}
+              </div>
 
-                {/* Bottom Navigation Actions */}
-                <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              {/* Media viewer */}
+              {renderMedia(currentLesson)}
+
+              {/* Content / Guide text */}
+              {currentLesson.content && (
+                <div className="p-3.5 bg-zinc-50/70 rounded-xl border border-zinc-200/60 text-xs text-zinc-800 leading-relaxed whitespace-pre-line font-sans">
+                  {currentLesson.content}
+                </div>
+              )}
+
+              {/* Navigation buttons */}
+              <div className="pt-3 border-t border-zinc-100 flex items-center justify-between gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handlePreviousLesson}
+                  disabled={currentLessonIndex === 0}
+                  className="px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-700 hover:bg-zinc-50 text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1 transition-colors"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Précédente</span>
+                </button>
+
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={handlePreviousLesson}
-                    disabled={currentLessonIndex === 0}
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-2xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1.5"
+                    type="button"
+                    onClick={() => handleToggleLesson(currentLesson)}
+                    disabled={loadingAction}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors border ${
+                      completedLessonIds.has(currentLesson.id)
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border-zinc-200'
+                    }`}
                   >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span>Leçon précédente</span>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>{completedLessonIds.has(currentLesson.id) ? 'Validée' : 'Valider la leçon'}</span>
                   </button>
 
-                  <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                  {currentLessonIndex < totalLessons - 1 ? (
                     <button
-                      onClick={() => handleToggleLesson(currentLesson)}
+                      type="button"
+                      onClick={handleNextLesson}
                       disabled={loadingAction}
-                      className={`flex-1 sm:flex-none px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 border ${
-                        completedLessonIds.has(currentLesson.id)
-                          ? 'bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-emerald-100'
-                          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                      }`}
+                      className="px-3.5 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-900 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-xs"
                     >
-                      {completedLessonIds.has(currentLesson.id) ? (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 text-zinc-900" />
-                          <span>Leçon terminée</span>
-                        </>
-                      ) : (
-                        <>
-                          <Circle className="w-4 h-4 text-slate-400" />
-                          <span>Marquer comme terminée</span>
-                        </>
-                      )}
+                      <span>Suivante</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-
-                    {currentLessonIndex < totalLessons - 1 ? (
-                      <button
-                        onClick={handleNextLesson}
-                        disabled={loadingAction}
-                        className="flex-1 sm:flex-none px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-xs hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <span>Suivante</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={onBack}
-                        className="flex-1 sm:flex-none px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <Award className="w-4 h-4" />
-                        <span>Terminer le module</span>
-                      </button>
-                    )}
-                  </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={onBack}
+                      className="px-3.5 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-900 text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-xs"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Terminer</span>
+                    </button>
+                  )}
                 </div>
               </div>
-            ) : (
-              <div className="py-16 text-center text-slate-400 text-sm">
-                Aucune leçon configurée dans ce module.
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-xs text-zinc-400">
+              Aucune leçon dans ce module.
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 🎉 Full Celebration Modal when course is 100% completed */}
+      {/* Completion Modal */}
       {showCelebration && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-5 shadow-2xl border border-zinc-200">
-            <div className="w-16 h-16 bg-gradient-to-tr from-zinc-900 to-zinc-950 text-white rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-amber-500/30 animate-bounce">
-              <Award className="w-9 h-9" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl border border-zinc-200">
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full mx-auto flex items-center justify-center">
+              <Award className="w-6 h-6" />
             </div>
 
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-800 bg-zinc-100 px-3 py-1 rounded-full border border-zinc-200">
-                Félicitations ! 🎓
-              </span>
-              <h3 className="text-xl font-black text-slate-900">
-                Module Validé avec Succès !
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-zinc-900">
+                Formation terminée
               </h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                Vous avez validé l'ensemble des {totalLessons} leçons du module "
-                <span className="font-bold text-slate-900">{module.title}</span>".
-                Votre progression a été enregistrée avec succès.
+              <p className="text-xs text-zinc-500">
+                Toutes les leçons du module "{module.title}" ont été validées.
               </p>
             </div>
 
             <button
+              type="button"
               onClick={() => {
                 setShowCelebration(false);
                 onBack();
               }}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-xs transition-transform hover:scale-[1.02]"
+              className="w-full py-2 bg-zinc-950 hover:bg-zinc-900 text-white rounded-xl text-xs font-semibold transition-colors"
             >
-              Retour à l'académie
+              Retour aux formations
             </button>
           </div>
         </div>

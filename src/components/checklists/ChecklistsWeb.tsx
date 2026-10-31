@@ -33,7 +33,6 @@ import { adaptChecklist } from '@/lib/convexAdapters';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { Checklist, Pole, Event, User } from '@/types';
 import { ChecklistFeedbackModal } from './ChecklistFeedbackModal';
-import { ChecklistFormModal } from './ChecklistFormModal';
 import { ConfirmModal, Modal, Badge, Toast, ToastState, MediaViewer } from '@/components/ui';
 import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
 
@@ -454,8 +453,14 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
         {isLeaderOrAdmin && (
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors self-start sm:self-auto"
+            onClick={() =>
+              router.push(
+                `/checklists/new${
+                  selectedPoleId && selectedPoleId !== 'all' ? `?poleId=${selectedPoleId}` : ''
+                }`
+              )
+            }
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-zinc-950 hover:bg-zinc-900 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Nouvelle checklist</span>
@@ -546,8 +551,14 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
               </p>
               {isLeaderOrAdmin && (
                 <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl shadow-xs hover:bg-blue-700 transition-colors"
+                  onClick={() =>
+                    router.push(
+                      `/checklists/new${
+                        selectedPoleId && selectedPoleId !== 'all' ? `?poleId=${selectedPoleId}` : ''
+                      }`
+                    )
+                  }
+                  className="px-4 py-2 bg-zinc-950 hover:bg-zinc-900 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors"
                 >
                   Créer une checklist
                 </button>
@@ -799,16 +810,6 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
           </div>
         </div>
       )}
-
-      {/* MODAL CRÉER UNE CHECKLIST — same form used on the pole detail page */}
-      <ChecklistFormModal
-        isOpen={showCreateModal}
-        poleId={selectedPoleId && selectedPoleId !== 'all' ? selectedPoleId : (myPoles[0]?.id || poles[0]?.id || '')}
-        poleName={poles.find((p) => p.id === (selectedPoleId && selectedPoleId !== 'all' ? selectedPoleId : (myPoles[0]?.id || poles[0]?.id || '')) )?.name}
-        editingChecklist={null}
-        onClose={() => setShowCreateModal(false)}
-        onSaved={handleChecklistCreated}
-      />
 
       {/* MODAL MODIFIER TITRE / DESCRIPTION */}
       {showEditInfoModal && (

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,13 +23,11 @@ import { adaptChecklist } from '@/lib/convexAdapters';
 import { MediaViewer } from '@/components/ui';
 import { useAppShell } from '@/contexts/AppShellContext';
 
-interface ChecklistRunnerContentProps {
-  checklistId: string;
-}
-
-function ChecklistRunnerContent({ checklistId }: ChecklistRunnerContentProps) {
+function ChecklistRunnerContent() {
   const router = useRouter();
+  const params = useParams();
   const searchParams = useSearchParams();
+  const checklistId = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : '';
   const eventId = searchParams.get('eventId') || undefined;
 
   const { currentUser } = useAppShell();
@@ -418,12 +416,7 @@ function ChecklistRunnerContent({ checklistId }: ChecklistRunnerContentProps) {
   );
 }
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function ChecklistRunnerPage({ params }: PageProps) {
-  const resolvedParams = React.use(params);
+export default function ChecklistRunnerPage() {
   return (
     <Suspense
       fallback={
@@ -433,7 +426,7 @@ export default function ChecklistRunnerPage({ params }: PageProps) {
         </div>
       }
     >
-      <ChecklistRunnerContent checklistId={resolvedParams.id} />
+      <ChecklistRunnerContent />
     </Suspense>
   );
 }

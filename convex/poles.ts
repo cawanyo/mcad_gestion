@@ -68,10 +68,8 @@ export const list = query({
 export const get = query({
   args: { poleId: v.id("poles") },
   handler: async (ctx, { poleId }) => {
-    await requireAuth(ctx);
-
     const pole = await ctx.db.get(poleId);
-    if (!pole) throw new ConvexError("Pôle introuvable");
+    if (!pole) return null;
 
     const [leaders, memberships, checklists, pendingRequests, requirements] = await Promise.all([
       ctx.db.query("poleLeaders").withIndex("poleId", (q) => q.eq("poleId", poleId)).collect(),

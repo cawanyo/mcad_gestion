@@ -65,9 +65,8 @@ export const list = query({
 export const get = query({
   args: { checklistId: v.id("checklists") },
   handler: async (ctx, { checklistId }) => {
-    await requireAuth(ctx);
     const checklist = await ctx.db.get(checklistId);
-    if (!checklist) throw new ConvexError("Checklist not found");
+    if (!checklist) return null;
     return await enrichChecklist(ctx, checklist);
   },
 });

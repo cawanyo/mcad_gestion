@@ -25,6 +25,8 @@ export const TAB_PATHS: Record<string, string> = {
   leader_hub: '/leader',
   leader_dashboard: '/leader-dashboard',
   admin_dashboard: '/leader-dashboard',
+  training_management: '/leader/training',
+  leader_training: '/leader/training',
   members: '/members',
   requests: '/requests',
   settings: '/settings',
@@ -37,7 +39,7 @@ export function tabToPath(tabId: string): string {
 
 const SERVICE_GROUP_PATHS = ['/service', '/poles', '/checklists', '/unavailabilities'];
 const LIFE_GROUP_PATHS = ['/life', '/birthdays', '/stats'];
-const LEADER_GROUP_PATHS = ['/leader', '/leader-dashboard', '/members', '/requests'];
+const LEADER_GROUP_PATHS = ['/leader', '/leader-dashboard', '/members', '/requests', '/leader/training'];
 
 /** Which top-level hub a given path belongs to — used by the mobile bottom
  * tab bar to keep e.g. "Service" highlighted while on /poles or /checklists. */

@@ -35,7 +35,6 @@ import {
 import { useQuery, useMutation } from 'convex/react';
 import { Pole, User } from '@/types';
 import { ChecklistFeedbackModal } from '@/components/checklists/ChecklistFeedbackModal';
-import { ChecklistFormModal } from '@/components/checklists/ChecklistFormModal';
 import { ConfirmModal } from '@/components/ui';
 import { adaptPoleDetail, adaptMemberListItem } from '@/lib/convexAdapters';
 import { convexErrorMessage } from '@/lib/convexErrors';
@@ -56,8 +55,11 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   onRefreshAll
 }) => {
   const router = useRouter();
-  const poleRaw = useQuery(api.poles.get, { poleId: poleId as Id<'poles'> });
-  const pole = React.useMemo(() => adaptPoleDetail(poleRaw), [poleRaw]);
+  const poleRaw = useQuery(
+    api.poles.get,
+    poleId ? { poleId: poleId as Id<'poles'> } : 'skip'
+  );
+  const pole = React.useMemo(() => (poleRaw ? adaptPoleDetail(poleRaw) : null), [poleRaw]);
   const loading = poleRaw === undefined;
 
   const availableUsersRaw = useQuery(api.members.list, {});
@@ -151,27 +153,52 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
       });
   }, [availableUsersRaw, pole, userSearchQuery]);
 
+  // Checklists with search filter (Hook declared before any return)
+  const allChecklists = pole?.checklists || [];
+  const filteredChecklists = React.useMemo(() => {
+    return allChecklists.filter((chk: any) => {
+      const q = checklistSearch.toLowerCase().trim();
+      if (!q) return true;
+      const title = (chk.title || '').toLowerCase();
+      const desc = (chk.description || '').toLowerCase();
+      return title.includes(q) || desc.includes(q);
+    });
+  }, [allChecklists, checklistSearch]);
+
   const handleOpenAddMemberModal = () => {
     setShowAddMemberModal(true);
   };
 
   const handleOpenCreateChecklist = () => {
-    setEditingChecklist(null);
-    setShowAddChecklistModal(true);
+    router.push(`/checklists/new?poleId=${poleId}`);
   };
 
   const handleOpenEditChecklist = (chk: any) => {
-    setEditingChecklist(chk);
-    setShowAddChecklistModal(true);
+    router.push(`/checklists/new?checklistId=${chk.id}&poleId=${poleId}`);
   };
 
-  if (loading || !pole) {
+  if (loading) {
     return (
       <div className="p-12 text-center flex flex-col items-center justify-center space-y-3 font-sans">
-        <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white animate-pulse">
+        <div className="w-10 h-10 rounded-2xl bg-zinc-900 flex items-center justify-center text-white animate-pulse">
           <Sparkles className="w-5 h-5" />
         </div>
-        <p className="text-xs text-slate-500 font-medium">Chargement des détails du pôle...</p>
+        <p className="text-xs text-zinc-500 font-medium">Chargement des détails du pôle...</p>
+      </div>
+    );
+  }
+
+  if (!pole) {
+    return (
+      <div className="p-8 text-center space-y-4 font-sans max-w-md mx-auto">
+        <p className="text-xs text-zinc-500">Pôle introuvable ou vous n'avez pas l'accès.</p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-xs font-semibold hover:bg-zinc-800 transition-colors"
+        >
+          Retour aux pôles
+        </button>
       </div>
     );
   }
@@ -202,18 +229,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     const phone = (m.user?.phone || '').toLowerCase();
     return fullName.includes(memberSearch.toLowerCase()) || phone.includes(memberSearch.toLowerCase());
   });
-
-  // Checklists with search filter
-  const allChecklists = pole.checklists || [];
-  const filteredChecklists = React.useMemo(() => {
-    return allChecklists.filter((chk: any) => {
-      const q = checklistSearch.toLowerCase().trim();
-      if (!q) return true;
-      const title = (chk.title || '').toLowerCase();
-      const desc = (chk.description || '').toLowerCase();
-      return title.includes(q) || desc.includes(q);
-    });
-  }, [allChecklists, checklistSearch]);
 
   // Handlers
   const handleApproveRequest = async (requestId: string) => {
@@ -1063,19 +1078,6 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
           </div>
         </div>
       )}
-
-      {/* Modal: Add or Edit Checklist with DIRECT file upload */}
-      <ChecklistFormModal
-        isOpen={showAddChecklistModal}
-        poleId={poleId}
-        poleName={pole.name}
-        editingChecklist={editingChecklist}
-        onClose={() => {
-          setShowAddChecklistModal(false);
-          setEditingChecklist(null);
-        }}
-        onSaved={handleChecklistSaved}
-      />
 
       {/* Modal: Edit Pole Details */}
       {showEditPoleModal && (
