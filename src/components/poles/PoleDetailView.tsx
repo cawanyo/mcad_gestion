@@ -74,8 +74,8 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   // Create/update themselves live inside the shared ChecklistFormModal.
   const removeChecklistMutation = useMutation(api.checklists.remove);
 
-  const [showAllChecklists, setShowAllChecklists] = React.useState(false);
   const [memberSearch, setMemberSearch] = React.useState('');
+  const [checklistSearch, setChecklistSearch] = React.useState('');
 
   // Runner & Feedback Modals
   const [runningChecklist, setRunningChecklist] = React.useState<any | null>(null);
@@ -203,9 +203,17 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
     return fullName.includes(memberSearch.toLowerCase()) || phone.includes(memberSearch.toLowerCase());
   });
 
-  // Checklist list to display (3 max unless showAllChecklists is true)
+  // Checklists with search filter
   const allChecklists = pole.checklists || [];
-  const visibleChecklists = showAllChecklists ? allChecklists : allChecklists.slice(0, 3);
+  const filteredChecklists = React.useMemo(() => {
+    return allChecklists.filter((chk: any) => {
+      const q = checklistSearch.toLowerCase().trim();
+      if (!q) return true;
+      const title = (chk.title || '').toLowerCase();
+      const desc = (chk.description || '').toLowerCase();
+      return title.includes(q) || desc.includes(q);
+    });
+  }, [allChecklists, checklistSearch]);
 
   // Handlers
   const handleApproveRequest = async (requestId: string) => {
@@ -327,190 +335,172 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 font-sans">
-      {/* Top Navigation & Back Button */}
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 font-sans">
+      {/* Top Header with Single Back Arrow */}
+      <div className="flex items-center justify-between gap-3">
         <button
+          type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-800 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors"
+          className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 transition-colors shrink-0"
+          aria-label="Retour"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Retour</span>
+          <ArrowLeft className="w-4 h-4" />
         </button>
 
         {canManagePole && (
           <div className="flex items-center gap-2">
             <button
               onClick={handleOpenAddMemberModal}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3.5 py-2 rounded-xl transition-all shadow-xs"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors shadow-xs"
             >
               <UserPlus className="w-3.5 h-3.5" />
-              <span>+ Ajouter un membre</span>
+              <span>Ajouter un membre</span>
             </button>
 
             <button
               onClick={() => setShowEditPoleModal(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-indigo-600 bg-white border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-xs"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-700 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors"
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span>Modifier le pôle</span>
+              <span>Modifier</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* Action Toast — fixed overlay so it stays visible even above the
-          add-member modal, instead of sitting in the page flow where an
-          open modal would hide it. */}
+      {/* Floating Action Toast */}
       {actionSuccess && (
-        <div className="fixed bottom-6 right-6 z-[70] max-w-sm p-4 rounded-2xl bg-emerald-600 text-white text-xs flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          <span className="font-semibold flex-1">{actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} className="text-emerald-100 hover:text-white flex-shrink-0">
+        <div className="fixed bottom-6 right-6 z-[70] max-w-sm p-3 rounded-xl bg-zinc-900 text-white text-xs flex items-center gap-2.5 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="font-medium flex-1">{actionSuccess}</span>
+          <button onClick={() => setActionSuccess(null)} className="text-zinc-400 hover:text-white shrink-0">
             ✕
           </button>
         </div>
       )}
       {actionError && (
-        <div className="fixed bottom-6 right-6 z-[70] max-w-sm p-4 rounded-2xl bg-rose-600 text-white text-xs flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span className="font-semibold flex-1">{actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-rose-100 hover:text-white flex-shrink-0">
+        <div className="fixed bottom-6 right-6 z-[70] max-w-sm p-3 rounded-xl bg-zinc-900 text-white text-xs flex items-center gap-2.5 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span className="font-medium flex-1">{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-zinc-400 hover:text-white shrink-0">
             ✕
           </button>
         </div>
       )}
 
-      {/* Pole Header Card */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
-        <div
-          className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-20"
-          style={{ backgroundColor: pole.color || '#4f46e5' }}
-        />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-start gap-4">
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold shadow-md flex-shrink-0"
-              style={{ backgroundColor: pole.color || '#4f46e5' }}
-            >
-              <Users className="w-7 h-7" />
+      {/* Pole Header Card (Sober, compact, non-verbose) */}
+      <div className="bg-white p-4 sm:p-5 rounded-xl border border-zinc-200 shadow-2xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
+              <Users className="w-5 h-5" />
             </div>
 
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{pole.name}</h1>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-bold text-zinc-900 tracking-tight truncate">{pole.name}</h1>
+                <span className="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200 shrink-0">
                   Actif
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-                {pole.description || 'Pôle actif de service pour le bon fonctionnement des cultes et activités.'}
-              </p>
+              {pole.description && (
+                <p className="text-xs text-zinc-500 mt-0.5 line-clamp-1">
+                  {pole.description}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Membership Status Action for Members */}
-          <div>
+          <div className="shrink-0">
             {isMember ? (
-              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold shadow-xs">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Vous êtes membre actif</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-100 text-zinc-800 text-xs font-medium border border-zinc-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-zinc-900" />
+                <span>Membre actif</span>
               </span>
             ) : isPending ? (
-              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold shadow-xs animate-pulse">
-                <Clock className="w-4 h-4" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-100 text-zinc-700 text-xs font-medium border border-zinc-200">
+                <Clock className="w-3.5 h-3.5" />
                 <span>Demande en attente</span>
               </span>
             ) : (
               <button
                 onClick={() => setShowJoinModal(true)}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-600/20 transition-all hover:scale-105 flex items-center gap-2"
+                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
               >
-                <Send className="w-4 h-4" />
-                <span>Rejoindre ce pôle</span>
+                <Send className="w-3.5 h-3.5" />
+                <span>Rejoindre</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* 4 Quick Stat Badges */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Membres</span>
-            <span className="text-lg font-extrabold text-slate-900 mt-0.5 block">{pole.memberships?.length || 0}</span>
+        {/* Quick Stat Badges */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-zinc-100 text-xs">
+          <div className="p-2 bg-zinc-50 rounded-lg border border-zinc-100">
+            <span className="text-[10px] text-zinc-400 font-medium block">Membres</span>
+            <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{pole.memberships?.length || 0}</span>
           </div>
-
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Responsables</span>
-            <span className="text-lg font-extrabold text-indigo-700 mt-0.5 block">{pole.leaders?.length || 0}</span>
+          <div className="p-2 bg-zinc-50 rounded-lg border border-zinc-100">
+            <span className="text-[10px] text-zinc-400 font-medium block">Responsables</span>
+            <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{pole.leaders?.length || 0}</span>
           </div>
-
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Checklists</span>
-            <span className="text-lg font-extrabold text-emerald-700 mt-0.5 block">{allChecklists.length}</span>
+          <div className="p-2 bg-zinc-50 rounded-lg border border-zinc-100">
+            <span className="text-[10px] text-zinc-400 font-medium block">Checklists</span>
+            <span className="text-sm font-bold text-zinc-900 mt-0.5 block">{allChecklists.length}</span>
           </div>
-
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Prochain Service</span>
-            <span className="text-xs font-bold text-slate-800 mt-1 block truncate">
+          <div className="p-2 bg-zinc-50 rounded-lg border border-zinc-100">
+            <span className="text-[10px] text-zinc-400 font-medium block">Prochain service</span>
+            <span className="text-xs font-semibold text-zinc-800 mt-0.5 block truncate">
               {nextEvent ? new Date(nextEvent.startsAt).toLocaleDateString('fr-FR') : 'Aucun'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* ADMIN / LEADER ONLY: Pending Membership Requests for THIS Pole */}
+      {/* Pending Membership Requests */}
       {canManagePole && pole.membershipRequests?.length > 0 && (
-        <div className="bg-amber-50/70 p-5 sm:p-6 rounded-3xl border border-amber-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold">
-                <Users className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-sm sm:text-base font-bold text-amber-950">
-                  Demandes d'adhésion en attente ({pole.membershipRequests.length})
-                </h2>
-                <p className="text-xs text-amber-800">Candidatures pour rejoindre ce pôle</p>
-              </div>
-            </div>
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-zinc-200 shadow-2xs space-y-3">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-blue-600" />
+            <h2 className="text-xs sm:text-sm font-bold text-zinc-900">
+              Demandes d'adhésion en attente ({pole.membershipRequests.length})
+            </h2>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {pole.membershipRequests.map((req: any) => (
               <div
                 key={req.id}
-                className="bg-white p-4 rounded-2xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+                className="bg-zinc-50 p-3 rounded-lg border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <img
                     src={req.user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
                     alt=""
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-500/20"
+                    className="w-8 h-8 rounded-full object-cover border border-zinc-200 shrink-0"
                   />
-                  <div>
-                    <p className="text-xs font-bold text-slate-900">{req.user?.firstName} {req.user?.lastName}</p>
-                    <p className="text-[11px] text-slate-500 font-mono">{req.user?.phone || 'Sans numéro'}</p>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-zinc-900 truncate">{req.user?.firstName} {req.user?.lastName}</p>
+                    <p className="text-[10px] text-zinc-500 font-mono truncate">{req.user?.phone || 'Sans contact'}</p>
                     {req.motivation && (
-                      <p className="text-xs text-slate-600 mt-1 italic bg-slate-50 p-2 rounded-xl">
+                      <p className="text-[11px] text-zinc-600 mt-0.5 italic line-clamp-1">
                         "{req.motivation}"
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end sm:self-center">
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                   <button
                     onClick={() => handleApproveRequest(req.id)}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1"
+                    className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors flex items-center gap-1"
                   >
                     <UserCheck className="w-3.5 h-3.5" />
                     <span>Accepter</span>
                   </button>
                   <button
                     onClick={() => handleRejectRequest(req.id)}
-                    className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1"
+                    className="px-3 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
                   >
                     <UserX className="w-3.5 h-3.5" />
                     <span>Refuser</span>
@@ -523,97 +513,86 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
       )}
 
       {/* Row: Prochain Culte & Responsables */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Prochain Événement sollicitant ce pôle */}
-        <div className="lg:col-span-6 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-indigo-600" />
-            <span>Prochain culte / événement</span>
-          </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Prochain Culte */}
+        <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-2xs space-y-2.5">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-blue-600" />
+            <h2 className="text-xs sm:text-sm font-bold text-zinc-900">
+              Prochain culte
+            </h2>
+          </div>
 
           {nextEvent ? (
-            <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-3">
-              <div className="flex items-start justify-between">
+            <div className="p-3 rounded-lg bg-zinc-50 border border-zinc-200 space-y-2 text-xs">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">{nextEvent.title}</h3>
-                  <p className="text-xs text-slate-600 mt-0.5">{nextEvent.description || 'Culte et célébration.'}</p>
+                  <h3 className="font-bold text-zinc-900">{nextEvent.title}</h3>
+                  <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-1">{nextEvent.description || 'Culte régulier'}</p>
                 </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800">
-                  {nextRequirement?.requiredCount || 1} membre(s) requis
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-zinc-200 text-zinc-700 shrink-0">
+                  {nextRequirement?.requiredCount || 1} requis
                 </span>
               </div>
 
-              <div className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-indigo-100">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>{new Date(nextEvent.startsAt).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-indigo-600" />
+              <div className="space-y-1 text-[11px] text-zinc-600 pt-1.5 border-t border-zinc-200">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3 text-zinc-400" />
+                  <span>{new Date(nextEvent.startsAt).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                  <span>•</span>
+                  <Clock className="w-3 h-3 text-zinc-400" />
                   <span>{new Date(nextEvent.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(nextEvent.endsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>{nextEvent.location || 'Temple Principal'}</span>
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3 h-3 text-zinc-400" />
+                  <span>{nextEvent.location || 'Temple'}</span>
                 </div>
               </div>
 
-              {/* Members assigned from this pole */}
               {nextEvent.assignments?.length > 0 && (
-                <div className="pt-2 border-t border-indigo-100">
-                  <span className="text-[11px] font-bold text-slate-500 block mb-1.5">Membres affectés :</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {nextEvent.assignments.map((a: any) => (
-                      <span key={a.id} className="text-xs px-2.5 py-1 bg-white border border-indigo-200 rounded-xl text-slate-800 font-medium">
-                        👤 {a.user?.firstName} {a.user?.lastName} ({a.roleTag || 'Membre'})
-                      </span>
-                    ))}
-                  </div>
+                <div className="pt-1.5 border-t border-zinc-200 flex flex-wrap gap-1">
+                  {nextEvent.assignments.map((a: any) => (
+                    <span key={a.id} className="text-[10px] px-2 py-0.5 bg-white border border-zinc-200 rounded text-zinc-700 font-medium">
+                      {a.user?.firstName} {a.user?.lastName} ({a.roleTag || 'Membre'})
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
           ) : (
-            <div className="py-8 text-center space-y-2 border-2 border-dashed border-slate-100 rounded-2xl">
-              <Calendar className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-xs text-slate-500">Aucun événement à venir ne sollicite ce pôle pour le moment.</p>
-            </div>
+            <p className="text-xs text-zinc-500 py-3 text-center">Aucun culte à venir prévu pour ce pôle.</p>
           )}
         </div>
 
         {/* Responsables du Pôle */}
-        <div className="lg:col-span-6 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-indigo-600" />
-              <span>Responsables du pôle ({pole.leaders?.length || 0})</span>
+        <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-2xs space-y-2.5">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-blue-600" />
+            <h2 className="text-xs sm:text-sm font-bold text-zinc-900">
+              Responsables ({pole.leaders?.length || 0})
             </h2>
           </div>
 
           {pole.leaders?.length === 0 ? (
-            <div className="py-8 text-center space-y-2 border-2 border-dashed border-slate-100 rounded-2xl">
-              <Shield className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-xs text-slate-500">Aucun responsable assigné à ce pôle.</p>
-            </div>
+            <p className="text-xs text-zinc-500 py-3 text-center">Aucun responsable assigné.</p>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-1.5">
               {pole.leaders.map((leader: any) => (
                 <div
                   key={leader.id}
-                  className="p-3 rounded-2xl bg-indigo-50/40 border border-indigo-100 flex items-center justify-between"
+                  className="p-2 rounded-lg bg-zinc-50 border border-zinc-200 flex items-center justify-between text-xs"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <img
-                        src={leader.user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                        alt=""
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/30"
-                      />
-                      <Crown className="w-4 h-4 text-amber-500 absolute -top-1 -right-1" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">{leader.user?.firstName} {leader.user?.lastName}</p>
-                      <p className="text-[11px] text-indigo-600 font-semibold">{leader.roleTitle || 'Responsable de pôle'}</p>
-                      <p className="text-[10px] text-slate-500 font-mono">{leader.user?.phone || 'Sans numéro'}</p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img
+                      src={leader.user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                      alt=""
+                      className="w-7 h-7 rounded-full object-cover border border-zinc-200 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-zinc-900 truncate">
+                        {leader.user?.firstName} {leader.user?.lastName}
+                      </p>
+                      <p className="text-[10px] text-zinc-500 truncate">{leader.roleTitle || 'Responsable'}</p>
                     </div>
                   </div>
 
@@ -626,8 +605,8 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
                           isLeader: true
                         })
                       }
-                      className="text-xs text-rose-600 hover:text-rose-700 font-bold p-1.5 hover:bg-rose-50 rounded-lg"
-                      title="Retirer des responsables"
+                      className="text-[11px] text-zinc-500 hover:text-zinc-900 font-medium px-2 py-0.5 hover:bg-zinc-200 rounded transition-colors shrink-0"
+                      title="Retirer"
                     >
                       Retirer
                     </button>
@@ -639,198 +618,171 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
         </div>
       </div>
 
-      {/* Section: Checklists du Pôle (3 max + voir plus) */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              <CheckSquare className="w-4 h-4 text-indigo-600" />
-              <span>Checklists opérationnelles du pôle ({allChecklists.length})</span>
+      {/* Section: Checklists du Pôle (Search + Fixed Height Scroll) */}
+      <div className="bg-white p-4 sm:p-5 rounded-xl border border-zinc-200 shadow-2xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <CheckSquare className="w-4 h-4 text-blue-600" />
+            <h2 className="text-xs sm:text-sm font-bold text-zinc-900">
+              Checklists ({filteredChecklists.length})
             </h2>
-            <p className="text-xs text-slate-500">Guides d'exécution pas à pas avec photos et vidéos chargées</p>
           </div>
 
-          {canManagePole && (
-            <button
-              onClick={handleOpenCreateChecklist}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Nouvelle checklist</span>
-            </button>
-          )}
-        </div>
+          <div className="flex items-center gap-2">
+            <div className="relative w-full sm:w-52">
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={checklistSearch}
+                onChange={(e) => setChecklistSearch(e.target.value)}
+                placeholder="Rechercher une checklist..."
+                className="w-full pl-8 pr-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-blue-600"
+              />
+            </div>
 
-        {allChecklists.length === 0 ? (
-          <div className="py-8 text-center space-y-2 border-2 border-dashed border-slate-100 rounded-2xl">
-            <CheckSquare className="w-8 h-8 text-slate-300 mx-auto" />
-            <p className="text-xs text-slate-500">Aucune checklist configurée pour ce pôle.</p>
             {canManagePole && (
               <button
                 onClick={handleOpenCreateChecklist}
-                className="mt-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-xl"
+                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1 shrink-0"
               >
-                + Créer la première checklist
+                <Plus className="w-3.5 h-3.5" />
+                <span>Créer</span>
               </button>
             )}
           </div>
+        </div>
+
+        {filteredChecklists.length === 0 ? (
+          <div className="py-6 text-center text-xs text-zinc-500">
+            {checklistSearch ? 'Aucune checklist ne correspond à votre recherche.' : 'Aucune checklist configurée pour ce pôle.'}
+          </div>
         ) : (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {visibleChecklists.map((chk: any) => (
-                <div
-                  key={chk.id}
-                  className="p-5 rounded-3xl border border-slate-200 bg-white hover:border-indigo-200 hover:shadow-md flex flex-col justify-between space-y-4 transition-all shadow-xs"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-extrabold text-slate-900">{chk.title}</h3>
-                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                        {chk.steps?.length || 0} étape(s)
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                      {chk.description || 'Guide opérationnel pas à pas.'}
-                    </p>
+          <div className="max-h-60 overflow-y-auto pr-1 space-y-2">
+            {filteredChecklists.map((chk: any) => (
+              <div
+                key={chk.id}
+                className="p-2.5 rounded-lg border border-zinc-200 hover:border-zinc-300 bg-white flex items-center justify-between gap-3 text-xs"
+              >
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-zinc-900 truncate">{chk.title}</span>
+                    <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 shrink-0">
+                      {chk.steps?.length || 0} étape(s)
+                    </span>
                   </div>
-
-                  {/* Primary Action: Utiliser cette checklist */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <button
-                      onClick={() => setRunningChecklist(chk)}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-sm shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01]"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Utiliser cette checklist</span>
-                    </button>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <button
-                        onClick={() => setSelectedChecklistForSteps(chk)}
-                        className="text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1"
-                      >
-                        <span>Aperçu des étapes</span>
-                      </button>
-
-                      <div className="flex items-center gap-1">
-                        {canManagePole && (
-                          <>
-                            <button
-                              onClick={() => setFeedbackChecklist(chk)}
-                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                              title="Retours et commentaires"
-                            >
-                              <MessageSquare className="w-4 h-4" />
-                            </button>
-
-                            <button
-                              onClick={() => handleOpenEditChecklist(chk)}
-                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                              title="Modifier la checklist"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-
-                            <button
-                              onClick={() => handleDeleteChecklist(chk)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                              title="Supprimer la checklist"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  {chk.description && (
+                    <p className="text-[11px] text-zinc-500 truncate">{chk.description}</p>
+                  )}
                 </div>
-              ))}
-            </div>
 
-            {/* Voir Plus Button if > 3 checklists */}
-            {allChecklists.length > 3 && (
-              <div className="text-center pt-2">
-                <button
-                  onClick={() => setShowAllChecklists(!showAllChecklists)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors"
-                >
-                  <span>{showAllChecklists ? 'Réduire la liste' : `Voir plus (${allChecklists.length - 3} de plus)`}</span>
-                  {showAllChecklists ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => setRunningChecklist(chk)}
+                    className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    <span>Exécuter</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedChecklistForSteps(chk)}
+                    className="p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors"
+                    title="Étapes"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                  </button>
+
+                  {canManagePole && (
+                    <>
+                      <button
+                        onClick={() => handleOpenEditChecklist(chk)}
+                        className="p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors"
+                        title="Modifier"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteChecklist(chk)}
+                        className="p-1 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded transition-colors"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
 
-      {/* Section: Tous les Membres du Pôle */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              <Users className="w-4 h-4 text-indigo-600" />
-              <span>Membres du pôle ({pole.memberships?.length || 0})</span>
+      {/* Section: Membres du Pôle (Search + Fixed Height Scroll) */}
+      <div className="bg-white p-4 sm:p-5 rounded-xl border border-zinc-200 shadow-2xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-blue-600" />
+            <h2 className="text-xs sm:text-sm font-bold text-zinc-900">
+              Membres ({filteredMembers.length})
             </h2>
-            <p className="text-xs text-slate-500">Membres actifs pouvant être affectés aux cultes</p>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="flex items-center gap-2">
+            <div className="relative w-full sm:w-52">
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
                 placeholder="Rechercher un membre..."
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                className="w-full pl-8 pr-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-blue-600"
               />
             </div>
 
             {canManagePole && (
               <button
                 onClick={handleOpenAddMemberModal}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs whitespace-nowrap"
+                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1 shrink-0"
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>+ Ajouter</span>
+                <span>Ajouter</span>
               </button>
             )}
           </div>
         </div>
 
         {filteredMembers.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500">
-            {memberSearch ? 'Aucun membre ne correspond à votre recherche.' : 'Aucun membre dans ce pôle pour le moment.'}
+          <div className="py-6 text-center text-xs text-zinc-500">
+            {memberSearch ? 'Aucun membre ne correspond à votre recherche.' : 'Aucun membre dans ce pôle.'}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="max-h-60 overflow-y-auto pr-1 space-y-1.5">
             {filteredMembers.map((m: any) => {
               const isLeader = pole.leaders?.some((l: any) => l.userId === m.user?.id);
               return (
                 <div
                   key={m.id}
-                  className="p-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between hover:bg-slate-50 transition-all"
+                  className="p-2 rounded-lg border border-zinc-100 bg-zinc-50/50 flex items-center justify-between hover:bg-zinc-50 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <img
                       src={m.user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
                       alt=""
-                      className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-200"
+                      className="w-7 h-7 rounded-full object-cover border border-zinc-200 shrink-0"
                     />
-                    <div>
-                      <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-zinc-900 flex items-center gap-1 truncate">
                         <span>{m.user?.firstName} {m.user?.lastName}</span>
-                        {isLeader && <Crown className="w-3 h-3 text-amber-500" />}
+                        {isLeader && <Crown className="w-3 h-3 text-zinc-900 shrink-0" />}
                       </p>
-                      <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
-                        <span>{m.user?.gender === 'FEMME' ? '👩 Femme' : '👨 Homme'}</span>
-                        {m.user?.phone && <span>• {m.user?.phone}</span>}
+                      <p className="text-[10px] text-zinc-400 font-mono truncate">
+                        {m.user?.phone || 'Sans contact'}
                       </p>
                     </div>
                   </div>
 
                   {canManagePole && m.user?.id !== currentUser?.id && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() =>
                           setConfirmLeaderAction({
@@ -839,12 +791,12 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
                             isLeader
                           })
                         }
-                        className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
-                          isLeader ? 'text-amber-600 hover:bg-amber-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
+                        className={`p-1 rounded text-xs transition-colors ${
+                          isLeader ? 'text-zinc-900 hover:bg-zinc-200' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-200'
                         }`}
-                        title={isLeader ? 'Rétrograder membre' : 'Nommer responsable'}
+                        title={isLeader ? 'Rétrograder' : 'Nommer responsable'}
                       >
-                        <Crown className="w-4 h-4" />
+                        <Crown className="w-3.5 h-3.5" />
                       </button>
 
                       <button
@@ -854,10 +806,10 @@ export const PoleDetailView: React.FC<PoleDetailViewProps> = ({
                             name: `${m.user?.firstName} ${m.user?.lastName}`
                           })
                         }
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Retirer du pôle"
+                        className="p-1 rounded text-zinc-400 hover:text-zinc-900 hover:bg-zinc-200 transition-colors"
+                        title="Retirer"
                       >
-                        <UserX className="w-4 h-4" />
+                        <UserX className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   )}

@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useConvexAuth, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { LayoutDashboard, LogIn, Trash2 } from 'lucide-react';
+import { LayoutDashboard, LogIn, Trash2, ArrowLeft } from 'lucide-react';
 
 /**
  * Standalone header for the /equipment module. Deliberately not the app
@@ -46,10 +46,10 @@ export const EquipmentHeader: React.FC = () => {
           {isAuthenticated && viewer ? (
             <Link
               href="/dashboard"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-lg text-xs font-medium transition-colors"
+              className="p-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-lg transition-colors inline-flex items-center justify-center"
+              aria-label="Retour"
             >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Retour</span>
+              <ArrowLeft className="w-4 h-4" />
             </Link>
           ) : (
             <Link

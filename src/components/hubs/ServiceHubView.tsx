@@ -62,7 +62,7 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
@@ -70,35 +70,31 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
               key={card.id}
               type="button"
               onClick={() => onNavigate(card.id)}
-              className="text-left p-5 rounded-xl bg-white hover:bg-zinc-50/60 border border-zinc-200 hover:border-zinc-300 shadow-xs transition-all flex flex-col justify-between group"
+              className="text-left p-3 rounded-xl bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-zinc-300 transition-all flex items-center justify-between group shadow-2xs"
             >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-lg bg-zinc-100 border border-zinc-200 text-zinc-900 flex items-center justify-center group-hover:border-zinc-300 transition-colors">
-                    <Icon className="w-5 h-5" />
-                  </div>
-
-                  {card.badge && (
-                    <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200">
-                      {card.badge}
-                    </span>
-                  )}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 border border-zinc-200 text-zinc-900 flex items-center justify-center shrink-0 group-hover:border-zinc-300 transition-colors">
+                  <Icon className="w-4 h-4" />
                 </div>
 
-                <div>
-                  <h2 className="text-sm font-bold text-zinc-900 group-hover:text-blue-600 transition-colors">
-                    {card.title}
-                  </h2>
-                  <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="text-xs font-bold text-zinc-900 group-hover:text-blue-600 transition-colors truncate">
+                      {card.title}
+                    </h2>
+                    {card.badge && (
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200 shrink-0">
+                        {card.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-zinc-500 truncate mt-0.5">
                     {card.description}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-medium text-blue-600">
-                <span>Consulter</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </button>
           );
         })}

@@ -43,13 +43,15 @@ interface ChecklistsWebProps {
   events: Event[];
   currentUser?: User | null;
   onRefresh?: () => void;
+  onBack?: () => void;
 }
 
 export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   poles = [],
   events = [],
   currentUser,
-  onRefresh
+  onRefresh,
+  onBack
 }) => {
   const [selectedPoleId, setSelectedPoleId] = React.useState<string>('all');
   const checklistsRaw = useQuery(
@@ -424,18 +426,30 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 flex items-center gap-2">
-            <span>Checklists de Service</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
-              {filteredChecklists.length}
-            </span>
-          </h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {isLeaderOrAdmin
-              ? 'Guides d’exécution pas à pas pour vos pôles.'
-              : 'Consultez et exécutez les guides de vos pôles de service.'}
-          </p>
+        <div className="flex items-center gap-2.5">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 transition-colors shrink-0"
+              aria-label="Retour"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 flex items-center gap-2">
+              <span>Checklists</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
+                {filteredChecklists.length}
+              </span>
+            </h1>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              {isLeaderOrAdmin
+                ? 'Guides d’exécution pas à pas pour vos pôles.'
+                : 'Consultez et exécutez les guides de vos pôles de service.'}
+            </p>
+          </div>
         </div>
 
         {isLeaderOrAdmin && (

@@ -221,10 +221,10 @@ function CreateOrEditEventForm() {
         <button
           type="button"
           onClick={handleCancel}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+          className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 transition-colors"
+          aria-label="Retour"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Retour</span>
         </button>
         <span className="text-xs font-semibold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
           {isEditing ? "Modification" : "Nouveau culte"}

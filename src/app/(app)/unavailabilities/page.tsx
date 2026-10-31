@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { UnavailabilitiesView } from '@/components/unavailability/UnavailabilitiesView';
-import { SubViewHeader } from '@/components/layout/SubViewHeader';
 import { useAppShell } from '@/contexts/AppShellContext';
 
 export default function UnavailabilitiesPage() {
@@ -12,14 +11,11 @@ export default function UnavailabilitiesPage() {
   if (!currentUser) return null;
 
   return (
-    <div>
-      <div className="lg:hidden">
-        <SubViewHeader
-          currentTitle="Indisponibilités"
-          onBack={() => router.back()}
-        />
-      </div>
-      <UnavailabilitiesView currentUser={currentUser} poles={poles} members={allUsers} />
-    </div>
+    <UnavailabilitiesView
+      currentUser={currentUser}
+      poles={poles}
+      members={allUsers}
+      onBack={() => router.back()}
+    />
   );
 }

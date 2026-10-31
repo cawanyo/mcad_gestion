@@ -11,7 +11,8 @@ import {
   User as UserIcon,
   ChevronLeft,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  ArrowLeft
 } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -25,12 +26,14 @@ interface UnavailabilitiesViewProps {
   currentUser: User | null;
   poles: Pole[];
   members?: User[];
+  onBack?: () => void;
 }
 
 export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
   currentUser,
   poles = [],
-  members = []
+  members = [],
+  onBack
 }) => {
   const unavailabilitiesRaw = useQuery(api.unavailabilities.list, {});
   const loading = unavailabilitiesRaw === undefined;
@@ -232,13 +235,25 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 font-sans">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">Indisponibilités</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {isLeaderOrAdmin
-              ? 'Gestion des absences pour la planification des services.'
-              : 'Déclarez vos périodes d’absence pour les plannings.'}
-          </p>
+        <div className="flex items-center gap-2.5">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 transition-colors shrink-0"
+              aria-label="Retour"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">Indisponibilités</h1>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              {isLeaderOrAdmin
+                ? 'Gestion des absences pour la planification des services.'
+                : 'Déclarez vos périodes d’absence pour les plannings.'}
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -393,7 +408,7 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
               {filteredUnavailabilities.map((u) => {
                 const status = getStatus(u.startsAt, u.endsAt);
                 const startDate = new Date(u.startsAt);
@@ -405,45 +420,35 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                 return (
                   <div
                     key={u.id}
-                    className={`p-4 bg-white rounded-xl border transition-all hover:border-zinc-400 space-y-3 relative ${
+                    className={`p-3 bg-white rounded-xl border transition-all hover:border-zinc-400 space-y-2 relative ${
                       status === 'ACTIVE'
                         ? 'border-zinc-300 ring-1 ring-zinc-300'
                         : status === 'UPCOMING'
                         ? 'border-zinc-200'
-                        : 'border-zinc-200 bg-zinc-50/50 opacity-75'
+                        : 'border-zinc-200 bg-zinc-50/40 opacity-75'
                     }`}
                   >
                     {/* Top Member Info & Status Badge */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <img
                           src={
                             u.user?.avatar ||
                             'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
                           }
                           alt=""
-                          className="w-9 h-9 rounded-full object-cover border border-zinc-200"
+                          className="w-7 h-7 rounded-full object-cover border border-zinc-200 shrink-0"
                         />
-                        <div>
-                          <h4 className="text-xs font-semibold text-zinc-900 leading-tight">
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-zinc-900 leading-tight truncate">
                             {u.user?.firstName} {u.user?.lastName}
                           </h4>
-                          <div className="flex items-center gap-1 mt-1 flex-wrap">
-                            {(u.user?.poleMemberships || []).map((pm: any) => (
-                              <span
-                                key={pm.id}
-                                className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200"
-                              >
-                                {pm.pole?.name}
-                              </span>
-                            ))}
-                          </div>
                         </div>
                       </div>
 
                       {/* Status Tag */}
                       <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        className={`text-[9px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
                           status === 'ACTIVE'
                             ? 'bg-zinc-900 text-white'
                             : status === 'UPCOMING'
@@ -455,51 +460,46 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                       </span>
                     </div>
 
-                    {/* Reason, Recurrence & Dates */}
-                    <div className="p-2.5 bg-zinc-50 rounded-lg border border-zinc-100 space-y-1 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-zinc-900">{u.reason || 'Indisponibilité'}</span>
-                        {u.recurrence && u.recurrence !== 'NONE' && (
-                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700">
-                            {u.recurrence === 'WEEKLY'
-                              ? 'Hebdomadaire'
-                              : u.recurrence === 'BIWEEKLY'
-                              ? 'Toutes les 2 sem.'
-                              : 'Mensuelle'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between text-zinc-500 text-[11px]">
-                        <span>
-                          Du {startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} au{' '}
-                          {endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {/* Reason & Tags */}
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-semibold text-zinc-800 truncate">
+                        {u.reason || 'Indisponibilité'}
+                      </span>
+                      {u.recurrence && u.recurrence !== 'NONE' && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-600 shrink-0">
+                          {u.recurrence === 'WEEKLY' ? 'Hebdo' : u.recurrence === 'BIWEEKLY' ? '2 sem.' : 'Mensuel'}
                         </span>
-                        <span className="font-semibold text-zinc-700">{diffDays} j.</span>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Action buttons */}
-                    {canManage && (
-                      <div className="pt-2 border-t border-zinc-100 flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => {
-                            setEditingUnavailability(u);
-                            setShowModal(true);
-                          }}
-                          className="p-1 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded transition-colors"
-                          title="Modifier l'indisponibilité"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(u.id)}
-                          className="p-1 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded transition-colors"
-                          title="Supprimer l'indisponibilité"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
+                    {/* Dates & Actions */}
+                    <div className="pt-1.5 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500">
+                      <span>
+                        {startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — {endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ({diffDays}j)
+                      </span>
+
+                      {canManage && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => {
+                              setEditingUnavailability(u);
+                              setShowModal(true);
+                            }}
+                            className="p-1 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded transition-colors"
+                            title="Modifier"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(u.id)}
+                            className="p-1 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded transition-colors"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}

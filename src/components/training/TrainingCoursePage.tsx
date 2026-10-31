@@ -129,10 +129,10 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onBack}
-              className="p-2 -ml-2 hover:bg-slate-100 rounded-2xl text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 text-xs font-bold flex-shrink-0"
+              className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-600 hover:text-zinc-900 transition-colors flex items-center justify-center flex-shrink-0"
+              aria-label="Retour"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Retour</span>
             </button>
 
             <div className="h-4 w-px bg-slate-200 hidden sm:block" />

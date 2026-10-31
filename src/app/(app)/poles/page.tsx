@@ -3,7 +3,6 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { PolesManagement } from '@/components/poles/PolesManagement';
-import { SubViewHeader } from '@/components/layout/SubViewHeader';
 import { useAppShell } from '@/contexts/AppShellContext';
 
 export default function PolesPage() {
@@ -22,19 +21,11 @@ export default function PolesPage() {
   if (!currentUser) return null;
 
   return (
-    <div>
-      <div className="lg:hidden">
-        <SubViewHeader
-          currentTitle="Pôles"
-          onBack={() => router.back()}
-        />
-      </div>
-      <PolesManagement
-        poles={poles}
-        currentUser={currentUser}
-        onRefresh={fetchData}
-        initialSelectedPoleId={selectedPoleForNav}
-      />
-    </div>
+    <PolesManagement
+      poles={poles}
+      currentUser={currentUser}
+      onRefresh={fetchData}
+      initialSelectedPoleId={selectedPoleForNav}
+    />
   );
 }
