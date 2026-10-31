@@ -60,26 +60,54 @@ export const sendPushToUser = internalAction({
     const tokens: string[] = await ctx.runQuery(internal.push.getTokensForUser, { userId });
     if (tokens.length === 0) return;
 
-    const messages = tokens.map((to) => ({
-      to,
-      title,
-      body,
-      sound: "default",
-      data: data || {},
-    }));
+    const webTokens: string[] = [];
+    const expoTokens: string[] = [];
 
-    // Expo caps a single push request at 100 messages.
-    for (let i = 0; i < messages.length; i += 100) {
-      const chunk = messages.slice(i, i + 100);
+    for (const token of tokens) {
+      if (token.startsWith("{") && token.includes("endpoint")) {
+        webTokens.push(token);
+      } else {
+        expoTokens.push(token);
+      }
+    }
+
+    // 1. Envoi Web Push (téléphone PWA, Chrome, Safari iOS, etc.)
+    for (const subJson of webTokens) {
       try {
-        await fetch("https://exp.host/--/api/v2/push/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify(chunk),
+        await ctx.runAction(internal.webPushActions.sendWebPush, {
+          subscriptionJson: subJson,
+          title,
+          body,
+          url: data?.linkUrl,
+          data,
         });
-      } catch {
-        // Best-effort: a failed push must never break the mutation that
-        // triggered it (the in-app notification row is already written).
+      } catch (e) {
+        console.warn("[Push] Erreur envoi Web Push:", e);
+      }
+    }
+
+    // 2. Envoi Expo (application mobile native React Native)
+    if (expoTokens.length > 0) {
+      const messages = expoTokens.map((to) => ({
+        to,
+        title,
+        body,
+        sound: "default",
+        data: data || {},
+      }));
+
+      // Expo caps a single push request at 100 messages.
+      for (let i = 0; i < messages.length; i += 100) {
+        const chunk = messages.slice(i, i + 100);
+        try {
+          await fetch("https://exp.host/--/api/v2/push/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(chunk),
+          });
+        } catch {
+          // Best-effort
+        }
       }
     }
   },

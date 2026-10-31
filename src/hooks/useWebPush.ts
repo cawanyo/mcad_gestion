@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array } from '@/lib/pushClient';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 export type PushPermissionStatus = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -11,6 +13,9 @@ export function useWebPush() {
   const [subscription, setSubscription] = React.useState<PushSubscription | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
+
+  const registerTokenMutation = useMutation(api.push.registerToken);
+  const unregisterTokenMutation = useMutation(api.push.unregisterToken);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -25,7 +30,7 @@ export function useWebPush() {
 
     setPermission(Notification.permission as PushPermissionStatus);
 
-    // Check if already subscribed and keep subscription fresh on server
+    // Check if already subscribed and keep subscription fresh on server and Convex
     navigator.serviceWorker.ready
       .then((reg) => {
         reg.pushManager
@@ -33,6 +38,8 @@ export function useWebPush() {
           .then((sub) => {
             setSubscription(sub);
             if (sub) {
+              const subStr = JSON.stringify(sub);
+              registerTokenMutation({ token: subStr, platform: 'web' }).catch(() => {});
               fetch('/api/push/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -43,7 +50,7 @@ export function useWebPush() {
           .catch(() => {});
       })
       .catch(() => {});
-  }, []);
+  }, [registerTokenMutation]);
 
   const subscribe = async (): Promise<boolean> => {
     if (!isSupported) {
@@ -78,8 +85,16 @@ export function useWebPush() {
       }
 
       setSubscription(sub);
+      const subStr = JSON.stringify(sub);
 
-      // 4. Send subscription to server
+      // 4. Register in Convex pushTokens table
+      try {
+        await registerTokenMutation({ token: subStr, platform: 'web' });
+      } catch (e) {
+        console.warn('Convex push token registration error:', e);
+      }
+
+      // 5. Send subscription to server
       await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,6 +117,8 @@ export function useWebPush() {
 
     setLoading(true);
     try {
+      const subStr = JSON.stringify(subscription);
+      await unregisterTokenMutation({ token: subStr }).catch(() => {});
       await subscription.unsubscribe();
       setSubscription(null);
       setStatusMessage('Notifications désactivées.');
