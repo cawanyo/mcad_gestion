@@ -304,25 +304,6 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             </h1>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onBack}
-            className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900 font-medium transition-colors"
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={handleSubmit}
-            className="px-3.5 py-1.5 bg-zinc-950 hover:bg-zinc-900 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors disabled:opacity-50"
-          >
-            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            <span>Enregistrer</span>
-          </button>
-        </div>
       </div>
 
       {error && (
@@ -732,6 +713,25 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Ajouter une leçon</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900 font-medium transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleSubmit}
+            className="px-3.5 py-1.5 bg-zinc-950 hover:bg-zinc-900 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            <span>Enregistrer</span>
           </button>
         </div>
       </form>

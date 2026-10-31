@@ -1,9 +1,11 @@
 import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
+import { internal } from "./_generated/api";
 import { requireAuth, requirePoleLeaderOrAdmin } from "./lib/auth";
 import { notifyUser } from "./lib/notify";
 import { Doc } from "./_generated/dataModel";
 import { isUnavailabilityOverlapping } from "./lib/unavailability";
+import { getEveAt18hTimestamp } from "./reminders";
 
 export const list = query({
   args: {
@@ -143,6 +145,14 @@ export const create = mutation({
       type: "ASSIGNMENT",
       linkUrl: `/events/${eventId}`,
     });
+
+    // Programmer automatiquement le rappel pour la veille du service à 18h
+    const eve18h = getEveAt18hTimestamp(event.startsAt);
+    if (eve18h > Date.now()) {
+      await ctx.scheduler.runAt(eve18h, internal.reminders.sendReminderForSingleAssignment, {
+        assignmentId,
+      });
+    }
 
     const assignment = await ctx.db.get(assignmentId);
     return { ...assignment, user: targetUser, pole, event };
