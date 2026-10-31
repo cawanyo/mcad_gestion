@@ -6,7 +6,7 @@ import { useConvexAuth, useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../../../convex/_generated/api';
 import { adaptPole } from '@/lib/convexAdapters';
-import { UserPlus, User, Lock, Calendar, ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { UserPlus, User, Lock, Calendar, ArrowLeft, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { PhoneInputWithCountry } from '@/components/ui';
 import { Pole } from '@/types';
 
@@ -20,7 +20,9 @@ export default function RegisterPage() {
   const [phone, setPhone] = React.useState('');
   const [birthDate, setBirthDate] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const polesRaw = useQuery(api.poles.list, {});
   const poles = React.useMemo(() => (polesRaw || []).map(adaptPole) as Pole[], [polesRaw]);
   const [selectedPoles, setSelectedPoles] = React.useState<string[]>([]);
@@ -206,13 +208,22 @@ export default function RegisterPage() {
                 <div className="relative">
                   <Lock className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-600 transition-colors"
+                    className="w-full pl-9 pr-9 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-600 transition-colors"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors p-1"
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -221,13 +232,22 @@ export default function RegisterPage() {
                 <div className="relative">
                   <Lock className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-600 transition-colors"
+                    className="w-full pl-9 pr-9 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-600 transition-colors"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors p-1"
+                    tabIndex={-1}
+                    aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             </div>
