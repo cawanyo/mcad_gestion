@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Bell,
   Check,
@@ -34,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onNavigateSettings
 }) => {
+  const router = useRouter();
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
 
@@ -136,6 +138,17 @@ export const Header: React.FC<HeaderProps> = ({
                       onClick={() => {
                         onMarkNotificationRead(notif.id);
                         setShowNotifications(false);
+                        if (notif.linkUrl) {
+                          let target = notif.linkUrl;
+                          if (target.startsWith('/events/')) {
+                            target = `/calendar?eventId=${target.replace('/events/', '')}`;
+                          } else if (target === '/events') {
+                            target = '/calendar';
+                          } else if (target === '/validations') {
+                            target = '/service';
+                          }
+                          router.push(target);
+                        }
                       }}
                       className={`p-3 text-left hover:bg-zinc-50 cursor-pointer transition-colors ${
                         !notif.isRead ? 'bg-blue-50/40' : ''

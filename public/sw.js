@@ -138,17 +138,34 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  const targetUrl = event.notification.data?.url || '/dashboard';
+  let rawUrl = event.notification.data?.url || '/dashboard';
+
+  // Sécurité : corriger les anciennes URLs d'événements vers la route /calendar
+  if (rawUrl.startsWith('/events/')) {
+    const eventId = rawUrl.replace('/events/', '');
+    rawUrl = `/calendar?eventId=${eventId}`;
+  } else if (rawUrl === '/events') {
+    rawUrl = '/calendar';
+  } else if (rawUrl === '/validations') {
+    rawUrl = '/service';
+  }
+
+  const urlToOpen = new URL(rawUrl, self.location.origin).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Si une fenêtre est déjà ouverte, la réactiver et naviguer
       for (const client of clientList) {
-        if (client.url.includes(targetUrl) && 'focus' in client) {
+        if ('focus' in client) {
+          if ('navigate' in client) {
+            client.navigate(urlToOpen);
+          }
           return client.focus();
         }
       }
+      // Sinon, ouvrir une nouvelle fenêtre vers l'URL absolue
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
+        return self.clients.openWindow(urlToOpen);
       }
     })
   );

@@ -155,7 +155,7 @@ export const submit = mutation({
           title: `Service validé : ${user?.firstName} ${user?.lastName}`,
           message: `${user?.firstName} a validé son service pour "${event?.title}" (${pole?.name}) avec une note de ${rating || 5}/5.`,
           type: "SERVICE_VALIDATION",
-          linkUrl: "/validations",
+          linkUrl: "/service",
         });
       }
     }
@@ -209,7 +209,7 @@ export const sendReminder = mutation({
       title: "🔔 Rappel : Validation de votre service",
       message: `N'oubliez pas de valider votre service pour le culte "${event?.title}" (${pole?.name}). Remplissez votre retour d'expérience !`,
       type: "SERVICE_REMINDER",
-      linkUrl: "/validations",
+      linkUrl: "/service",
     });
 
     return { success: true, message: "Rappel envoyé avec succès" };

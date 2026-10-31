@@ -143,7 +143,7 @@ export const create = mutation({
       title: "Nouvelle affectation de service",
       message: `Vous avez été affecté(e) au service "${event.title}" pour le pôle ${pole?.name}.`,
       type: "ASSIGNMENT",
-      linkUrl: `/events/${eventId}`,
+      linkUrl: `/calendar?eventId=${eventId}`,
     });
 
     // Programmer automatiquement le rappel pour la veille du service à 18h

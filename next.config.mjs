@@ -17,6 +17,25 @@ const nextConfig = {
       }
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/events/:id',
+        destination: '/calendar?eventId=:id',
+        permanent: false,
+      },
+      {
+        source: '/events',
+        destination: '/calendar',
+        permanent: false,
+      },
+      {
+        source: '/validations',
+        destination: '/service',
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {
