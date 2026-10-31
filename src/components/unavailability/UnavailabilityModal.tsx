@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Clock, Calendar, AlertCircle, AlertTriangle, CheckCircle2, User as UserIcon, Sparkles } from 'lucide-react';
+import { X, Calendar, AlertCircle, AlertTriangle, User as UserIcon, Loader2 } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -17,15 +17,6 @@ interface UnavailabilityModalProps {
   members?: User[];
   initialStartDate?: string;
 }
-
-const PRESET_REASONS = [
-  { label: '🏖️ Vacances / Congés', value: 'Vacances / Congés' },
-  { label: '💼 Déplacement pro / Travail', value: 'Déplacement professionnel / Travail' },
-  { label: '👨‍👩‍👦 Raison familiale', value: 'Raison familiale / Événement privé' },
-  { label: '🏥 Santé / Repos', value: 'Santé / Convalescence' },
-  { label: '🎓 Études / Examens', value: 'Études / Examens' },
-  { label: '⚡ Autre motif', value: 'Indisponibilité ponctuelle' }
-];
 
 export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
   isOpen,
@@ -63,8 +54,7 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
   const [targetUserId, setTargetUserId] = React.useState<string>(currentUser?.id || '');
   const [startDate, setStartDate] = React.useState<string>(initialStartDate || getTodayStr());
   const [endDate, setEndDate] = React.useState<string>(initialStartDate ? initialStartDate : getNextDayStr(1));
-  const [reason, setReason] = React.useState<string>('Vacances / Congés');
-  const [recurrence, setRecurrence] = React.useState<string>('NONE');
+  const [reason, setReason] = React.useState<string>('');
   const [loading, setLoading] = React.useState<boolean>(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [conflictWarning, setConflictWarning] = React.useState<any[] | null>(null);
@@ -72,7 +62,6 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
   const createUnavailability = useMutation(api.unavailabilities.create);
   const updateUnavailability = useMutation(api.unavailabilities.update);
 
-  // Use wasOpenRef to only initialize values when the modal opens, preventing state reset on parent re-renders
   const wasOpenRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -89,64 +78,59 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
         };
         setStartDate(formatLocalDate(start));
         setEndDate(formatLocalDate(end));
-        setReason(editingUnavailability.reason || 'Indisponible');
-        setRecurrence(editingUnavailability.recurrence || 'NONE');
+        setReason(editingUnavailability.reason || '');
       } else {
         setTargetUserId(currentUser?.id || '');
         const today = getTodayStr();
         const startVal = initialStartDate || today;
         setStartDate(startVal);
         setEndDate(initialStartDate ? initialStartDate : getNextDayStr(1));
-        setReason('Vacances / Congés');
-        setRecurrence('NONE');
+        setReason('');
       }
       setErrorMsg(null);
       setConflictWarning(null);
+      wasOpenRef.current = true;
     }
-    wasOpenRef.current = isOpen;
-  }, [isOpen, editingUnavailability, initialStartDate]);
+
+    if (!isOpen) {
+      wasOpenRef.current = false;
+    }
+  }, [isOpen, editingUnavailability, currentUser, initialStartDate]);
 
   if (!isOpen) return null;
-
-  // Calculate duration in days
-  const calculateDays = () => {
-    if (!startDate || !endDate) return 1;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    return diff > 0 ? diff : 0;
-  };
-
-  const daysCount = calculateDays();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setConflictWarning(null);
-
-    const effectiveUserId = targetUserId || currentUser?.id;
-    if (!effectiveUserId) {
-      setErrorMsg('Veuillez sélectionner un membre.');
-      return;
-    }
-
-    if (new Date(endDate) < new Date(startDate)) {
-      setErrorMsg('La date de fin doit être égale ou postérieure à la date de début.');
-      return;
-    }
-
     setLoading(true);
+
     try {
       const startsAtMs = new Date(`${startDate}T00:00:00`).getTime();
-      const endsAtMs = new Date(`${endDate}T23:59:59.999`).getTime();
+      const endsAtMs = new Date(`${endDate}T23:59:59`).getTime();
+
+      if (endsAtMs < startsAtMs) {
+        setErrorMsg('La date de fin ne peut pas être antérieure à la date de début.');
+        setLoading(false);
+        return;
+      }
+
+      const effectiveUserId = isLeaderOrAdmin && targetUserId ? targetUserId : currentUser?.id;
+      if (!effectiveUserId) {
+        setErrorMsg('Membre introuvable.');
+        setLoading(false);
+        return;
+      }
+
+      const cleanReason = reason.trim() || 'Indisponible';
 
       if (editingUnavailability) {
         await updateUnavailability({
           unavailabilityId: editingUnavailability.id as Id<'unavailabilities'>,
           startsAt: startsAtMs,
           endsAt: endsAtMs,
-          reason,
-          recurrence
+          reason: cleanReason,
+          recurrence: 'NONE'
         });
         onSuccess();
         onClose();
@@ -155,8 +139,8 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
           userId: effectiveUserId as Id<'users'>,
           startsAt: startsAtMs,
           endsAt: endsAtMs,
-          reason,
-          recurrence
+          reason: cleanReason,
+          recurrence: 'NONE'
         });
 
         if (data.hasConflicts && data.conflicts?.length > 0) {
@@ -164,7 +148,7 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
           setTimeout(() => {
             onSuccess();
             onClose();
-          }, 1800);
+          }, 1500);
         } else {
           onSuccess();
           onClose();
@@ -178,65 +162,54 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-        {/* Modal Header */}
-        <div className="p-5 bg-indigo-900 text-white flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-white/15 rounded-xl backdrop-blur-xs">
-              <Clock className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-extrabold">
-                {editingUnavailability ? 'Modifier l’indisponibilité' : 'Déclarer une indisponibilité'}
-              </h2>
-              <p className="text-xs text-indigo-200 mt-0.5">
-                Blocage automatique des affectations en conflit
-              </p>
-            </div>
+    <div className="fixed inset-0 z-50 bg-zinc-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-zinc-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        {/* Header */}
+        <div className="p-4 sm:p-5 border-b border-zinc-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-zinc-900">
+              {editingUnavailability ? 'Modifier l’indisponibilité' : 'Déclarer une indisponibilité'}
+            </h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Période d'absence pour la planification des cultes
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+            className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-          {/* Conflict Alert Notice */}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {conflictWarning && conflictWarning.length > 0 && (
-            <div className="p-3.5 rounded-2xl bg-zinc-100 border border-zinc-200 text-xs text-rose-900 flex items-start gap-2.5 animate-in fade-in">
-              <AlertTriangle className="w-4 h-4 text-zinc-900 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold">Attention : Affectation(s) existante(s) en conflit !</p>
-                <p className="mt-0.5 text-zinc-900">
-                  Le membre est déjà affecté à {conflictWarning.length} culte(s) pendant cette période. Les responsables seront avertis.
-                </p>
-              </div>
+            <div className="p-3 rounded-xl bg-zinc-100 border border-zinc-300 text-xs text-zinc-900 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-zinc-700 shrink-0 mt-0.5" />
+              <span>
+                Attention : vous êtes déjà planifié sur {conflictWarning.length} culte(s) pendant cette période.
+              </span>
             </div>
           )}
 
-          {/* Error Message */}
           {errorMsg && (
-            <div className="p-3.5 rounded-2xl bg-zinc-100 border border-zinc-200 text-xs text-rose-900 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-zinc-900 flex-shrink-0 mt-0.5" />
+            <div className="p-3 rounded-xl bg-zinc-100 border border-zinc-300 text-xs text-zinc-900 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-zinc-700 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          {/* Target Member Selector (For Leaders & Admins) */}
+          {/* Target Member (Admins/Leaders only) */}
           {isLeaderOrAdmin && members.length > 0 && !editingUnavailability && (
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1.5 flex items-center gap-1.5">
-                <UserIcon className="w-3.5 h-3.5 text-slate-500" />
-                <span>Membre concerné *</span>
+              <label className="text-xs font-medium text-zinc-700 block mb-1">
+                Membre concerné
               </label>
               <select
                 value={targetUserId}
                 onChange={(e) => setTargetUserId(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-blue-600"
               >
                 {currentUser && (
                   <option value={currentUser.id}>
@@ -254,42 +227,11 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
             </div>
           )}
 
-          {/* Preset Reason Chips */}
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1.5">Motif d'absence</label>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {PRESET_REASONS.map((preset) => (
-                <button
-                  key={preset.value}
-                  type="button"
-                  onClick={() => setReason(preset.value)}
-                  className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all ${
-                    reason === preset.value
-                      ? 'bg-blue-50 border-blue-300 text-zinc-900 shadow-xs'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-
-            <input
-              type="text"
-              required
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Préciser le motif..."
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
-
           {/* Date Pickers */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                <span>Date de début *</span>
+              <label className="text-xs font-medium text-zinc-700 block mb-1">
+                Date de début
               </label>
               <input
                 type="date"
@@ -302,14 +244,13 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
                     setEndDate(newStart);
                   }
                 }}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-blue-600"
               />
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                <span>Date de fin *</span>
+              <label className="text-xs font-medium text-zinc-700 block mb-1">
+                Date de fin
               </label>
               <input
                 type="date"
@@ -317,56 +258,41 @@ export const UnavailabilityModal: React.FC<UnavailabilityModalProps> = ({
                 value={endDate}
                 min={startDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-blue-600"
               />
             </div>
           </div>
 
-          {/* Duration Indicator */}
-          <div className="p-3 bg-blue-50/60 rounded-2xl border border-blue-200/80 flex items-center justify-between text-xs">
-            <span className="text-zinc-900 font-semibold">Durée totale d'absence :</span>
-            <span className="font-extrabold text-blue-800 bg-white px-2.5 py-0.5 rounded-lg border border-blue-200 shadow-xs">
-              {daysCount} jour(s)
-            </span>
-          </div>
-
-          {/* Recurrence Selector */}
+          {/* Reason Input (No presets/buttons per user request) */}
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">Répétition / Récurrence</label>
-            <select
-              value={recurrence}
-              onChange={(e) => setRecurrence(e.target.value)}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              <option value="NONE">Aucune (Indisponibilité ponctuelle)</option>
-              <option value="WEEKLY">Chaque semaine (ex: indisponible tous les samedis)</option>
-              <option value="BIWEEKLY">Toutes les deux semaines</option>
-              <option value="MONTHLY">Chaque mois</option>
-            </select>
+            <label className="text-xs font-medium text-zinc-700 block mb-1">
+              Motif de l'absence
+            </label>
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="ex. Congés, déplacement professionnel, repos..."
+              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-blue-600"
+            />
           </div>
 
-          {/* Modal Actions */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              className="px-3.5 py-2 text-xs font-medium text-zinc-600 hover:text-zinc-900 transition-colors"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-xs flex items-center gap-1.5 transition-all hover:scale-[1.01] disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
-              {loading ? (
-                <span>Enregistrement...</span>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{editingUnavailability ? 'Mettre à jour' : 'Confirmer l’indisponibilité'}</span>
-                </>
-              )}
+              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{editingUnavailability ? 'Enregistrer' : 'Déclarer'}</span>
             </button>
           </div>
         </form>

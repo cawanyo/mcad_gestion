@@ -16,7 +16,7 @@ import {
 import { useMutation } from 'convex/react';
 import { Pole } from '@/types';
 import { PoleDetailView } from './PoleDetailView';
-import { Modal, Badge, Avatar, EmptyState, ConfirmModal } from '@/components/ui';
+import { Modal, Badge, Avatar, ConfirmModal } from '@/components/ui';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
@@ -57,8 +57,27 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({
   const [joinError, setJoinError] = React.useState<string | null>(null);
   const [deleteConfirmPole, setDeleteConfirmPole] = React.useState<Pole | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  const [poleTab, setPoleTab] = React.useState<'my_poles' | 'to_join'>('my_poles');
 
-  const visiblePoles = poles;
+  const isMemberOfPole = (poleId: string) => {
+    return currentUser?.poleMemberships?.some(
+      (pm: any) => pm.poleId === poleId && pm.status === 'ACTIVE'
+    );
+  };
+
+  const isPoleLeader = (pole: Pole) => {
+    return pole.leaders?.some((l) => l.user.id === currentUser?.id);
+  };
+
+  const myPoles = React.useMemo(() => {
+    return poles.filter((pole) => isMemberOfPole(pole.id) || isPoleLeader(pole));
+  }, [poles, currentUser]);
+
+  const toJoinPoles = React.useMemo(() => {
+    return poles.filter((pole) => !isMemberOfPole(pole.id) && !isPoleLeader(pole));
+  }, [poles, currentUser]);
+
+  const displayedPoles = poleTab === 'my_poles' ? myPoles : toJoinPoles;
 
   if (selectedPoleId) {
     return (
@@ -74,12 +93,6 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({
   const isDepartmentLeaderOrAdmin =
     currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'DEPARTMENT_LEADER';
-
-  const isMemberOfPole = (poleId: string) => {
-    return currentUser?.poleMemberships?.some(
-      (pm: any) => pm.poleId === poleId && pm.status === 'ACTIVE'
-    );
-  };
 
   const isPendingForPole = (poleId: string) => {
     return (
@@ -143,7 +156,7 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({
     }
   };
 
-  const renderPoleCard = (pole: (typeof visiblePoles)[number]) => {
+  const renderPoleCard = (pole: Pole) => {
     const isMember = isMemberOfPole(pole.id);
     const isPending = isPendingForPole(pole.id);
     const isLeader = pole.leaders?.some((l) => l.user.id === currentUser?.id);
@@ -257,7 +270,7 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({
           <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
             <span>Pôles</span>
             <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 border border-zinc-200">
-              {visiblePoles.length}
+              {poles.length}
             </span>
           </h1>
           <p className="text-xs text-zinc-500 mt-0.5">
@@ -276,6 +289,32 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({
         )}
       </div>
 
+      {/* Option Line: Mes pôles / Pôles à rejoindre */}
+      <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 self-start w-fit">
+        <button
+          type="button"
+          onClick={() => setPoleTab('my_poles')}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            poleTab === 'my_poles'
+              ? 'bg-white text-zinc-900 shadow-xs'
+              : 'text-zinc-600 hover:text-zinc-900'
+          }`}
+        >
+          Mes pôles ({myPoles.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setPoleTab('to_join')}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            poleTab === 'to_join'
+              ? 'bg-white text-zinc-900 shadow-xs'
+              : 'text-zinc-600 hover:text-zinc-900'
+          }`}
+        >
+          Pôles à rejoindre ({toJoinPoles.length})
+        </button>
+      </div>
+
       {/* Success Notification */}
       {joinedSuccess && (
         <div className="p-3 bg-zinc-950 text-white rounded-xl flex items-center gap-2 text-xs">
@@ -285,15 +324,32 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({
       )}
 
       {/* Grid */}
-      {visiblePoles.length === 0 ? (
-        <EmptyState
-          icon={<Layers className="w-5 h-5 text-zinc-400" />}
-          title="Aucun pôle configuré"
-          description="Les pôles créés apparaîtront ici."
-        />
+      {displayedPoles.length === 0 ? (
+        <div className="p-10 text-center bg-white rounded-xl border border-zinc-200 space-y-3">
+          <Layers className="w-8 h-8 text-zinc-400 mx-auto" />
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-900">
+              {poleTab === 'my_poles' ? 'Aucun pôle rejoint' : 'Aucun pôle à rejoindre'}
+            </h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              {poleTab === 'my_poles'
+                ? "Vous n'êtes membre d'aucun pôle pour le moment."
+                : 'Vous faites déjà partie de tous les pôles disponibles.'}
+            </p>
+          </div>
+          {poleTab === 'my_poles' && toJoinPoles.length > 0 && (
+            <button
+              onClick={() => setPoleTab('to_join')}
+              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
+            >
+              <span>Voir les pôles à rejoindre ({toJoinPoles.length})</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visiblePoles.map(renderPoleCard)}
+          {displayedPoles.map(renderPoleCard)}
         </div>
       )}
 

@@ -39,15 +39,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col justify-center py-12 px-4 sm:px-6 font-sans">
-      <div className="sm:mx-auto sm:w-full sm:max-w-sm mb-4">
-        <a
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Retour à l'accueil</span>
-        </a>
-      </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         {/* Brand */}

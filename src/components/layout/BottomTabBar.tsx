@@ -6,7 +6,7 @@ import {
   Home,
   CalendarDays,
   GraduationCap,
-  Layers,
+  HandHeart,
   Loader2
 } from 'lucide-react';
 import { User } from '@/types';
@@ -60,9 +60,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = () => {
       icon: GraduationCap,
     },
     {
-      id: 'poles',
-      label: 'Pôles',
-      icon: Layers,
+      id: 'service_hub',
+      label: 'Service',
+      icon: HandHeart,
     },
   ];
 

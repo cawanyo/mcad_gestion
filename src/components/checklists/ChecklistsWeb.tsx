@@ -327,6 +327,9 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   };
 
   const filteredChecklists = checklists.filter((c) => {
+    // Ne voir STRICTEMENT que les checklists des pôles auxquels on appartient
+    if (!isMemberOfPole(c.poleId)) return false;
+    if (selectedPoleId !== 'all' && c.poleId !== selectedPoleId) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -335,46 +338,35 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
     );
   });
 
-  const myChecklists = React.useMemo(
-    () => filteredChecklists.filter((c) => isMemberOfPole(c.poleId)),
-    [filteredChecklists, isMemberOfPole]
-  );
-  const otherChecklists = React.useMemo(
-    () => filteredChecklists.filter((c) => !isMemberOfPole(c.poleId)),
-    [filteredChecklists, isMemberOfPole]
-  );
-
   const renderChecklistCard = (chk: Checklist) => (
     <div
       key={chk.id}
-      className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-4 flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition-all"
+      className="bg-white p-5 rounded-xl border border-zinc-200 hover:border-zinc-300 shadow-xs space-y-4 flex flex-col justify-between transition-all"
     >
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-extrabold text-slate-900">{chk.title}</h3>
-          <Badge variant="success" size="sm">
-            {chk.steps?.length || 0} étape(s)
-          </Badge>
+          <h3 className="text-sm font-bold text-zinc-900">{chk.title}</h3>
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
+            {chk.steps?.length || 0} étape{chk.steps?.length > 1 ? 's' : ''}
+          </span>
         </div>
         {chk.pole && (
           <div className="flex items-center gap-1.5">
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: chk.pole.color || '#4f46e5' }}
-            />
-            <span className="text-[11px] font-bold text-slate-500">{chk.pole.name}</span>
+            <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              {chk.pole.name}
+            </span>
           </div>
         )}
-        <p className="text-xs text-slate-500 line-clamp-2">
+        <p className="text-xs text-zinc-500 line-clamp-2">
           {chk.description || 'Guide opérationnel de service.'}
         </p>
       </div>
 
       {/* Action Buttons */}
-      <div className="space-y-2 pt-2 border-t border-slate-100">
+      <div className="space-y-2 pt-2 border-t border-zinc-100">
         <button
           onClick={() => setRunningChecklist(chk)}
-          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-all"
+          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
         >
           <Play className="w-3.5 h-3.5 fill-current" />
           <span>Exécuter la checklist</span>
@@ -388,16 +380,16 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                 setEditTitle(chk.title);
                 setEditDescription(chk.description || '');
               }}
-              className="text-xs font-bold text-slate-600 hover:text-blue-600 flex items-center gap-1 transition-colors"
+              className="text-xs font-medium text-zinc-700 hover:text-blue-600 flex items-center gap-1 transition-colors"
             >
               <Edit2 className="w-3 h-3" />
-              <span>Gérer & modifier</span>
+              <span>Gérer les étapes</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           ) : (
             <button
               onClick={() => setRunningChecklist(chk)}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
+              className="text-xs font-medium text-zinc-500 hover:text-zinc-800 flex items-center gap-1"
             >
               <span>Voir les étapes</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -407,19 +399,19 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={() => setFeedbackChecklist(chk)}
-              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="Voir les retours & commentaires"
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+              title="Commentaires & retours"
             >
-              <MessageSquare className="w-4 h-4" />
+              <MessageSquare className="w-3.5 h-3.5" />
             </button>
 
             {isLeaderOrAdmin && (
               <button
                 onClick={() => setDeletingChecklist(chk)}
-                className="p-1.5 text-slate-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
+                className="p-1.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
                 title="Supprimer la checklist"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -433,101 +425,76 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-            <span>Checklists Opérationnelles</span>
-            <Badge variant="primary" size="sm">
-              {checklists.length}
-            </Badge>
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 flex items-center gap-2">
+            <span>Checklists de Service</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
+              {filteredChecklists.length}
+            </span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-zinc-500 mt-0.5">
             {isLeaderOrAdmin
-              ? 'Guides d’exécution pas à pas avec photos/vidéos et affectation aux cultes.'
-              : 'Consultez et exécutez vos guides de service pas à pas.'}
+              ? 'Guides d’exécution pas à pas pour vos pôles.'
+              : 'Consultez et exécutez les guides de vos pôles de service.'}
           </p>
         </div>
 
         {isLeaderOrAdmin && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-xs transition-all self-start sm:self-auto"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Nouvelle checklist</span>
+            <span>Nouvelle checklist</span>
           </button>
         )}
       </div>
 
       {/* Pole Tabs & Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Pole Selector */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            onClick={() => setSelectedPoleId('all')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
-              selectedPoleId === 'all'
-                ? 'bg-blue-600 text-white shadow-md shadow-xs'
-                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-            }`}
-          >
-            <span>Tous les pôles</span>
-          </button>
+        {/* Pole Selector (Only User's Poles) */}
+        {myPoles.length > 1 ? (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            <button
+              onClick={() => setSelectedPoleId('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                selectedPoleId === 'all'
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-white text-zinc-600 hover:bg-zinc-50 border border-zinc-200'
+              }`}
+            >
+              Tous mes pôles ({myPoles.length})
+            </button>
 
-          {myPoles.map((p) => {
-            const isSelected = selectedPoleId === p.id;
-            return (
-              <button
-                key={p.id}
-                onClick={() => setSelectedPoleId(p.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
-                  isSelected
-                    ? 'bg-blue-600 text-white shadow-md shadow-xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                }`}
-              >
-                <span
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: p.color || '#4f46e5' }}
-                />
-                <span>{p.name}</span>
-              </button>
-            );
-          })}
-
-          {myPoles.length > 0 && otherPoles.length > 0 && (
-            <div className="h-6 w-px bg-slate-300 mx-1 flex-shrink-0" />
-          )}
-
-          {otherPoles.map((p) => {
-            const isSelected = selectedPoleId === p.id;
-            return (
-              <button
-                key={p.id}
-                onClick={() => setSelectedPoleId(p.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
-                  isSelected
-                    ? 'bg-blue-600 text-white shadow-md shadow-xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                }`}
-              >
-                <span
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: p.color || '#4f46e5' }}
-                />
-                <span>{p.name}</span>
-              </button>
-            );
-          })}
-        </div>
+            {myPoles.map((p) => {
+              const isSelected = selectedPoleId === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedPoleId(p.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    isSelected
+                      ? 'bg-zinc-900 text-white'
+                      : 'bg-white text-zinc-600 hover:bg-zinc-50 border border-zinc-200'
+                  }`}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div />
+        )}
 
         {/* Search */}
         <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Rechercher une checklist..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium shadow-xs"
+            className="w-full pl-8 pr-3 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-medium focus:outline-hidden focus:ring-1 focus:ring-blue-600 shadow-xs"
           />
         </div>
       </div>
@@ -536,61 +503,44 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
       {!activeEditorChecklist ? (
         <div className="space-y-4">
           {loading ? (
-            <div className="py-16 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-              <CheckSquare className="w-4 h-4 animate-bounce text-blue-600" />
+            <div className="py-16 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />
               <span>Chargement des checklists...</span>
             </div>
+          ) : myPoles.length === 0 ? (
+            <div className="bg-white p-10 rounded-xl border border-zinc-200 text-center space-y-3">
+              <CheckSquare className="w-8 h-8 text-zinc-400 mx-auto" />
+              <h3 className="text-sm font-bold text-zinc-900">Aucun pôle rattaché</h3>
+              <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                Vous ne voyez que les checklists des pôles auxquels vous appartenez. Rejoignez un pôle pour accéder à ses guides de service.
+              </p>
+              <a
+                href="/poles"
+                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors mt-2"
+              >
+                Découvrir les pôles
+              </a>
+            </div>
           ) : filteredChecklists.length === 0 ? (
-            <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-3 shadow-xs">
-              <CheckSquare className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="text-sm font-bold text-slate-800">Aucune checklist trouvée</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <div className="bg-white p-10 rounded-xl border border-zinc-200 text-center space-y-3">
+              <CheckSquare className="w-8 h-8 text-zinc-400 mx-auto" />
+              <h3 className="text-sm font-bold text-zinc-900">Aucune checklist trouvée</h3>
+              <p className="text-xs text-zinc-500 max-w-sm mx-auto">
                 {isLeaderOrAdmin
                   ? 'Créez des checklists pour formaliser les étapes de service de vos équipes.'
-                  : 'Aucun guide de service n’a encore été configuré.'}
+                  : 'Aucun guide de service n’a encore été configuré pour vos pôles.'}
               </p>
               {isLeaderOrAdmin && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl shadow-xs hover:bg-blue-700 transition-colors"
                 >
-                  + Créer une checklist
+                  Créer une checklist
                 </button>
               )}
             </div>
-          ) : selectedPoleId === 'all' && myChecklists.length > 0 && otherChecklists.length > 0 ? (
-            <div className="space-y-6">
-              {/* Mes Checklists de Pôle */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg">
-                    Mes checklists de pôle ({myChecklists.length})
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {myChecklists.map(renderChecklistCard)}
-                </div>
-              </div>
-
-              {/* Petit trait séparateur */}
-              <div className="relative py-4">
-                <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                  <div className="w-full border-t border-slate-200" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-slate-50 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Autres checklists ({otherChecklists.length})
-                  </span>
-                </div>
-              </div>
-
-              {/* Autres Checklists */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {otherChecklists.map(renderChecklistCard)}
-              </div>
-            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredChecklists.map(renderChecklistCard)}
             </div>
           )}
