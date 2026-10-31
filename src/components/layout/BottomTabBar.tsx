@@ -71,7 +71,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = () => {
       aria-label="Navigation mobile"
       className="lg:hidden fixed bottom-[max(0.85rem,calc(env(safe-area-inset-bottom)+0.35rem))] left-3 right-3 max-w-sm mx-auto z-40 select-none"
     >
-      <div className="bg-zinc-950/95 backdrop-blur-xl border border-zinc-800/90 rounded-2xl shadow-2xl shadow-zinc-950/40 p-1.5 flex items-center justify-around">
+      <div className="bg-zinc-950/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-zinc-950/50 p-1.5 flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentParentTab === tab.id;
@@ -84,7 +84,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = () => {
               onClick={() => handleSelectTab(tab.id)}
               className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-150 relative active:scale-95 ${
                 isActive
-                  ? 'bg-zinc-800/80 text-white font-medium'
+                  ? 'bg-white/10 text-white font-medium shadow-xs'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >

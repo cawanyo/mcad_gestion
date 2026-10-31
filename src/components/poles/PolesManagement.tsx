@@ -69,7 +69,7 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({
   };
 
   const isPoleLeader = (pole: Pole) => {
-    return pole.leaders?.some((l) => l.user.id === currentUser?.id);
+    return pole.leaders?.some((l) => l.user?.id === currentUser?.id);
   };
 
   const myPoles = React.useMemo(() => {
@@ -162,13 +162,13 @@ export const PolesManagement: React.FC<PolesManagementProps> = ({
   const renderPoleCard = (pole: Pole) => {
     const isMember = isMemberOfPole(pole.id);
     const isPending = isPendingForPole(pole.id);
-    const isLeader = pole.leaders?.some((l) => l.user.id === currentUser?.id);
+    const isLeader = pole.leaders?.some((l) => l.user?.id === currentUser?.id);
 
     return (
       <div
         key={pole.id}
         onClick={() => setSelectedPoleId(pole.id)}
-        className="group p-3 bg-white rounded-xl border border-zinc-200 hover:border-zinc-400 shadow-2xs transition-colors cursor-pointer flex flex-col justify-between relative space-y-2"
+        className="group p-3.5 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200/80 hover:border-zinc-400 shadow-xs transition-colors cursor-pointer flex flex-col justify-between relative space-y-2"
       >
         {isDepartmentLeaderOrAdmin && (
           <button

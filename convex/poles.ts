@@ -8,14 +8,17 @@ import {
 } from "./lib/auth";
 import { notifyUser } from "./lib/notify";
 
-const USER_CARD_FIELDS = (u: any) => ({
-  _id: u._id,
-  firstName: u.firstName,
-  lastName: u.lastName,
-  phone: u.phone,
-  avatar: u.avatar,
-  role: u.role,
-});
+const USER_CARD_FIELDS = (u: any) =>
+  u
+    ? {
+        _id: u._id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        phone: u.phone,
+        avatar: u.avatar,
+        role: u.role,
+      }
+    : null;
 
 export const list = query({
   args: {},
@@ -86,12 +89,22 @@ export const get = query({
       ctx.db.query("eventRequirements").withIndex("poleId", (q) => q.eq("poleId", poleId)).collect(),
     ]);
 
-    const leadersWithUsers = await Promise.all(
-      leaders.map(async (l) => ({ ...l, user: USER_CARD_FIELDS((await ctx.db.get(l.userId))!) }))
-    );
-    const membersWithUsers = await Promise.all(
-      memberships.map(async (m) => ({ ...m, user: USER_CARD_FIELDS((await ctx.db.get(m.userId))!) }))
-    );
+    const leadersWithUsers = (
+      await Promise.all(
+        leaders.map(async (l) => {
+          const user = await ctx.db.get(l.userId);
+          return user ? { ...l, user: USER_CARD_FIELDS(user) } : null;
+        })
+      )
+    ).filter((l): l is NonNullable<typeof l> => l !== null);
+    const membersWithUsers = (
+      await Promise.all(
+        memberships.map(async (m) => {
+          const user = await ctx.db.get(m.userId);
+          return user ? { ...m, user: USER_CARD_FIELDS(user) } : null;
+        })
+      )
+    ).filter((m): m is NonNullable<typeof m> => m !== null);
 
     const activeChecklists = (
       await Promise.all(
@@ -109,12 +122,19 @@ export const get = query({
       )
     ).sort((a, b) => a.orderIndex - b.orderIndex);
 
-    const pendingRequestsWithUsers = await Promise.all(
-      pendingRequests.map(async (r) => ({
-        ...r,
-        user: USER_CARD_FIELDS((await ctx.db.get(r.userId))!),
-      }))
-    );
+    const pendingRequestsWithUsers = (
+      await Promise.all(
+        pendingRequests.map(async (r) => {
+          const user = await ctx.db.get(r.userId);
+          return user
+            ? {
+                ...r,
+                user: USER_CARD_FIELDS(user),
+              }
+            : null;
+        })
+      )
+    ).filter((r): r is NonNullable<typeof r> => r !== null);
 
     const now = Date.now();
     const upcomingRequirements = (
@@ -127,9 +147,14 @@ export const get = query({
             .withIndex("eventId", (q) => q.eq("eventId", r.eventId))
             .filter((q) => q.eq(q.field("poleId"), poleId))
             .collect();
-          const assignmentsWithUsers = await Promise.all(
-            assignments.map(async (a) => ({ ...a, user: USER_CARD_FIELDS((await ctx.db.get(a.userId))!) }))
-          );
+          const assignmentsWithUsers = (
+            await Promise.all(
+              assignments.map(async (a) => {
+                const user = await ctx.db.get(a.userId);
+                return user ? { ...a, user: USER_CARD_FIELDS(user) } : null;
+              })
+            )
+          ).filter((a): a is NonNullable<typeof a> => a !== null);
           return { ...r, event: { ...event, assignments: assignmentsWithUsers } };
         })
       )

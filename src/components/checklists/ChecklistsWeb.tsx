@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   CheckSquare,
   Plus,
@@ -31,7 +32,6 @@ import { Id } from '../../../convex/_generated/dataModel';
 import { adaptChecklist } from '@/lib/convexAdapters';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { Checklist, Pole, Event, User } from '@/types';
-import { ChecklistRunnerModal } from './ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from './ChecklistFeedbackModal';
 import { ChecklistFormModal } from './ChecklistFormModal';
 import { ConfirmModal, Modal, Badge, Toast, ToastState, MediaViewer } from '@/components/ui';
@@ -53,6 +53,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   onRefresh,
   onBack
 }) => {
+  const router = useRouter();
   const [selectedPoleId, setSelectedPoleId] = React.useState<string>('all');
   const checklistsRaw = useQuery(
     api.checklists.list,
@@ -73,8 +74,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
   const updateChecklistMutation = useMutation(api.checklists.update);
   const removeChecklistMutation = useMutation(api.checklists.remove);
 
-  // Runner & Feedback Modals
-  const [runningChecklist, setRunningChecklist] = React.useState<any | null>(null);
+  // Feedback Modal
   const [feedbackChecklist, setFeedbackChecklist] = React.useState<any | null>(null);
 
   // New step form modal
@@ -367,8 +367,8 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
       {/* Action Buttons */}
       <div className="space-y-2 pt-2 border-t border-zinc-100">
         <button
-          onClick={() => setRunningChecklist(chk)}
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+          onClick={() => router.push(`/checklists/${chk.id}/run`)}
+          className="w-full py-2 bg-zinc-950 hover:bg-zinc-900 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
         >
           <Play className="w-3.5 h-3.5 fill-current" />
           <span>Exécuter la checklist</span>
@@ -390,7 +390,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
             </button>
           ) : (
             <button
-              onClick={() => setRunningChecklist(chk)}
+              onClick={() => router.push(`/checklists/${chk.id}/run`)}
               className="text-xs font-medium text-zinc-500 hover:text-zinc-800 flex items-center gap-1"
             >
               <span>Voir les étapes</span>
@@ -593,8 +593,8 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
 
             <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={() => setRunningChecklist(activeEditorChecklist)}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+                onClick={() => router.push(`/checklists/${activeEditorChecklist.id}/run`)}
+                className="px-3.5 py-2 bg-zinc-950 hover:bg-zinc-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Tester la checklist</span>
@@ -1032,18 +1032,6 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
         variant="danger"
         loading={actionLoading}
       />
-
-      {/* Runner Modal */}
-      {runningChecklist && (
-        <ChecklistRunnerModal
-          checklist={runningChecklist}
-          currentUser={currentUser || null}
-          onClose={() => setRunningChecklist(null)}
-          onCompleted={() => {
-            if (onRefresh) onRefresh();
-          }}
-        />
-      )}
 
       {/* Feedback Modal */}
       {feedbackChecklist && (

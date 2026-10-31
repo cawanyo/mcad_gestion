@@ -43,7 +43,6 @@ import { Id } from '../../../convex/_generated/dataModel';
 import { adaptEvent, adaptChecklist } from '@/lib/convexAdapters';
 import { Event, Pole, User } from '@/types';
 import { EventDetailPage } from './EventDetailPage';
-import { ChecklistRunnerModal } from '../checklists/ChecklistRunnerModal';
 import { ChecklistFeedbackModal } from '../checklists/ChecklistFeedbackModal';
 import { ConfirmModal } from '@/components/ui';
 
@@ -104,7 +103,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const detailsPanelRef = React.useRef<HTMLDivElement>(null);
 
   // Modals & Confirmations
-  const [runningChecklist, setRunningChecklist] = React.useState<any | null>(null);
   const [feedbackChecklist, setFeedbackChecklist] = React.useState<any | null>(null);
   const [deleteConfirmEventId, setDeleteConfirmEventId] = React.useState<string | null>(null);
   const [eventToast, setEventToast] = React.useState<string | null>(null);
@@ -453,24 +451,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             router.push(`/calendar/new?eventId=${ev.id}`);
           }}
           onOpenAssignmentsDrawer={(ev) => onOpenAssignmentsDrawer(ev)}
-          onRunChecklist={(cl, ev) => setRunningChecklist(cl)}
+          onRunChecklist={(cl, ev) =>
+            router.push(`/checklists/${cl.id}/run${ev?.id ? `?eventId=${ev.id}` : ''}`)
+          }
           onFeedbackChecklist={(ex) => setFeedbackChecklist(ex)}
           onDeleteEvent={(evId) => {
             handleDeleteEvent(evId);
             setMobileEventDetailId(null);
           }}
         />
-
-        {/* Runner Modal */}
-        {runningChecklist && (
-          <ChecklistRunnerModal
-            checklist={runningChecklist}
-            currentUser={currentUser || null}
-            eventId={mobileEventDetailId || undefined}
-            onClose={() => setRunningChecklist(null)}
-            onCompleted={() => {}}
-          />
-        )}
 
         {/* Feedback Modal */}
         {feedbackChecklist && (
@@ -1247,17 +1236,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
     </div>
-
-      {/* Runner Modal */}
-      {runningChecklist && (
-        <ChecklistRunnerModal
-          checklist={runningChecklist}
-          currentUser={currentUser || null}
-          eventId={selectedEvent?.id}
-          onClose={() => setRunningChecklist(null)}
-          onCompleted={() => {}}
-        />
-      )}
 
       {/* Feedback Modal */}
       {feedbackChecklist && (

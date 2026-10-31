@@ -70,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-      className="bg-white border-b border-zinc-200/90 flex-shrink-0 z-30 select-none pt-safe"
+      className="bg-white/80 backdrop-blur-md border-b border-zinc-200/70 flex-shrink-0 z-30 select-none sticky top-0"
     >
       <div className="h-14 px-4 sm:px-6 flex items-center justify-between">
         {/* Brand & Mobile Toggle */}
@@ -109,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-xl border border-zinc-200 shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white/95 backdrop-blur-xl rounded-2xl border border-zinc-200/80 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
               <div className="p-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
                 <span className="text-xs font-semibold text-zinc-800">
                   Notifications ({unreadNotificationsCount})
@@ -202,7 +202,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-zinc-200 shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 mt-2 w-52 bg-white/95 backdrop-blur-xl rounded-2xl border border-zinc-200/80 shadow-2xl z-50 py-1 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-3 py-2 border-b border-zinc-100">
                 <p className="text-xs font-semibold text-zinc-900 truncate">
                   {currentUser?.firstName} {currentUser?.lastName}

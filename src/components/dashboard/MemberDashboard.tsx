@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ShieldCheck,
   Calendar,
@@ -21,7 +22,6 @@ import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { User, Pole } from '@/types';
-import { ChecklistRunnerModal } from '../checklists/ChecklistRunnerModal';
 
 interface MemberDashboardProps {
   currentUser: User | null;
@@ -42,8 +42,7 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
   onNavigateToPole,
   onOpenUnavailabilityModal
 }) => {
-  const [runnerChecklist, setRunnerChecklist] = React.useState<any | null>(null);
-
+  const router = useRouter();
   const memberData = data?.memberData;
   const myAssignments = memberData?.myAssignments || [];
   const myPoles = memberData?.myPoles || [];
@@ -191,8 +190,14 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
                     <span className="font-medium truncate">{memberData.nextAssignmentChecklist.title}</span>
                   </div>
                   <button
-                    onClick={() => setRunnerChecklist(memberData.nextAssignmentChecklist)}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
+                    onClick={() =>
+                      router.push(
+                        `/checklists/${memberData.nextAssignmentChecklist.id}/run${
+                          nextService?.id ? `?eventId=${nextService.id}` : ''
+                        }`
+                      )
+                    }
+                    className="px-3 py-1 bg-zinc-950 hover:bg-zinc-900 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
                   >
                     <Play className="w-3 h-3 fill-current" />
                     <span>Démarrer</span>
@@ -332,19 +337,6 @@ export const MemberDashboard: React.FC<MemberDashboardProps> = ({
           )}
         </div>
       </div>
-
-      {/* Runner Checklist Modal */}
-      {runnerChecklist && (
-        <ChecklistRunnerModal
-          checklist={runnerChecklist}
-          currentUser={currentUser}
-          eventId={nextService?.id}
-          onClose={() => setRunnerChecklist(null)}
-          onCompleted={() => {
-            onNavigateTab('dashboard');
-          }}
-        />
-      )}
     </div>
   );
 };

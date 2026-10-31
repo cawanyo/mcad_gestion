@@ -420,12 +420,12 @@ export const UnavailabilitiesView: React.FC<UnavailabilitiesViewProps> = ({
                 return (
                   <div
                     key={u.id}
-                    className={`p-3 bg-white rounded-xl border transition-all hover:border-zinc-400 space-y-2 relative ${
+                    className={`p-3.5 bg-white/80 backdrop-blur-md rounded-2xl border transition-all hover:border-zinc-400 space-y-2 relative shadow-xs ${
                       status === 'ACTIVE'
-                        ? 'border-zinc-300 ring-1 ring-zinc-300'
+                        ? 'border-zinc-400 ring-1 ring-zinc-300'
                         : status === 'UPCOMING'
-                        ? 'border-zinc-200'
-                        : 'border-zinc-200 bg-zinc-50/40 opacity-75'
+                        ? 'border-zinc-200/80'
+                        : 'border-zinc-200/60 bg-zinc-50/60 opacity-80'
                     }`}
                   >
                     {/* Top Member Info & Status Badge */}

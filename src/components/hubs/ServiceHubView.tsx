@@ -62,7 +62,7 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
@@ -70,11 +70,11 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
               key={card.id}
               type="button"
               onClick={() => onNavigate(card.id)}
-              className="text-left p-3 rounded-xl bg-white hover:bg-zinc-50 border border-zinc-200 hover:border-zinc-300 transition-all flex items-center justify-between group shadow-2xs"
+              className="text-left p-3.5 rounded-2xl bg-white/80 backdrop-blur-md hover:bg-white border border-zinc-200/80 hover:border-zinc-300 transition-all flex items-center justify-between group shadow-xs"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-zinc-100 border border-zinc-200 text-zinc-900 flex items-center justify-center shrink-0 group-hover:border-zinc-300 transition-colors">
-                  <Icon className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-zinc-100/90 border border-zinc-200/80 text-zinc-900 flex items-center justify-center shrink-0 group-hover:border-zinc-300 transition-colors">
+                  <Icon className="w-4.5 h-4.5" />
                 </div>
 
                 <div className="min-w-0">
@@ -83,7 +83,7 @@ export const ServiceHubView: React.FC<ServiceHubViewProps> = ({
                       {card.title}
                     </h2>
                     {card.badge && (
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200 shrink-0">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200/70 shrink-0">
                         {card.badge}
                       </span>
                     )}

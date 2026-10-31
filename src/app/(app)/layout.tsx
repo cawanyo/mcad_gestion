@@ -294,7 +294,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 
   return (
     <AppShellContext.Provider value={contextValue}>
-      <div className="flex h-screen h-[100dvh] w-full bg-white text-zinc-900 overflow-hidden font-sans overscroll-none">
+      <div className="fixed inset-0 flex h-full w-full bg-white text-zinc-900 overflow-hidden font-sans overscroll-none">
         {/* Desktop Sidebar (Visible ONLY on screens >= lg) */}
         <div className="hidden lg:flex flex-shrink-0 h-full">
           <Sidebar
@@ -305,7 +305,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
         </div>
 
         {/* Main Content Column */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
           {/* Top Header */}
           <Header
             currentUser={currentUser}
@@ -317,10 +317,12 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
             onNavigateSettings={() => router.push('/settings')}
           />
 
-          {/* Dynamic Responsive View (with bottom margin & padding on mobile for Bottom Tabs) */}
-          <main className="flex-1 overflow-y-auto overscroll-y-contain px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-            <div className="mb-24 pb-16 lg:mb-0 lg:pb-8">
+          {/* Dynamic Responsive View (with bottom margin & physical spacer on mobile for Bottom Tabs) */}
+          <main className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+            <div className="max-w-7xl mx-auto w-full">
               {children}
+              {/* Explicit physical spacer to guarantee the page bottom NEVER stays blocked behind the floating bottom bar */}
+              <div className="h-32 lg:hidden shrink-0 pointer-events-none" aria-hidden="true" />
             </div>
           </main>
         </div>

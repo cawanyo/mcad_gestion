@@ -211,14 +211,20 @@ function adaptMembershipRequestLite(r: any) {
 // against `currentUser.id`, so only `_id` needs renaming, not those.
 export function adaptPoleDetail(raw: any) {
   if (!raw) return raw;
-  const adaptCard = (u: any) => (u ? { ...u, id: u._id } : u);
+  const adaptCard = (u: any) => (u ? { ...u, id: u._id } : null);
 
   return {
     ...raw,
     id: raw._id,
-    leaders: (raw.leaders || []).map((l: any) => ({ ...l, id: l._id, user: adaptCard(l.user) })),
-    memberships: (raw.memberships || []).map((m: any) => ({ ...m, id: m._id, user: adaptCard(m.user) })),
-    membershipRequests: (raw.membershipRequests || []).map((r: any) => ({ ...r, id: r._id, user: adaptCard(r.user) })),
+    leaders: (raw.leaders || [])
+      .map((l: any) => ({ ...l, id: l._id, user: adaptCard(l.user) }))
+      .filter((l: any) => Boolean(l.user)),
+    memberships: (raw.memberships || [])
+      .map((m: any) => ({ ...m, id: m._id, user: adaptCard(m.user) }))
+      .filter((m: any) => Boolean(m.user)),
+    membershipRequests: (raw.membershipRequests || [])
+      .map((r: any) => ({ ...r, id: r._id, user: adaptCard(r.user) }))
+      .filter((r: any) => Boolean(r.user)),
     checklists: (raw.checklists || []).map((c: any) => ({
       ...c,
       id: c._id,
@@ -232,7 +238,9 @@ export function adaptPoleDetail(raw: any) {
         ? {
             ...r.event,
             id: r.event._id,
-            assignments: (r.event.assignments || []).map((a: any) => ({ ...a, id: a._id, user: adaptCard(a.user) })),
+            assignments: (r.event.assignments || [])
+              .map((a: any) => ({ ...a, id: a._id, user: adaptCard(a.user) }))
+              .filter((a: any) => Boolean(a.user)),
           }
         : r.event,
     })),
