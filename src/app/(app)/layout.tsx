@@ -24,6 +24,9 @@ import { Id } from '../../../convex/_generated/dataModel';
 const EventModal = dynamic(() => import('@/components/calendar/EventModal').then(m => m.EventModal));
 const AssignmentsDrawer = dynamic(() => import('@/components/calendar/AssignmentsDrawer').then(m => m.AssignmentsDrawer));
 const UnavailabilityModal = dynamic(() => import('@/components/unavailability/UnavailabilityModal').then(m => m.UnavailabilityModal));
+const NotificationPermissionModal = dynamic(() =>
+  import('@/components/notifications/NotificationPermissionModal').then(m => m.NotificationPermissionModal)
+);
 
 export default function AppShellLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -409,6 +412,9 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
             onSuccess={fetchData}
           />
         )}
+
+        {/* Automatic check & prompt for notification authorization */}
+        <NotificationPermissionModal />
       </div>
     </AppShellContext.Provider>
   );
