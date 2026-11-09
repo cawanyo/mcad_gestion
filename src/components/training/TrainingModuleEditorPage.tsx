@@ -479,9 +479,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
             <h1 className="text-sm sm:text-base font-bold text-zinc-900">
               {editingModule ? 'Modifier la formation' : 'Nouvelle formation'}
             </h1>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200">
-              {poleId === 'mcad' || !selectedPole ? 'MCAD (Tous les pôles)' : selectedPole.name}
-            </span>
+
           </div>
         </div>
 
@@ -839,7 +837,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                           className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-indigo-600"
                         />
                       </div>
-                      <div>
+                      {/* <div>
                         <input
                           type="number"
                           min={1}
@@ -854,7 +852,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                           }}
                           className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-indigo-600"
                         />
-                      </div>
+                      </div> */}
                     </div>
 
                     {/* Questions QCM compactes */}
