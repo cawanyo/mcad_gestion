@@ -376,15 +376,15 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
         <div className="flex items-center justify-between pt-1">
           {isLeaderOrAdmin ? (
             <button
-              onClick={() => {
-                setActiveEditorChecklistId(chk.id);
-                setEditTitle(chk.title);
-                setEditDescription(chk.description || '');
-              }}
+              onClick={() =>
+                router.push(
+                  `/checklists/new?checklistId=${chk.id}${chk.poleId ? `&poleId=${chk.poleId}` : ''}`
+                )
+              }
               className="text-xs font-medium text-zinc-700 hover:text-blue-600 flex items-center gap-1 transition-colors"
             >
               <Edit2 className="w-3 h-3" />
-              <span>Gérer les étapes</span>
+              <span>Modifier</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           ) : (

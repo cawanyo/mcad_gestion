@@ -4,6 +4,13 @@ import { Doc, Id } from "./_generated/dataModel";
 import { requireAuth, requireLeaderOrAdmin } from "./lib/auth";
 import { notifyUser } from "./lib/notify";
 
+const QUIZ_QUESTION_INPUT = v.object({
+  question: v.string(),
+  options: v.array(v.string()),
+  correctAnswer: v.number(),
+  explanation: v.optional(v.string()),
+});
+
 const LESSON_INPUT = v.object({
   title: v.string(),
   description: v.optional(v.string()),
@@ -11,6 +18,9 @@ const LESSON_INPUT = v.object({
   mediaType: v.optional(v.string()),
   mediaUrl: v.optional(v.string()),
   durationMinutes: v.optional(v.number()),
+  type: v.optional(v.string()),
+  questions: v.optional(v.array(QUIZ_QUESTION_INPUT)),
+  minPassScore: v.optional(v.number()),
 });
 
 function computeStatus(progressPercent: number, totalLessons: number, hasProgressRecord: boolean, completedLessons: number) {
@@ -21,7 +31,7 @@ function computeStatus(progressPercent: number, totalLessons: number, hasProgres
 
 async function formatModule(ctx: any, moduleDoc: Doc<"trainingModules">, currentUserId: Id<"users">) {
   const [pole, lessons, progressRecords] = await Promise.all([
-    ctx.db.get(moduleDoc.poleId),
+    moduleDoc.poleId ? ctx.db.get(moduleDoc.poleId) : Promise.resolve(null),
     ctx.db.query("trainingLessons").withIndex("moduleId", (q: any) => q.eq("moduleId", moduleDoc._id)).collect(),
     ctx.db
       .query("trainingModuleProgress")
@@ -45,9 +55,17 @@ async function formatModule(ctx: any, moduleDoc: Doc<"trainingModules">, current
   const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
   const userProgressStatus = computeStatus(progressPercent, totalLessons, progressRecords.length > 0, completedLessons);
 
+  const formattedPole = pole || {
+    _id: "mcad",
+    id: "mcad",
+    name: "MCAD",
+    color: "#2563eb",
+    icon: "GraduationCap",
+  };
+
   return {
     ...moduleDoc,
-    pole,
+    pole: formattedPole,
     lessonsCount: totalLessons,
     completedLessonsCount: completedLessons,
     progressPercent,
@@ -58,7 +76,7 @@ async function formatModule(ctx: any, moduleDoc: Doc<"trainingModules">, current
 
 export const list = query({
   args: {
-    poleId: v.optional(v.id("poles")),
+    poleId: v.optional(v.union(v.id("poles"), v.literal("mcad"), v.literal("all"))),
     level: v.optional(v.string()),
     search: v.optional(v.string()),
   },
@@ -66,15 +84,19 @@ export const list = query({
     const user = await requireAuth(ctx);
 
     let modules: Doc<"trainingModules">[];
-    if (poleId) {
-      modules = await ctx.db.query("trainingModules").withIndex("poleId", (q) => q.eq("poleId", poleId)).collect();
-    } else {
-      modules = await ctx.db.query("trainingModules").withIndex("status", (q) => q.eq("status", "ACTIVE")).collect();
+    modules = await ctx.db.query("trainingModules").withIndex("status", (q) => q.eq("status", "ACTIVE")).collect();
+
+    if (poleId && poleId !== "all") {
+      if (poleId === "mcad") {
+        modules = modules.filter((m) => !m.poleId);
+      } else {
+        // For a specific pole: include modules for this pole PLUS global MCAD modules (available for all poles)
+        modules = modules.filter((m) => m.poleId === poleId || !m.poleId);
+      }
     }
-    modules = modules.filter((m) => m.status === "ACTIVE");
     if (level) modules = modules.filter((m) => m.level === level);
 
-    modules.sort((a, b) => a.poleId.localeCompare(b.poleId) || a.orderIndex - b.orderIndex);
+    modules.sort((a, b) => (a.poleId || "mcad").localeCompare(b.poleId || "mcad") || a.orderIndex - b.orderIndex);
 
     let formatted = await Promise.all(modules.map((m) => formatModule(ctx, m, user._id)));
 
@@ -99,7 +121,7 @@ export const get = query({
 
 export const create = mutation({
   args: {
-    poleId: v.id("poles"),
+    poleId: v.optional(v.union(v.id("poles"), v.literal("mcad"))),
     title: v.string(),
     description: v.optional(v.string()),
     coverImage: v.optional(v.string()),
@@ -111,10 +133,12 @@ export const create = mutation({
     await requireLeaderOrAdmin(ctx);
 
     const title = args.title.trim();
-    if (!args.poleId || !title) throw new ConvexError("Le pôle et le titre sont requis.");
+    if (!title) throw new ConvexError("Le titre du module est requis.");
+
+    const finalPoleId = !args.poleId || args.poleId === "mcad" ? undefined : (args.poleId as Id<"poles">);
 
     const moduleId = await ctx.db.insert("trainingModules", {
-      poleId: args.poleId,
+      poleId: finalPoleId,
       title,
       description: args.description?.trim() || undefined,
       coverImage: args.coverImage || undefined,
@@ -137,12 +161,17 @@ export const create = mutation({
           mediaUrl: l.mediaUrl,
           durationMinutes: l.durationMinutes || 10,
           orderIndex: i + 1,
+          type: l.type || "LESSON",
+          questions: l.type === "QUIZ" ? l.questions : undefined,
+          minPassScore: l.type === "QUIZ" ? (l.minPassScore ?? 60) : undefined,
           updatedAt: Date.now(),
         });
       }
     }
 
-    const pole = await ctx.db.get(args.poleId);
+    const pole = finalPoleId
+      ? await ctx.db.get(finalPoleId)
+      : { _id: "mcad", id: "mcad", name: "MCAD", color: "#2563eb", icon: "GraduationCap" };
     const lessons = await ctx.db.query("trainingLessons").withIndex("moduleId", (q) => q.eq("moduleId", moduleId)).collect();
     lessons.sort((a, b) => a.orderIndex - b.orderIndex);
     return { ...(await ctx.db.get(moduleId)), pole, lessons };
@@ -158,7 +187,7 @@ export const update = mutation({
     level: v.optional(v.string()),
     estimatedDuration: v.optional(v.string()),
     status: v.optional(v.string()),
-    poleId: v.optional(v.id("poles")),
+    poleId: v.optional(v.union(v.id("poles"), v.literal("mcad"))),
     lessons: v.optional(v.array(LESSON_INPUT)),
   },
   handler: async (ctx, args) => {
@@ -183,6 +212,9 @@ export const update = mutation({
           mediaUrl: l.mediaUrl,
           durationMinutes: l.durationMinutes || 10,
           orderIndex: i + 1,
+          type: l.type || "LESSON",
+          questions: l.type === "QUIZ" ? l.questions : undefined,
+          minPassScore: l.type === "QUIZ" ? (l.minPassScore ?? 60) : undefined,
           updatedAt: Date.now(),
         });
       }
@@ -195,12 +227,16 @@ export const update = mutation({
     if (args.level) patch.level = args.level;
     if (args.estimatedDuration !== undefined) patch.estimatedDuration = args.estimatedDuration;
     if (args.status) patch.status = args.status;
-    if (args.poleId) patch.poleId = args.poleId;
+    if (args.poleId !== undefined) {
+      patch.poleId = !args.poleId || args.poleId === "mcad" ? undefined : (args.poleId as Id<"poles">);
+    }
 
     await ctx.db.patch(moduleId, patch);
 
     const updated = (await ctx.db.get(moduleId))!;
-    const pole = await ctx.db.get(updated.poleId);
+    const pole = updated.poleId
+      ? await ctx.db.get(updated.poleId)
+      : { _id: "mcad", id: "mcad", name: "MCAD", color: "#2563eb", icon: "GraduationCap" };
     const lessons = await ctx.db.query("trainingLessons").withIndex("moduleId", (q) => q.eq("moduleId", moduleId)).collect();
     lessons.sort((a, b) => a.orderIndex - b.orderIndex);
     return { ...updated, pole, lessons };
@@ -235,8 +271,9 @@ export const updateProgress = mutation({
     action: v.union(v.literal("START_MODULE"), v.literal("TOGGLE_LESSON"), v.literal("COMPLETE_LESSON")),
     moduleId: v.id("trainingModules"),
     lessonId: v.optional(v.id("trainingLessons")),
+    score: v.optional(v.number()),
   },
-  handler: async (ctx, { action, moduleId, lessonId }) => {
+  handler: async (ctx, { action, moduleId, lessonId, score }) => {
     const currentUser = await requireAuth(ctx);
 
     const moduleDoc = await ctx.db.get(moduleId);
@@ -311,6 +348,7 @@ export const updateProgress = mutation({
         await ctx.db.insert("trainingLessonCompletions", {
           userId: currentUser._id,
           lessonId,
+          score,
           completedAt: Date.now(),
         });
         isNowCompleted = true;

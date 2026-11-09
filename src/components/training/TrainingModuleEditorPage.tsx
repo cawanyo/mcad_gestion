@@ -14,7 +14,10 @@ import {
   AlertCircle,
   Copy,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  HelpCircle,
+  CheckCircle2,
+  ListPlus
 } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -23,6 +26,28 @@ import { convexErrorMessage } from '@/lib/convexErrors';
 import { Pole, TrainingModule } from '@/types';
 import { MediaViewer } from '@/components/ui';
 import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
+
+export interface QuizQuestionItem {
+  id?: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation?: string;
+}
+
+export interface TrainingLessonItem {
+  id?: string;
+  title: string;
+  description: string;
+  content: string;
+  mediaType: 'NONE' | 'VIDEO' | 'PHOTO' | 'DOCUMENT';
+  mediaUrl: string;
+  durationMinutes: number;
+  uploading?: boolean;
+  type: 'LESSON' | 'QUIZ';
+  questions?: QuizQuestionItem[];
+  minPassScore?: number;
+}
 
 interface TrainingModuleEditorPageProps {
   poles: Pole[];
@@ -37,7 +62,9 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
   onBack,
   onSaved
 }) => {
-  const [poleId, setPoleId] = React.useState(editingModule?.poleId || poles[0]?.id || '');
+  const [poleId, setPoleId] = React.useState<string>(
+    editingModule?.poleId || 'mcad'
+  );
   const [title, setTitle] = React.useState(editingModule?.title || '');
   const [description, setDescription] = React.useState(editingModule?.description || '');
   const [coverImage, setCoverImage] = React.useState(editingModule?.coverImage || '');
@@ -49,30 +76,30 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
     editingModule?.estimatedDuration || '30 min'
   );
 
-  const [lessons, setLessons] = React.useState<
-    Array<{
-      id?: string;
-      title: string;
-      description: string;
-      content: string;
-      mediaType: 'NONE' | 'VIDEO' | 'PHOTO' | 'DOCUMENT';
-      mediaUrl: string;
-      durationMinutes: number;
-      uploading?: boolean;
-    }>
-  >(
+  const [lessons, setLessons] = React.useState<TrainingLessonItem[]>(
     editingModule?.lessons && editingModule.lessons.length > 0
-      ? editingModule.lessons.map((l) => ({
+      ? editingModule.lessons.map((l: any) => ({
           id: l.id,
           title: l.title,
           description: l.description || '',
           content: l.content || '',
           mediaType: (l.mediaType as any) || 'NONE',
           mediaUrl: l.mediaUrl || '',
-          durationMinutes: l.durationMinutes || 10
+          durationMinutes: l.durationMinutes || 10,
+          type: (l.type as any) || 'LESSON',
+          questions: l.questions || [
+            {
+              question: 'Question 1',
+              options: ['Option A', 'Option B'],
+              correctAnswer: 0,
+              explanation: ''
+            }
+          ],
+          minPassScore: l.minPassScore ?? 60
         }))
       : [
           {
+            type: 'LESSON',
             title: 'Introduction et principes',
             description: '',
             content: '',
@@ -91,7 +118,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
 
   React.useEffect(() => {
     if (editingModule) {
-      setPoleId(editingModule.poleId);
+      setPoleId(editingModule.poleId || 'mcad');
       setTitle(editingModule.title);
       setDescription(editingModule.description || '');
       setCoverImage(editingModule.coverImage || '');
@@ -99,21 +126,29 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
       setEstimatedDuration(editingModule.estimatedDuration || '30 min');
       if (editingModule.lessons && editingModule.lessons.length > 0) {
         setLessons(
-          editingModule.lessons.map((l) => ({
+          editingModule.lessons.map((l: any) => ({
             id: l.id,
             title: l.title,
             description: l.description || '',
             content: l.content || '',
             mediaType: (l.mediaType as any) || 'NONE',
             mediaUrl: l.mediaUrl || '',
-            durationMinutes: l.durationMinutes || 10
+            durationMinutes: l.durationMinutes || 10,
+            type: (l.type as any) || 'LESSON',
+            questions: l.questions || [
+              {
+                question: 'Question 1',
+                options: ['Option A', 'Option B'],
+                correctAnswer: 0,
+                explanation: ''
+              }
+            ],
+            minPassScore: l.minPassScore ?? 60
           }))
         );
       }
-    } else if (poles.length > 0 && !poleId) {
-      setPoleId(poles[0].id);
     }
-  }, [editingModule, poles]);
+  }, [editingModule]);
 
   const [lessonUploadProgress, setLessonUploadProgress] = React.useState<Record<number, UploadProgressInfo | null>>({});
 
@@ -172,6 +207,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
     setLessons((prev) => [
       ...prev,
       {
+        type: 'LESSON',
         title: `Leçon ${prev.length + 1}`,
         description: '',
         content: '',
@@ -182,13 +218,38 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
     ]);
   };
 
+  const handleAddQuiz = () => {
+    setLessons((prev) => [
+      ...prev,
+      {
+        type: 'QUIZ',
+        title: `Questionnaire ${prev.length + 1}`,
+        description: 'Répondez au questionnaire suivant pour valider cette étape (score minimum requis : 60%).',
+        content: '',
+        mediaType: 'NONE',
+        mediaUrl: '',
+        durationMinutes: 5,
+        minPassScore: 60,
+        questions: [
+          {
+            question: 'Question 1',
+            options: ['Option A', 'Option B'],
+            correctAnswer: 0,
+            explanation: ''
+          }
+        ]
+      }
+    ]);
+  };
+
   const handleDuplicateLesson = (index: number) => {
     const target = lessons[index];
     if (!target) return;
-    const duplicated = {
+    const duplicated: TrainingLessonItem = {
       ...target,
       id: undefined,
-      title: `${target.title} (Copie)`
+      title: `${target.title} (Copie)`,
+      questions: target.questions ? JSON.parse(JSON.stringify(target.questions)) : undefined
     };
     const newLessons = [...lessons];
     newLessons.splice(index + 1, 0, duplicated);
@@ -215,10 +276,120 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
 
   const handleRemoveLesson = (index: number) => {
     if (lessons.length <= 1) {
-      setError('Le module doit comporter au moins une leçon.');
+      setError('Le module doit comporter au moins une leçon ou un questionnaire.');
       return;
     }
     setLessons((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Gestion des questions de QCM
+  const handleAddQuestion = (lessonIdx: number) => {
+    setLessons((prev) =>
+      prev.map((l, idx) => {
+        if (idx !== lessonIdx) return l;
+        const currentQuestions = l.questions || [];
+        return {
+          ...l,
+          questions: [
+            ...currentQuestions,
+            {
+              question: `Question ${currentQuestions.length + 1}`,
+              options: ['Choix A', 'Choix B'],
+              correctAnswer: 0,
+              explanation: ''
+            }
+          ]
+        };
+      })
+    );
+  };
+
+  const handleRemoveQuestion = (lessonIdx: number, qIdx: number) => {
+    setLessons((prev) =>
+      prev.map((l, idx) => {
+        if (idx !== lessonIdx) return l;
+        const currentQuestions = l.questions || [];
+        if (currentQuestions.length <= 1) return l;
+        return {
+          ...l,
+          questions: currentQuestions.filter((_, i) => i !== qIdx)
+        };
+      })
+    );
+  };
+
+  const handleUpdateQuestion = (
+    lessonIdx: number,
+    qIdx: number,
+    field: keyof QuizQuestionItem,
+    value: any
+  ) => {
+    setLessons((prev) =>
+      prev.map((l, idx) => {
+        if (idx !== lessonIdx) return l;
+        const questions = [...(l.questions || [])];
+        if (!questions[qIdx]) return l;
+        questions[qIdx] = { ...questions[qIdx], [field]: value };
+        return { ...l, questions };
+      })
+    );
+  };
+
+  const handleAddOption = (lessonIdx: number, qIdx: number) => {
+    setLessons((prev) =>
+      prev.map((l, idx) => {
+        if (idx !== lessonIdx) return l;
+        const questions = [...(l.questions || [])];
+        const q = questions[qIdx];
+        if (!q) return l;
+        questions[qIdx] = {
+          ...q,
+          options: [...q.options, `Choix ${String.fromCharCode(65 + q.options.length)}`]
+        };
+        return { ...l, questions };
+      })
+    );
+  };
+
+  const handleRemoveOption = (lessonIdx: number, qIdx: number, optIdx: number) => {
+    setLessons((prev) =>
+      prev.map((l, idx) => {
+        if (idx !== lessonIdx) return l;
+        const questions = [...(l.questions || [])];
+        const q = questions[qIdx];
+        if (!q || q.options.length <= 2) return l;
+        const newOptions = q.options.filter((_, i) => i !== optIdx);
+        let newCorrectAnswer = q.correctAnswer;
+        if (newCorrectAnswer === optIdx) newCorrectAnswer = 0;
+        else if (newCorrectAnswer > optIdx) newCorrectAnswer -= 1;
+        questions[qIdx] = {
+          ...q,
+          options: newOptions,
+          correctAnswer: newCorrectAnswer
+        };
+        return { ...l, questions };
+      })
+    );
+  };
+
+  const handleUpdateOption = (
+    lessonIdx: number,
+    qIdx: number,
+    optIdx: number,
+    value: string
+  ) => {
+    setLessons((prev) =>
+      prev.map((l, idx) => {
+        if (idx !== lessonIdx) return l;
+        const questions = [...(l.questions || [])];
+        const q = questions[qIdx];
+        if (!q) return l;
+        const newOptions = [...q.options];
+        newOptions[optIdx] = value;
+        questions[qIdx] = { ...q, options: newOptions };
+        return { ...l, questions };
+      })
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -234,21 +405,45 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
       return;
     }
     if (lessons.length === 0) {
-      setError('Veuillez ajouter au moins une leçon.');
+      setError('Veuillez ajouter au moins une leçon ou un questionnaire.');
       return;
     }
 
     for (let i = 0; i < lessons.length; i++) {
-      if (!lessons[i].title.trim()) {
-        setError(`La leçon N°${i + 1} doit comporter un titre.`);
+      const item = lessons[i];
+      if (!item.title.trim()) {
+        setError(`L'élément N°${i + 1} doit comporter un titre.`);
         return;
+      }
+      if (item.type === 'QUIZ') {
+        if (!item.questions || item.questions.length === 0) {
+          setError(`Le questionnaire N°${i + 1} ("${item.title}") doit comporter au moins une question.`);
+          return;
+        }
+        for (let q = 0; q < item.questions.length; q++) {
+          const quest = item.questions[q];
+          if (!quest.question.trim()) {
+            setError(`Dans le questionnaire "${item.title}", la question N°${q + 1} est vide.`);
+            return;
+          }
+          if (!quest.options || quest.options.length < 2) {
+            setError(`Dans le questionnaire "${item.title}", la question N°${q + 1} doit avoir au moins 2 options.`);
+            return;
+          }
+          for (let o = 0; o < quest.options.length; o++) {
+            if (!quest.options[o].trim()) {
+              setError(`Dans le questionnaire "${item.title}", le choix N°${o + 1} de la question N°${q + 1} est vide.`);
+              return;
+            }
+          }
+        }
       }
     }
 
     try {
       setLoading(true);
-      const payload = {
-        poleId: poleId as Id<'poles'>,
+      const payload: any = {
+        poleId: poleId === 'mcad' ? undefined : (poleId as Id<'poles'>),
         title: title.trim(),
         description: description.trim() || undefined,
         coverImage: coverImage.trim() || undefined,
@@ -260,7 +455,18 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
           content: l.content.trim() || undefined,
           mediaType: l.mediaType,
           mediaUrl: l.mediaUrl.trim() || undefined,
-          durationMinutes: Number(l.durationMinutes) || 10
+          durationMinutes: Number(l.durationMinutes) || 10,
+          type: l.type || 'LESSON',
+          questions:
+            l.type === 'QUIZ'
+              ? (l.questions || []).map((q) => ({
+                  question: q.question.trim(),
+                  options: q.options.map((opt) => opt.trim()),
+                  correctAnswer: Number(q.correctAnswer) || 0,
+                  explanation: q.explanation?.trim() || undefined
+                }))
+              : undefined,
+          minPassScore: l.type === 'QUIZ' ? (l.minPassScore ?? 60) : undefined
         }))
       };
 
@@ -296,7 +502,11 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
           <div>
             <h1 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight flex items-center gap-2">
               <span>{editingModule ? 'Modifier le module' : 'Nouveau module'}</span>
-              {selectedPole && (
+              {poleId === 'mcad' || !selectedPole ? (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                  MCAD (Tous les pôles)
+                </span>
+              ) : (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200">
                   {selectedPole.name}
                 </span>
@@ -322,7 +532,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Pôle */}
+            {/* Pôle avec MCAD au début */}
             <div>
               <label className="block text-[11px] font-medium text-zinc-700 mb-1">Pôle *</label>
               <select
@@ -331,9 +541,10 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                 required
                 className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900"
               >
+                <option value="mcad">MCAD (Disponible pour tous les pôles)</option>
                 {poles.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    Pôle {p.name}
                   </option>
                 ))}
               </select>
@@ -453,39 +664,67 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
           </div>
         </div>
 
-        {/* Leçons */}
+        {/* Leçons & Questionnaires */}
         <div className="bg-white/80 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-zinc-200/70 shadow-xs space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+          <div className="flex items-center justify-between pb-2 border-b border-zinc-100 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Film className="w-4 h-4 text-blue-600" />
               <h2 className="text-xs sm:text-sm font-bold text-zinc-900">
-                Leçons ({lessons.length})
+                Programme de la formation ({lessons.length} étape{lessons.length > 1 ? 's' : ''})
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={handleAddLesson}
-              className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Ajouter</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleAddLesson}
+                className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Leçon</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleAddQuiz}
+                className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-medium rounded-lg flex items-center gap-1 transition-colors"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>Questionnaire</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
             {lessons.map((lesson, idx) => (
               <div
                 key={idx}
-                className="p-3 sm:p-3.5 rounded-xl bg-zinc-50/70 border border-zinc-200 space-y-2.5"
+                className={`p-3 sm:p-3.5 rounded-xl border space-y-2.5 ${
+                  lesson.type === 'QUIZ'
+                    ? 'bg-indigo-50/40 border-indigo-200'
+                    : 'bg-zinc-50/70 border-zinc-200'
+                }`}
               >
+                {/* En-tête de l'étape */}
                 <div className="flex items-center justify-between gap-2 border-b border-zinc-200/60 pb-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-5 h-5 rounded-md bg-zinc-900 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                    <span className={`w-5 h-5 rounded-md font-bold text-[10px] flex items-center justify-center shrink-0 ${
+                      lesson.type === 'QUIZ' ? 'bg-indigo-600 text-white' : 'bg-zinc-900 text-white'
+                    }`}>
                       {idx + 1}
                     </span>
                     <span className="text-xs font-semibold text-zinc-900 truncate">
-                      {lesson.title || `Leçon ${idx + 1}`}
+                      {lesson.title || (lesson.type === 'QUIZ' ? `Questionnaire ${idx + 1}` : `Leçon ${idx + 1}`)}
                     </span>
+                    {lesson.type === 'QUIZ' ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1 shrink-0">
+                        <HelpCircle className="w-3 h-3" />
+                        QCM ({lesson.questions?.length || 0} questions)
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-200/70 text-zinc-700 flex items-center gap-1 shrink-0">
+                        <Film className="w-3 h-3" />
+                        Leçon
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
@@ -494,6 +733,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                       disabled={idx === 0}
                       onClick={() => handleMoveUp(idx)}
                       className="p-1 text-zinc-400 hover:text-zinc-700 disabled:opacity-30 rounded"
+                      title="Monter"
                     >
                       <ChevronUp className="w-3.5 h-3.5" />
                     </button>
@@ -502,6 +742,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                       disabled={idx === lessons.length - 1}
                       onClick={() => handleMoveDown(idx)}
                       className="p-1 text-zinc-400 hover:text-zinc-700 disabled:opacity-30 rounded"
+                      title="Descendre"
                     >
                       <ChevronDown className="w-3.5 h-3.5" />
                     </button>
@@ -509,6 +750,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                       type="button"
                       onClick={() => handleDuplicateLesson(idx)}
                       className="p-1 text-zinc-400 hover:text-zinc-700 rounded"
+                      title="Dupliquer"
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
@@ -516,204 +758,443 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                       type="button"
                       onClick={() => handleRemoveLesson(idx)}
                       className="p-1 text-zinc-400 hover:text-rose-600 rounded"
+                      title="Supprimer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <div className="sm:col-span-2">
-                    <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Titre *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Titre de la leçon"
-                      value={lesson.title}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setLessons((prev) =>
-                          prev.map((l, i) => (i === idx ? { ...l, title: val } : l))
-                        );
-                      }}
-                      className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Durée (min)</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={180}
-                      value={lesson.durationMinutes}
-                      onChange={(e) => {
-                        const val = Number(e.target.value) || 10;
-                        setLessons((prev) =>
-                          prev.map((l, i) => (i === idx ? { ...l, durationMinutes: val } : l))
-                        );
-                      }}
-                      className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Support</label>
-                    <select
-                      value={lesson.mediaType}
-                      onChange={(e) => {
-                        const val = e.target.value as any;
-                        setLessons((prev) =>
-                          prev.map((l, i) => (i === idx ? { ...l, mediaType: val } : l))
-                        );
-                      }}
-                      className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                    >
-                      <option value="NONE">Texte seul</option>
-                      <option value="VIDEO">Vidéo</option>
-                      <option value="PHOTO">Photo</option>
-                      <option value="DOCUMENT">Document</option>
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Média (URL ou fichier)</label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        placeholder="Lien YouTube, MP4, image..."
-                        value={lesson.mediaUrl}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const isVid =
-                            val.includes('youtube.com') ||
-                            val.includes('youtu.be') ||
-                            val.includes('vimeo.com') ||
-                            val.includes('loom.com') ||
-                            /\.(mp4|webm|mov|m4v)$/i.test(val);
-                          setLessons((prev) =>
-                            prev.map((l, i) =>
-                              i === idx
-                                ? {
-                                    ...l,
-                                    mediaUrl: val,
-                                    mediaType: isVid ? 'VIDEO' : l.mediaType === 'NONE' && val ? 'PHOTO' : l.mediaType
-                                  }
-                                : l
-                            )
-                          );
-                        }}
-                        className="flex-1 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                      />
-                      <label className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-lg text-xs font-medium cursor-pointer transition-colors flex items-center gap-1 shrink-0">
-                        {lesson.uploading ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Upload className="w-3.5 h-3.5" />
-                        )}
-                        <span>{lesson.uploading ? 'Envoi...' : 'Upload'}</span>
+                {/* Contenu spécifique selon le type */}
+                {lesson.type === 'QUIZ' ? (
+                  /* Formulaire Questionnaire / QCM */
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="sm:col-span-2">
+                        <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">
+                          Titre du questionnaire *
+                        </label>
                         <input
-                          type="file"
-                          accept="video/*,image/*"
-                          className="hidden"
-                          disabled={lesson.uploading}
+                          type="text"
+                          required
+                          placeholder="Ex: Évaluation des acquis — Notions clés"
+                          value={lesson.title}
                           onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              handleLessonMediaUpload(e.target.files[0], idx);
-                            }
+                            const val = e.target.value;
+                            setLessons((prev) =>
+                              prev.map((l, i) => (i === idx ? { ...l, title: val } : l))
+                            );
                           }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {lessonUploadProgress[idx] && (
-                    <div className="sm:col-span-3 p-2 bg-blue-50 border border-blue-200 rounded-lg space-y-1">
-                      <div className="flex items-center justify-between text-[11px] font-medium text-blue-900">
-                        <span>{lessonUploadProgress[idx]?.statusText}</span>
-                        <span>{lessonUploadProgress[idx]?.percent}%</span>
-                      </div>
-                      <div className="w-full bg-blue-200 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="bg-blue-600 h-1.5 rounded-full transition-all"
-                          style={{ width: `${lessonUploadProgress[idx]?.percent}%` }}
+                          className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-indigo-600"
                         />
                       </div>
+                      <div>
+                        <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">
+                          Durée estimée (min)
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={60}
+                          value={lesson.durationMinutes}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 5;
+                            setLessons((prev) =>
+                              prev.map((l, i) => (i === idx ? { ...l, durationMinutes: val } : l))
+                            );
+                          }}
+                          className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                        />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">
+                          Consignes ou description
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Instructions générales (ex : Répondez aux questions, score de 60% requis pour valider)"
+                          value={lesson.description}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLessons((prev) =>
+                              prev.map((l, i) => (i === idx ? { ...l, description: val } : l))
+                            );
+                          }}
+                          className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                        />
+                      </div>
                     </div>
-                  )}
 
-                  {lesson.mediaUrl && !lesson.uploading && (
-                    <div className="sm:col-span-3 p-2 bg-white rounded-lg border border-zinc-200 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-zinc-400 font-semibold uppercase">Aperçu support</span>
+                    {/* Liste des questions du QCM */}
+                    <div className="p-3 bg-white rounded-xl border border-indigo-100 space-y-3">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-zinc-100">
+                        <div className="flex items-center gap-1.5">
+                          <ListPlus className="w-3.5 h-3.5 text-indigo-600" />
+                          <span className="text-[11px] font-bold text-zinc-900 uppercase tracking-wider">
+                            Questions du QCM ({lesson.questions?.length || 0})
+                          </span>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={() => handleAddQuestion(idx)}
+                          className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold rounded-lg flex items-center gap-1 transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Ajouter une question</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {(lesson.questions || []).map((q, qIdx) => (
+                          <div
+                            key={qIdx}
+                            className="p-3 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-2.5"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-bold text-indigo-700 uppercase">
+                                Question {qIdx + 1}
+                              </span>
+                              {(lesson.questions || []).length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveQuestion(idx, qIdx)}
+                                  className="text-zinc-400 hover:text-rose-600 p-0.5 rounded transition-colors"
+                                  title="Supprimer cette question"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Énoncé de la question */}
+                            <div>
+                              <input
+                                type="text"
+                                required
+                                placeholder="Énoncé de la question *"
+                                value={q.question}
+                                onChange={(e) =>
+                                  handleUpdateQuestion(idx, qIdx, 'question', e.target.value)
+                                }
+                                className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                              />
+                            </div>
+
+                            {/* Choix de réponses (Options QCM) */}
+                            <div className="space-y-1.5 pl-1">
+                              <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">
+                                Réponses possibles (sélectionnez la bonne réponse) :
+                              </span>
+
+                              {q.options.map((opt, optIdx) => {
+                                const isCorrect = q.correctAnswer === optIdx;
+                                return (
+                                  <div
+                                    key={optIdx}
+                                    className={`flex items-center gap-2 p-1.5 rounded-lg border transition-all ${
+                                      isCorrect
+                                        ? 'bg-emerald-50/70 border-emerald-300'
+                                        : 'bg-white border-zinc-200'
+                                    }`}
+                                  >
+                                    <label
+                                      className="flex items-center gap-1.5 cursor-pointer shrink-0"
+                                      title="Définir comme bonne réponse"
+                                    >
+                                      <input
+                                        type="radio"
+                                        name={`quiz_${idx}_q_${qIdx}_correct`}
+                                        checked={isCorrect}
+                                        onChange={() =>
+                                          handleUpdateQuestion(idx, qIdx, 'correctAnswer', optIdx)
+                                        }
+                                        className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                      />
+                                      <span
+                                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                          isCorrect
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'bg-zinc-100 text-zinc-600'
+                                        }`}
+                                      >
+                                        {String.fromCharCode(65 + optIdx)}
+                                      </span>
+                                    </label>
+
+                                    <input
+                                      type="text"
+                                      required
+                                      placeholder={`Choix ${String.fromCharCode(65 + optIdx)}`}
+                                      value={opt}
+                                      onChange={(e) =>
+                                        handleUpdateOption(idx, qIdx, optIdx, e.target.value)
+                                      }
+                                      className="flex-1 px-2 py-1 bg-transparent text-xs font-medium text-zinc-800 focus:outline-none"
+                                    />
+
+                                    {isCorrect && (
+                                      <span className="text-[10px] font-semibold text-emerald-700 flex items-center gap-0.5 shrink-0 px-1.5">
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                        <span>Correcte</span>
+                                      </span>
+                                    )}
+
+                                    {q.options.length > 2 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveOption(idx, qIdx, optIdx)}
+                                        className="text-zinc-400 hover:text-rose-600 p-1 rounded shrink-0"
+                                        title="Retirer ce choix"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+
+                              <button
+                                type="button"
+                                onClick={() => handleAddOption(idx, qIdx)}
+                                className="text-[11px] font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1 pt-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                                <span>Ajouter une option de réponse</span>
+                              </button>
+                            </div>
+
+                            {/* Explication optionnelle */}
+                            <div className="pt-1">
+                              <input
+                                type="text"
+                                placeholder="Explication optionnelle affichée après la validation..."
+                                value={q.explanation || ''}
+                                onChange={(e) =>
+                                  handleUpdateQuestion(idx, qIdx, 'explanation', e.target.value)
+                                }
+                                className="w-full px-2 py-1 bg-white border border-zinc-200 rounded-lg text-[11px] text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuestion(idx)}
+                        className="w-full py-2 border border-dashed border-indigo-200 hover:border-indigo-300 bg-indigo-50/30 hover:bg-indigo-50/60 text-indigo-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Ajouter une question supplémentaire à ce questionnaire</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Formulaire Leçon classique */
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Titre *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Titre de la leçon"
+                        value={lesson.title}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setLessons((prev) =>
+                            prev.map((l, i) => (i === idx ? { ...l, title: val } : l))
+                          );
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Durée (min)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={180}
+                        value={lesson.durationMinutes}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 10;
+                          setLessons((prev) =>
+                            prev.map((l, i) => (i === idx ? { ...l, durationMinutes: val } : l))
+                          );
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Support</label>
+                      <select
+                        value={lesson.mediaType}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setLessons((prev) =>
+                            prev.map((l, i) => (i === idx ? { ...l, mediaType: val } : l))
+                          );
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                      >
+                        <option value="NONE">Texte seul</option>
+                        <option value="VIDEO">Vidéo</option>
+                        <option value="PHOTO">Photo</option>
+                        <option value="DOCUMENT">Document</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Média (URL ou fichier)</label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          placeholder="Lien YouTube, MP4, image..."
+                          value={lesson.mediaUrl}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const isVid =
+                              val.includes('youtube.com') ||
+                              val.includes('youtu.be') ||
+                              val.includes('vimeo.com') ||
+                              val.includes('loom.com') ||
+                              /\.(mp4|webm|mov|m4v)$/i.test(val);
                             setLessons((prev) =>
                               prev.map((l, i) =>
-                                i === idx ? { ...l, mediaUrl: '', mediaType: 'NONE' } : l
+                                i === idx
+                                  ? {
+                                      ...l,
+                                      mediaUrl: val,
+                                      mediaType: isVid ? 'VIDEO' : l.mediaType === 'NONE' && val ? 'PHOTO' : l.mediaType
+                                    }
+                                  : l
                               )
                             );
                           }}
-                          className="text-[10px] text-zinc-500 hover:text-zinc-900 font-medium"
-                        >
-                          Retirer
-                        </button>
-                      </div>
-                      <div className="max-w-xs">
-                        <MediaViewer
-                          url={lesson.mediaUrl}
-                          mediaType={lesson.mediaType}
-                          title={lesson.title}
+                          className="flex-1 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                         />
+                        <label className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-lg text-xs font-medium cursor-pointer transition-colors flex items-center gap-1 shrink-0">
+                          {lesson.uploading ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Upload className="w-3.5 h-3.5" />
+                          )}
+                          <span>{lesson.uploading ? 'Envoi...' : 'Upload'}</span>
+                          <input
+                            type="file"
+                            accept="video/*,image/*"
+                            className="hidden"
+                            disabled={lesson.uploading}
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleLessonMediaUpload(e.target.files[0], idx);
+                              }
+                            }}
+                          />
+                        </label>
                       </div>
                     </div>
-                  )}
 
-                  <div className="sm:col-span-3">
-                    <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Résumé court</label>
-                    <input
-                      type="text"
-                      placeholder="Résumé succinct de la leçon"
-                      value={lesson.description}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setLessons((prev) =>
-                          prev.map((l, i) => (i === idx ? { ...l, description: val } : l))
-                        );
-                      }}
-                      className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                    />
-                  </div>
+                    {lessonUploadProgress[idx] && (
+                      <div className="sm:col-span-3 p-2 bg-blue-50 border border-blue-200 rounded-lg space-y-1">
+                        <div className="flex items-center justify-between text-[11px] font-medium text-blue-900">
+                          <span>{lessonUploadProgress[idx]?.statusText}</span>
+                          <span>{lessonUploadProgress[idx]?.percent}%</span>
+                        </div>
+                        <div className="w-full bg-blue-200 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-blue-600 h-1.5 rounded-full transition-all"
+                            style={{ width: `${lessonUploadProgress[idx]?.percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="sm:col-span-3">
-                    <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Contenu / Consignes</label>
-                    <textarea
-                      rows={3}
-                      placeholder="Instructions détaillées..."
-                      value={lesson.content}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setLessons((prev) =>
-                          prev.map((l, i) => (i === idx ? { ...l, content: val } : l))
-                        );
-                      }}
-                      className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                    />
+                    {lesson.mediaUrl && !lesson.uploading && (
+                      <div className="sm:col-span-3 p-2 bg-white rounded-lg border border-zinc-200 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-zinc-400 font-semibold uppercase">Aperçu support</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLessons((prev) =>
+                                prev.map((l, i) =>
+                                  i === idx ? { ...l, mediaUrl: '', mediaType: 'NONE' } : l
+                                )
+                              );
+                            }}
+                            className="text-[10px] text-zinc-500 hover:text-zinc-900 font-medium"
+                          >
+                            Retirer
+                          </button>
+                        </div>
+                        <div className="max-w-xs">
+                          <MediaViewer
+                            url={lesson.mediaUrl}
+                            mediaType={lesson.mediaType}
+                            title={lesson.title}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="sm:col-span-3">
+                      <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Résumé court</label>
+                      <input
+                        type="text"
+                        placeholder="Résumé succinct de la leçon"
+                        value={lesson.description}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setLessons((prev) =>
+                            prev.map((l, i) => (i === idx ? { ...l, description: val } : l))
+                          );
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <label className="block text-[10px] font-medium text-zinc-600 mb-0.5">Contenu / Consignes</label>
+                      <textarea
+                        rows={3}
+                        placeholder="Instructions détaillées..."
+                        value={lesson.content}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setLessons((prev) =>
+                            prev.map((l, i) => (i === idx ? { ...l, content: val } : l))
+                          );
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={handleAddLesson}
-            className="w-full py-2.5 border border-dashed border-zinc-300 hover:border-zinc-400 bg-white hover:bg-zinc-50 text-zinc-700 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Ajouter une leçon</span>
-          </button>
+          {/* Les 2 boutons demandés : 'Ajouter une leçon' et 'Ajouter un questionnaire' */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleAddLesson}
+              className="w-full py-2.5 px-3 border border-zinc-200 hover:border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-2xs cursor-pointer"
+            >
+              <Film className="w-4 h-4 text-blue-600" />
+              <span>Ajouter une leçon</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleAddQuiz}
+              className="w-full py-2.5 px-3 border border-indigo-200 hover:border-indigo-300 bg-indigo-50/50 hover:bg-indigo-50 text-indigo-900 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-2xs cursor-pointer"
+            >
+              <HelpCircle className="w-4 h-4 text-indigo-600" />
+              <span>Ajouter un questionnaire</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

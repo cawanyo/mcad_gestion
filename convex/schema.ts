@@ -256,7 +256,7 @@ export default defineSchema({
   }).index("actorId", ["actorId"]),
 
   trainingModules: defineTable({
-    poleId: v.id("poles"),
+    poleId: v.optional(v.id("poles")),
     title: v.string(),
     description: v.optional(v.string()),
     coverImage: v.optional(v.string()),
@@ -278,6 +278,18 @@ export default defineSchema({
     mediaUrl: v.optional(v.string()),
     durationMinutes: v.optional(v.number()),
     orderIndex: v.number(),
+    type: v.optional(v.string()), // LESSON, QUIZ
+    questions: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          options: v.array(v.string()),
+          correctAnswer: v.number(),
+          explanation: v.optional(v.string()),
+        })
+      )
+    ),
+    minPassScore: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("moduleId", ["moduleId"]),
 
@@ -285,6 +297,7 @@ export default defineSchema({
     userId: v.id("users"),
     lessonId: v.id("trainingLessons"),
     completedAt: v.number(),
+    score: v.optional(v.number()),
   })
     .index("userAndLesson", ["userId", "lessonId"]) // @@unique
     .index("userId", ["userId"])

@@ -46,14 +46,14 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
   }, [poles, userPoleIds]);
 
   const modulesRaw = useQuery(api.training.list, {
-    poleId: selectedPoleFilter !== 'all' ? (selectedPoleFilter as Id<'poles'>) : undefined,
+    poleId: selectedPoleFilter !== 'all' ? (selectedPoleFilter as any) : undefined,
   });
   const loading = modulesRaw === undefined;
 
-  // Filter modules: ONLY modules belonging to user's poles
+  // Filter modules: modules belonging to user's poles OR MCAD (available to all poles)
   const modules = React.useMemo(() => {
     const all = (modulesRaw || []).map(adaptTrainingModule) as TrainingModule[];
-    return all.filter((m) => userPoleIds.has(m.poleId));
+    return all.filter((m) => !m.poleId || m.poleId === 'mcad' || userPoleIds.has(m.poleId));
   }, [modulesRaw, userPoleIds]);
 
   // Active module when in course view
@@ -112,13 +112,14 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
           />
         </div>
 
-        {myPoles.length > 1 && (
+        {myPoles.length > 0 && (
           <select
             value={selectedPoleFilter}
             onChange={(e) => setSelectedPoleFilter(e.target.value)}
             className="p-1.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-blue-600 self-start sm:self-auto"
           >
-            <option value="all">Tous mes pôles</option>
+            <option value="all">Toutes mes formations</option>
+            <option value="mcad">MCAD (Tronc commun)</option>
             {myPoles.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -134,7 +135,7 @@ export const TrainingWeb: React.FC<TrainingWebProps> = ({
           <Loader2 className="w-4 h-4 animate-spin text-zinc-600" />
           <span>Chargement de vos formations...</span>
         </div>
-      ) : userPoleIds.size === 0 ? (
+      ) : userPoleIds.size === 0 && filteredModules.length === 0 ? (
         <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200/70 p-8 text-center space-y-2 shadow-xs">
           <GraduationCap className="w-8 h-8 text-zinc-400 mx-auto" />
           <h2 className="text-sm font-bold text-zinc-900">Aucun pôle actif</h2>

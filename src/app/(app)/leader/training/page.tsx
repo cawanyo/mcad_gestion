@@ -44,7 +44,7 @@ export default function LeaderTrainingManagementPage() {
   const [notification, setNotification] = React.useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const modulesRaw = useQuery(api.training.list, {
-    poleId: selectedPoleFilter !== 'all' ? (selectedPoleFilter as Id<'poles'>) : undefined,
+    poleId: selectedPoleFilter !== 'all' ? (selectedPoleFilter as any) : undefined,
   });
   const loading = modulesRaw === undefined;
   const modules = React.useMemo(
@@ -186,7 +186,8 @@ export default function LeaderTrainingManagementPage() {
           onChange={(e) => setSelectedPoleFilter(e.target.value)}
           className="p-1.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-blue-600"
         >
-          <option value="all">Tous les pôles</option>
+          <option value="all">Tous les pôles & MCAD</option>
+          <option value="mcad">MCAD (Tous les pôles)</option>
           {poles.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}

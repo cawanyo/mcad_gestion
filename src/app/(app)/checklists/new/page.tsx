@@ -190,6 +190,7 @@ function CreateOrEditChecklistContent() {
       if (isEditing && queryChecklistId) {
         await updateChecklist({
           checklistId: queryChecklistId as Id<'checklists'>,
+          poleId: selectedPoleId as Id<'poles'>,
           title: title.trim(),
           description: description.trim() || undefined,
           steps: validSteps,
@@ -270,8 +271,7 @@ function CreateOrEditChecklistContent() {
             <select
               value={selectedPoleId}
               onChange={(e) => setSelectedPoleId(e.target.value)}
-              disabled={isEditing}
-              className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-600 disabled:opacity-60"
+              className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-600"
             >
               {poles.map((p) => (
                 <option key={p.id} value={p.id}>

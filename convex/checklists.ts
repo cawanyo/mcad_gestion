@@ -118,6 +118,7 @@ export const create = mutation({
 export const update = mutation({
   args: {
     checklistId: v.id("checklists"),
+    poleId: v.optional(v.id("poles")),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     status: v.optional(v.string()),
@@ -130,6 +131,10 @@ export const update = mutation({
     const existingChecklist = await ctx.db.get(checklistId);
     if (!existingChecklist) throw new ConvexError("Checklist introuvable");
     await requirePoleLeaderOrAdmin(ctx, existingChecklist.poleId);
+
+    if (args.poleId && args.poleId !== existingChecklist.poleId) {
+      await requirePoleLeaderOrAdmin(ctx, args.poleId);
+    }
 
     if (args.associateEventId) {
       const existing = await ctx.db
@@ -170,6 +175,7 @@ export const update = mutation({
     }
 
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    if (args.poleId) patch.poleId = args.poleId;
     if (args.title) patch.title = args.title.trim();
     if (args.description !== undefined) patch.description = args.description?.trim() || undefined;
     if (args.status) patch.status = args.status;
