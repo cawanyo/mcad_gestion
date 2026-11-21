@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#ffffff',
+  themeColor: '#09090b',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -46,6 +46,8 @@ export default async function RootLayout({
         <head>
           <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
           <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-title" content="MCAD" />
         </head>
         <body className="bg-white text-zinc-900 antialiased min-h-screen selection:bg-blue-600 selection:text-white">
           <PwaProvider>

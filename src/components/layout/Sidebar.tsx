@@ -19,10 +19,13 @@ import {
   Home,
   GraduationCap,
   Loader2,
-  Package
+  Package,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { User as UserType } from '@/types';
 import { Avatar } from '@/components/ui';
+import { usePwa } from '@/components/pwa/PwaProvider';
 
 interface SidebarProps {
   currentUser: UserType | null;
@@ -39,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { isInstalled, showInstallPrompt } = usePwa();
   const [isPending, startTransition] = React.useTransition();
   const [pendingTabId, setPendingTabId] = React.useState<string | null>(null);
 
@@ -167,6 +171,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* User Profile Card & Actions */}
       <div className="p-3 border-t border-zinc-800/80 bg-zinc-950 space-y-2">
+        {!isInstalled && (
+          <button
+            type="button"
+            onClick={showInstallPrompt}
+            className="w-full flex items-center justify-between p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors text-left"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Smartphone className="w-4 h-4 text-blue-400 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-white truncate">Installer l'app</p>
+                <p className="text-[10px] text-zinc-400 truncate">Plein écran & hors ligne</p>
+              </div>
+            </div>
+            <Download className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+          </button>
+        )}
+
         <div className="w-full flex items-center gap-2.5 p-2 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
           <Avatar
             src={currentUser?.avatar}

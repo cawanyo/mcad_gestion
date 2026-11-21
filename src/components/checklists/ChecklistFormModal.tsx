@@ -289,7 +289,7 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
                       <div className="flex items-center gap-2">
                         <input
                           type="text"
-                          placeholder="Collez un lien vidéo (YouTube, Vimeo, MP4) ou téléversez..."
+                          placeholder="Collez un lien vidéo (YouTube, Vimeo, Google Drive, MP4) ou téléversez..."
                           value={step.mediaUrl}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -298,14 +298,15 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
                               val.includes('youtu.be') ||
                               val.includes('vimeo.com') ||
                               val.includes('loom.com') ||
-                              /\.(mp4|webm|mov|m4v)$/i.test(val);
+                              val.includes('drive.google.com') ||
+                              /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(val);
                             const updated = [...steps];
                             updated[idx] = { ...updated[idx], mediaUrl: val, mediaType: isVid ? 'VIDEO' : val ? 'PHOTO' : 'NONE' };
                             setSteps(updated);
                           }}
                           className="flex-1 p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-hidden"
                         />
-                        <label className="px-3 py-2 bg-blue-50 hover:bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                        <label className="px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap">
                           {step.uploading ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
                           ) : (
@@ -331,7 +332,7 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
                             <span>{stepUploadProgress[idx]?.statusText}</span>
                             <span>{stepUploadProgress[idx]?.percent}%</span>
                           </div>
-                          <div className="w-full bg-indigo-200/70 rounded-full h-1.5 overflow-hidden">
+                          <div className="w-full bg-blue-200/70 rounded-full h-1.5 overflow-hidden">
                             <div
                               className="bg-blue-600 h-1.5 rounded-full transition-all duration-300 ease-out"
                               style={{ width: `${stepUploadProgress[idx]?.percent}%` }}
@@ -340,7 +341,16 @@ export const ChecklistFormModal: React.FC<ChecklistFormModalProps> = ({
                         </div>
                       )}
 
-                      {step.error && <p className="text-xs text-zinc-900 font-semibold">⚠️ {step.error}</p>}
+                      {step.error && (
+                        <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2">
+                          <span className="shrink-0 mt-0.5">⚠️</span>
+                          <span className="text-[11px] leading-relaxed">{step.error}</span>
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-zinc-400">
+                        💡 Téléversez une vidéo (jusqu'à 100 Mo) ou collez un lien (YouTube non répertorié, Vimeo, Loom, Google Drive) pour les vidéos très lourdes ou longues.
+                      </p>
                     </div>
                   )}
                 </div>

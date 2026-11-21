@@ -24,7 +24,7 @@ import { Id } from '../../../convex/_generated/dataModel';
 import { convexErrorMessage } from '@/lib/convexErrors';
 import { Pole, TrainingModule } from '@/types';
 import { MediaViewer } from '@/components/ui';
-import { uploadMediaWithProgress } from '@/lib/upload-client';
+import { uploadMediaWithProgress, UploadProgressInfo } from '@/lib/upload-client';
 
 export interface QuizQuestionItem {
   id?: string;
@@ -109,6 +109,8 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [lessonUploadProgress, setLessonUploadProgress] = React.useState<{ [index: number]: UploadProgressInfo | null }>({});
+  const [lessonErrors, setLessonErrors] = React.useState<{ [index: number]: string | null }>({});
 
   const createModule = useMutation(api.training.create);
   const updateModule = useMutation(api.training.update);
@@ -165,10 +167,13 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
       setLessons((prev) =>
         prev.map((l, i) => (i === index ? { ...l, uploading: true } : l))
       );
+      setLessonErrors((prev) => ({ ...prev, [index]: null }));
+      setLessonUploadProgress((prev) => ({ ...prev, [index]: null }));
       setError(null);
 
       const result = await uploadMediaWithProgress(file, {
-        folder: 'mcad_training/lessons'
+        folder: 'mcad_training/lessons',
+        onProgress: (p) => setLessonUploadProgress((prev) => ({ ...prev, [index]: p }))
       });
 
       setLessons((prev) =>
@@ -185,10 +190,14 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
         })
       );
     } catch (err: any) {
-      setError(err.message || 'Erreur lors du téléversement du média');
+      console.error('Lesson upload error:', err);
+      const errMsg = err?.message || 'Erreur lors du téléversement du média';
+      setLessonErrors((prev) => ({ ...prev, [index]: errMsg }));
       setLessons((prev) =>
         prev.map((l, i) => (i === index ? { ...l, uploading: false } : l))
       );
+    } finally {
+      setLessonUploadProgress((prev) => ({ ...prev, [index]: null }));
     }
   };
 
@@ -748,7 +757,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
 
                       <input
                         type="text"
-                        placeholder="Lien vidéo (YouTube / Loom) ou média..."
+                        placeholder="Collez un lien (YouTube, Vimeo, Loom, Google Drive, MP4) ou téléversez..."
                         value={lesson.mediaUrl}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -756,7 +765,9 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                             val.includes('youtube.com') ||
                             val.includes('youtu.be') ||
                             val.includes('vimeo.com') ||
-                            val.includes('loom.com');
+                            val.includes('loom.com') ||
+                            val.includes('drive.google.com') ||
+                            /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(val);
                           setLessons((prev) =>
                             prev.map((l, i) =>
                               i === idx
@@ -774,11 +785,11 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
 
                       <label className="px-2.5 py-1.5 bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-700 rounded-lg text-xs font-medium cursor-pointer transition-colors flex items-center gap-1 shrink-0">
                         {lesson.uploading ? (
-                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />
                         ) : (
                           <Upload className="w-3 h-3 text-zinc-400" />
                         )}
-                        <span>{lesson.uploading ? 'Upload...' : 'Fichier'}</span>
+                        <span>{lesson.uploading ? 'Upload...' : 'Téléverser'}</span>
                         <input
                           type="file"
                           accept="video/*,image/*"
@@ -793,13 +804,63 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                       </label>
                     </div>
 
+                    {/* Upload progress bar */}
+                    {lessonUploadProgress[idx] && (
+                      <div className="p-2.5 bg-blue-50/90 border border-blue-200 rounded-xl space-y-1 animate-in fade-in">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-zinc-900">
+                          <span>{lessonUploadProgress[idx]?.statusText}</span>
+                          <span>{lessonUploadProgress[idx]?.percent}%</span>
+                        </div>
+                        <div className="w-full bg-blue-200/70 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${lessonUploadProgress[idx]?.percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lesson upload error */}
+                    {lessonErrors[idx] && (
+                      <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2 animate-in fade-in">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <p className="font-semibold">Téléversement non abouti</p>
+                          <p className="text-[11px] text-amber-800 leading-relaxed">{lessonErrors[idx]}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-zinc-400">
+                      💡 Téléversez une vidéo (jusqu'à 100 Mo) ou collez un lien (YouTube non répertorié, Vimeo, Loom, Google Drive) pour les vidéos très lourdes ou longues.
+                    </p>
+
                     {lesson.mediaUrl && !lesson.uploading && (
-                      <div className="max-w-xs pt-1">
-                        <MediaViewer
-                          url={lesson.mediaUrl}
-                          mediaType={lesson.mediaType}
-                          title={lesson.title}
-                        />
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-zinc-500 font-medium">
+                            {lesson.mediaType === 'VIDEO' ? '🎥 Vidéo attachée' : '📷 Média attaché'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLessons((prev) =>
+                                prev.map((l, i) => (i === idx ? { ...l, mediaUrl: '', mediaType: 'NONE' } : l))
+                              );
+                            }}
+                            className="text-xs text-rose-600 hover:underline flex items-center gap-1 font-semibold"
+                          >
+                            <X className="w-3 h-3" />
+                            <span>Retirer</span>
+                          </button>
+                        </div>
+                        <div className="max-w-md rounded-xl overflow-hidden border border-zinc-200 shadow-xs">
+                          <MediaViewer
+                            url={lesson.mediaUrl}
+                            mediaType={lesson.mediaType}
+                            title={lesson.title}
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -862,25 +923,25 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                           key={qIdx}
                           className="p-2.5 bg-white rounded-xl border border-indigo-100/90 space-y-2"
                         >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-bold text-indigo-700 uppercase">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="text-[10px] font-bold text-indigo-700 uppercase mt-1.5 shrink-0">
                               Q{qIdx + 1}
                             </span>
-                            <input
-                              type="text"
+                            <textarea
+                              rows={2}
                               required
                               placeholder={`Énoncé de la question ${qIdx + 1} *`}
                               value={q.question}
                               onChange={(e) =>
                                 handleUpdateQuestion(idx, qIdx, 'question', e.target.value)
                               }
-                              className="flex-1 px-2 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                              className="flex-1 px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-indigo-600 resize-y"
                             />
                             {(lesson.questions || []).length > 1 && (
                               <button
                                 type="button"
                                 onClick={() => handleRemoveQuestion(idx, qIdx)}
-                                className="text-zinc-400 hover:text-rose-600 p-1 rounded"
+                                className="text-zinc-400 hover:text-rose-600 p-1 rounded mt-1 shrink-0"
                                 title="Supprimer la question"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -889,13 +950,13 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                           </div>
 
                           {/* Choix QCM compacts */}
-                          <div className="space-y-1 pl-4">
+                          <div className="space-y-1.5 pl-4">
                             {q.options.map((opt, optIdx) => {
                               const isCorrect = q.correctAnswer === optIdx;
                               return (
-                                <div key={optIdx} className="flex items-center gap-1.5">
+                                <div key={optIdx} className="flex items-start gap-1.5">
                                   <label
-                                    className="cursor-pointer shrink-0"
+                                    className="cursor-pointer shrink-0 mt-2"
                                     title="Cliquer pour définir comme bonne réponse"
                                   >
                                     <input
@@ -909,15 +970,15 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                                     />
                                   </label>
 
-                                  <input
-                                    type="text"
+                                  <textarea
+                                    rows={opt.length > 50 ? 2 : 1}
                                     required
                                     placeholder={`Choix ${String.fromCharCode(65 + optIdx)}`}
                                     value={opt}
                                     onChange={(e) =>
                                       handleUpdateOption(idx, qIdx, optIdx, e.target.value)
                                     }
-                                    className={`flex-1 px-2 py-1 rounded-lg text-xs border transition-colors ${
+                                    className={`flex-1 px-2.5 py-1 rounded-lg text-xs border transition-colors resize-y leading-relaxed ${
                                       isCorrect
                                         ? 'bg-emerald-50/70 border-emerald-300 font-medium text-emerald-950'
                                         : 'bg-white border-zinc-200 text-zinc-800'
@@ -925,7 +986,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                                   />
 
                                   {isCorrect && (
-                                    <span className="text-[10px] font-semibold text-emerald-700 shrink-0">
+                                    <span className="text-[10px] font-semibold text-emerald-700 shrink-0 mt-1.5">
                                       ✓ Correct
                                     </span>
                                   )}
@@ -934,7 +995,7 @@ export const TrainingModuleEditorPage: React.FC<TrainingModuleEditorPageProps> =
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveOption(idx, qIdx, optIdx)}
-                                      className="text-zinc-400 hover:text-rose-600 p-1"
+                                      className="text-zinc-400 hover:text-rose-600 p-1 rounded mt-1 shrink-0"
                                       title="Supprimer ce choix"
                                     >
                                       <X className="w-3 h-3" />

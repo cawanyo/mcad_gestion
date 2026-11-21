@@ -2,14 +2,15 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'MCAD — Gestion de Département',
+    name: 'MCAD — Plateforme de Gestion',
     short_name: 'MCAD',
     description: 'Plateforme sobre et moderne de gestion des cultes, membres, pôles et services MCAD.',
-    start_url: '/dashboard',
+    id: '/',
+    start_url: '/?source=pwa',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait-primary',
-    background_color: '#ffffff',
+    background_color: '#09090b',
     theme_color: '#09090b',
     lang: 'fr',
     icons: [

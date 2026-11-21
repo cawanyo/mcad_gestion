@@ -14,8 +14,8 @@ const ALLOWED_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
 const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v', 'video/m4v', 'video/3gpp']);
 const ALLOWED_VIDEO_EXTS = new Set(['.mp4', '.webm', '.mov', '.m4v']);
 
-const MAX_IMAGE_SIZE = 15 * 1024 * 1024; // 15 MB
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20 MB
+const MAX_VIDEO_SIZE = 120 * 1024 * 1024; // 120 MB
 
 export async function POST(req: Request) {
   try {
@@ -52,12 +52,12 @@ export async function POST(req: Request) {
     // 3. Validate File Size
     const mediaType: 'PHOTO' | 'VIDEO' = isVideo ? 'VIDEO' : 'PHOTO';
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
-    const maxMb = isVideo ? 100 : 15;
+    const maxMb = isVideo ? 120 : 20;
 
     if (file.size > maxSize) {
       return NextResponse.json(
         {
-          error: `Le fichier est trop volumineux. Taille maximale : ${maxMb} Mo.`
+          error: `Le fichier est trop volumineux (${(file.size / (1024 * 1024)).toFixed(1)} Mo). Taille maximale : ${maxMb} Mo. Recommandation : Pour les vidéos très lourdes ou longues, collez directement un lien externe (YouTube non répertorié, Loom, Vimeo ou Google Drive).`
         },
         { status: 400 }
       );

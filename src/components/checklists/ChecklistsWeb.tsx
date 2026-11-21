@@ -934,7 +934,7 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
-                        placeholder="Collez un lien vidéo (YouTube, Vimeo, MP4) ou téléversez..."
+                        placeholder="Collez un lien vidéo (YouTube, Vimeo, Google Drive, MP4) ou téléversez..."
                         value={newStepMediaUrl}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -943,7 +943,8 @@ export const ChecklistsWeb: React.FC<ChecklistsWebProps> = ({
                             val.includes('youtu.be') ||
                             val.includes('vimeo.com') ||
                             val.includes('loom.com') ||
-                            /\.(mp4|webm|mov|m4v)$/i.test(val);
+                            val.includes('drive.google.com') ||
+                            /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(val);
                           setNewStepMediaUrl(val);
                           setNewStepMediaType(isVid ? 'VIDEO' : val ? 'PHOTO' : 'NONE');
                         }}

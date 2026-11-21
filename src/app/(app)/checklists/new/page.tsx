@@ -65,6 +65,7 @@ function CreateOrEditChecklistContent() {
   const [description, setDescription] = React.useState('');
   const [steps, setSteps] = React.useState<ChecklistFormStep[]>([{ ...EMPTY_STEP }]);
   const [stepUploadProgress, setStepUploadProgress] = React.useState<Record<number, UploadProgressInfo | null>>({});
+  const [stepErrors, setStepErrors] = React.useState<Record<number, string | null>>({});
 
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
@@ -134,6 +135,7 @@ function CreateOrEditChecklistContent() {
       return next;
     });
     setStepUploadProgress((prev) => ({ ...prev, [stepIndex]: null }));
+    setStepErrors((prev) => ({ ...prev, [stepIndex]: null }));
 
     try {
       const result = await uploadMediaWithProgress(file, {
@@ -151,14 +153,17 @@ function CreateOrEditChecklistContent() {
         };
         return next;
       });
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error('Step upload error:', e);
+      const errMsg = e?.message || "Erreur lors de l'upload du média.";
       setSteps((prev) => {
         const next = [...prev];
         next[stepIndex] = { ...next[stepIndex], uploading: false };
         return next;
       });
-      setErrorMsg("Erreur lors de l'upload du média.");
+      setStepErrors((prev) => ({ ...prev, [stepIndex]: errMsg }));
+    } finally {
+      setStepUploadProgress((prev) => ({ ...prev, [stepIndex]: null }));
     }
   };
 
@@ -392,36 +397,82 @@ function CreateOrEditChecklistContent() {
                 </div>
 
                 {/* Media Attachment */}
-                <div className="pt-1 border-t border-zinc-200/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px]">
-                  <div className="flex items-center gap-2">
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-zinc-100 border border-zinc-200 rounded-lg text-zinc-700 font-medium transition-colors">
-                      <Upload className="w-3 h-3 text-zinc-400" />
-                      <span>{step.mediaUrl ? 'Remplacer le média' : 'Ajouter un média'}</span>
+                <div className="pt-2 border-t border-zinc-200/50 space-y-2 text-[11px]">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Collez un lien (YouTube, Vimeo, Google Drive, MP4) ou téléversez..."
+                      value={step.mediaUrl}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const isVid =
+                          val.includes('youtube.com') ||
+                          val.includes('youtu.be') ||
+                          val.includes('vimeo.com') ||
+                          val.includes('loom.com') ||
+                          val.includes('drive.google.com') ||
+                          /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(val);
+                        handleStepChange(idx, 'mediaUrl', val);
+                        handleStepChange(idx, 'mediaType', isVid ? 'VIDEO' : val ? 'PHOTO' : 'NONE');
+                      }}
+                      className="flex-1 p-2 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    />
+
+                    <label className="cursor-pointer inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-bold rounded-lg text-xs transition-colors shrink-0">
+                      {step.uploading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5 text-blue-600" />
+                      )}
+                      <span>{step.uploading ? 'Envoi...' : 'Téléverser'}</span>
                       <input
                         type="file"
                         accept="image/*,video/*"
                         className="hidden"
+                        disabled={step.uploading}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) handleFileUpload(idx, file);
                         }}
                       />
                     </label>
-
-                    {step.uploading && (
-                      <span className="inline-flex items-center gap-1 text-zinc-500">
-                        <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
-                        {stepUploadProgress[idx]?.percent !== undefined
-                          ? `${stepUploadProgress[idx]?.percent}%`
-                          : 'Envoi...'}
-                      </span>
-                    )}
                   </div>
 
+                  {/* Progress bar */}
+                  {stepUploadProgress[idx] && (
+                    <div className="p-2.5 bg-blue-50/90 border border-blue-200 rounded-xl space-y-1 animate-in fade-in">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-zinc-900">
+                        <span>{stepUploadProgress[idx]?.statusText}</span>
+                        <span>{stepUploadProgress[idx]?.percent}%</span>
+                      </div>
+                      <div className="w-full bg-blue-200/70 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-blue-600 h-1.5 rounded-full transition-all duration-300 ease-out"
+                          style={{ width: `${stepUploadProgress[idx]?.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step upload error */}
+                  {stepErrors[idx] && (
+                    <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2 animate-in fade-in">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="font-semibold">Téléversement non abouti</p>
+                        <p className="text-[11px] text-amber-800 leading-relaxed">{stepErrors[idx]}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-[10px] text-zinc-400">
+                    💡 Téléversez une vidéo (jusqu'à 100 Mo) ou collez un lien (YouTube non répertorié, Vimeo, Google Drive) pour les vidéos très lourdes ou longues.
+                  </p>
+
                   {step.mediaUrl && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-zinc-500 truncate max-w-[200px]">
-                        {step.mediaType === 'VIDEO' ? 'Vidéo jointe' : 'Image jointe'}
+                    <div className="flex items-center justify-between pt-1 text-xs">
+                      <span className="text-zinc-500 font-medium truncate max-w-[200px]">
+                        {step.mediaType === 'VIDEO' ? '🎥 Vidéo jointe' : '📷 Image jointe'}
                       </span>
                       <button
                         type="button"
@@ -431,14 +482,14 @@ function CreateOrEditChecklistContent() {
                         }}
                         className="text-rose-600 hover:underline font-semibold"
                       >
-                        Retirer
+                        Retirer le média
                       </button>
                     </div>
                   )}
                 </div>
 
                 {step.mediaUrl && (
-                  <div className="mt-1.5 max-h-40 rounded-lg overflow-hidden border border-zinc-200">
+                  <div className="mt-1.5 max-h-48 rounded-lg overflow-hidden border border-zinc-200">
                     <MediaViewer
                       url={step.mediaUrl}
                       mediaType={step.mediaType}

@@ -9,10 +9,12 @@ import {
   Settings,
   ChevronDown,
   Menu,
-  Sparkles
+  Sparkles,
+  Smartphone
 } from 'lucide-react';
 import { User as UserType, NotificationItem } from '@/types';
 import { Avatar } from '@/components/ui';
+import { usePwa } from '@/components/pwa/PwaProvider';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -36,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateSettings
 }) => {
   const router = useRouter();
+  const { isInstalled, showInstallPrompt } = usePwa();
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
 
@@ -233,6 +236,19 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <Settings className="w-3.5 h-3.5 text-zinc-400" />
                   <span>Paramètres</span>
+                </button>
+              )}
+
+              {!isInstalled && (
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    showInstallPrompt();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-blue-600 hover:bg-blue-50/60 transition-colors text-left font-medium"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Installer l'application</span>
                 </button>
               )}
 

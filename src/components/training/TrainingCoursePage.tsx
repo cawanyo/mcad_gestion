@@ -532,7 +532,7 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                           className="p-4 rounded-xl border border-zinc-200/80 bg-zinc-50/50 space-y-3"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <h3 className="text-xs sm:text-sm font-bold text-zinc-900 leading-snug">
+                            <h3 className="text-xs sm:text-sm font-bold text-zinc-900 leading-snug break-words flex-1">
                               <span className="text-indigo-600 mr-1.5">Question {qIdx + 1} :</span>
                               {q.question}
                             </h3>
@@ -588,21 +588,23 @@ export const TrainingCoursePage: React.FC<TrainingCoursePageProps> = ({
                                       }));
                                     }
                                   }}
-                                  className={`w-full text-left p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2.5 transition-all cursor-pointer disabled:cursor-default ${cardStyle}`}
+                                  className={`w-full text-left p-3 rounded-xl border text-xs flex items-start justify-between gap-2.5 transition-all cursor-pointer disabled:cursor-default ${cardStyle}`}
                                 >
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <span className={`w-5 h-5 rounded-md font-bold text-[10px] flex items-center justify-center shrink-0 border ${
+                                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                                    <span className={`w-5 h-5 rounded-md font-bold text-[10px] flex items-center justify-center shrink-0 border mt-0.5 ${
                                       isSelected
                                         ? 'bg-indigo-600 text-white border-indigo-600'
                                         : 'bg-zinc-100 text-zinc-700 border-zinc-200'
                                     }`}>
                                       {String.fromCharCode(65 + optIdx)}
                                     </span>
-                                    <span className="truncate leading-relaxed">{opt}</span>
+                                    <span className="leading-relaxed break-words whitespace-normal text-left flex-1 text-xs select-none">
+                                      {opt}
+                                    </span>
                                   </div>
 
                                   {quizSubmitted && isOptionCorrect && (
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                                   )}
                                 </button>
                               );

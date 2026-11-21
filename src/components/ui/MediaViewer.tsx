@@ -82,6 +82,19 @@ export const MediaViewer: React.FC<MediaViewerProps> = ({
     return null;
   };
 
+  // Helper to extract Google Drive embed URL
+  const getGoogleDriveEmbedUrl = (link: string): string | null => {
+    try {
+      if (link.includes('drive.google.com/file/d/')) {
+        const id = link.split('/file/d/')[1]?.split('/')[0]?.split('?')[0];
+        return id ? `https://drive.google.com/file/d/${id}/preview` : null;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
   const isVideo =
     mediaType === 'VIDEO' ||
     /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(cleanUrl) ||
@@ -89,12 +102,14 @@ export const MediaViewer: React.FC<MediaViewerProps> = ({
     cleanUrl.includes('youtube.com') ||
     cleanUrl.includes('youtu.be') ||
     cleanUrl.includes('vimeo.com') ||
-    cleanUrl.includes('loom.com');
+    cleanUrl.includes('loom.com') ||
+    cleanUrl.includes('drive.google.com');
 
   const ytEmbed = getYouTubeEmbedUrl(cleanUrl);
   const vimeoEmbed = getVimeoEmbedUrl(cleanUrl);
   const loomEmbed = getLoomEmbedUrl(cleanUrl);
-  const iframeSrc = ytEmbed || vimeoEmbed || loomEmbed;
+  const gdriveEmbed = getGoogleDriveEmbedUrl(cleanUrl);
+  const iframeSrc = ytEmbed || vimeoEmbed || loomEmbed || gdriveEmbed;
 
   const aspectClass =
     aspectRatio === 'video'
